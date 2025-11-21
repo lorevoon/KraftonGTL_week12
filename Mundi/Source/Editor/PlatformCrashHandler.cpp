@@ -27,45 +27,6 @@ bool FPlatformCrashHandler::GenerateMiniDump()
 
     if (success)
     {
-        // Mirror to shared dumps directory (MUNDI_DUMP_DIR)
-        wchar_t shareDir[MAX_PATH] = { 0 };
-        DWORD got = GetEnvironmentVariableW(L"MUNDI_DUMP_DIR", shareDir, MAX_PATH);
-        if (got > 0 && got < MAX_PATH)
-        {
-            // Trim quotes if present
-            size_t len = wcslen(shareDir);
-            if (len && shareDir[0] == L'"') { // leading quote
-                for (size_t i = 0; i + 1 < len; ++i) shareDir[i] = shareDir[i + 1];
-                shareDir[--len] = L'\0';
-            }
-            if (len && shareDir[len - 1] == L'"') { shareDir[len - 1] = L'\0'; --len; }
-
-            // Fix UNC: if path starts with single backslash, make it double
-            if (len >= 1 && shareDir[0] == L'\\' && !(len >= 2 && shareDir[1] == L'\\'))
-            {
-                wchar_t tmp[MAX_PATH];
-                swprintf_s(tmp, MAX_PATH, L"\\%s", shareDir);
-                wcscpy_s(shareDir, MAX_PATH, tmp);
-                len = wcslen(shareDir);
-            }
-
-            // Ensure trailing backslash
-            if (len > 0 && shareDir[len - 1] != L'\\')
-            {
-                if (len + 1 < MAX_PATH) { shareDir[len] = L'\\'; shareDir[len + 1] = L'\0'; ++len; }
-            }
-
-            const wchar_t* base = wcsrchr(dumpPath, L'\\');
-            base = base ? base + 1 : dumpPath;
-            wchar_t target[MAX_PATH];
-            swprintf_s(target, MAX_PATH, L"%s%s", shareDir, base);
-            // Try direct dump write to the shared folder; fallback to copying
-            if (!WriteMiniDump(nullptr, target))
-            {
-                CopyFileW(dumpPath, target, FALSE);
-            }
-        }
-
         wchar_t msg[512];
         swprintf_s(msg, 512, L"MiniDump created: %s", dumpPath);
         MessageBoxW(nullptr, msg, L"MiniDump Generated", MB_OK | MB_ICONINFORMATION);
@@ -129,42 +90,6 @@ LONG WINAPI FPlatformCrashHandler::UnhandledExceptionFilter(EXCEPTION_POINTERS* 
 
     if (success)
     {
-        // Mirror to shared dumps directory (MUNDI_DUMP_DIR)
-        wchar_t shareDir[MAX_PATH] = { 0 };
-        DWORD got = GetEnvironmentVariableW(L"MUNDI_DUMP_DIR", shareDir, MAX_PATH);
-        if (got > 0 && got < MAX_PATH)
-        {
-            // Trim quotes if present
-            size_t len = wcslen(shareDir);
-            if (len && shareDir[0] == L'"') { for (size_t i = 0; i + 1 < len; ++i) shareDir[i] = shareDir[i + 1]; shareDir[--len] = L'\0'; }
-            if (len && shareDir[len - 1] == L'"') { shareDir[len - 1] = L'\0'; --len; }
-
-            // Fix UNC: if path starts with single backslash, make it double
-            if (len >= 1 && shareDir[0] == L'\\' && !(len >= 2 && shareDir[1] == L'\\'))
-            {
-                wchar_t tmp[MAX_PATH];
-                swprintf_s(tmp, MAX_PATH, L"\\%s", shareDir);
-                wcscpy_s(shareDir, MAX_PATH, tmp);
-                len = wcslen(shareDir);
-            }
-
-            // Ensure trailing backslash
-            if (len > 0 && shareDir[len - 1] != L'\\')
-            {
-                if (len + 1 < MAX_PATH) { shareDir[len] = L'\\'; shareDir[len + 1] = L'\0'; ++len; }
-            }
-
-            const wchar_t* base = wcsrchr(dumpPath, L'\\');
-            base = base ? base + 1 : dumpPath;
-            wchar_t target[MAX_PATH];
-            swprintf_s(target, MAX_PATH, L"%s%s", shareDir, base);
-            // Try direct dump write to the shared folder with exception context; fallback to copying
-            if (!WriteMiniDump(ExceptionInfo, target))
-            {
-                CopyFileW(dumpPath, target, FALSE);
-            }
-        }
-
         wchar_t msg[512];
         swprintf_s(msg, 512, L"Application crashed!\n\nMiniDump saved to:\n%s\n\nPlease send this file to developers.", dumpPath);
         MessageBoxW(nullptr, msg, L"Crash Detected", MB_OK | MB_ICONERROR);
