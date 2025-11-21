@@ -4,7 +4,7 @@
 FAABB::FAABB() : Min(FVector()), Max(FVector()) {}
 
 FAABB::FAABB(const FVector& InMin, const FVector& InMax) : Min(InMin), Max(InMax) {}
-FAABB::FAABB(const FVector* Vertices, uint32 Size) 
+FAABB::FAABB(const FVector* Vertices, uint32 Size)
 {
 	if (Size == 0)
 	{
@@ -12,7 +12,7 @@ FAABB::FAABB(const FVector* Vertices, uint32 Size)
 	}
 	Min = Vertices[0];
 	Max = Vertices[0];
-	for (int i = 1; i < Size; i++)
+	for (uint32 i = 1; i < Size; i++)
 	{
 		Min.X = Vertices[i].X < Min.X ? Vertices[i].X : Min.X;
 		Min.Y = Vertices[i].Y < Min.Y ? Vertices[i].Y : Min.Y;
@@ -25,14 +25,14 @@ FAABB::FAABB(const FVector* Vertices, uint32 Size)
 
 FAABB::FAABB(const TArray<FVector>& Vertices)
 {
-	uint32 Size = Vertices.size();
+	size_t Size = Vertices.size();
 	if (Size == 0)
 	{
 		return;
 	}
 	Min = Vertices[0];
 	Max = Vertices[0];
-	for (int i = 1; i < Size; i++)
+	for (size_t i = 1; i < Size; i++)
 	{
 		Min.X = Vertices[i].X < Min.X ? Vertices[i].X : Min.X;
 		Min.Y = Vertices[i].Y < Min.Y ? Vertices[i].Y : Min.Y;

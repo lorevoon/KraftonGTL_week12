@@ -216,6 +216,7 @@ float USkeletalMeshComponent::GetAnimationPosition()
     {
         return Single->GetPosition();
     }
+    return 0.0f;
 }
 
 void USkeletalMeshComponent::SetBoneLocalTransform(int32 BoneIndex, const FTransform& NewLocalTransform)

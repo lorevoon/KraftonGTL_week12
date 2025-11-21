@@ -2,7 +2,7 @@
 
 struct FPostProcessModifier;
 
-class FMinimalViewInfo;
+struct FMinimalViewInfo;
 class UCameraModifierBase : public UObject
 {
 public:
