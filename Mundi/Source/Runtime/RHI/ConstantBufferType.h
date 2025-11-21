@@ -1,0 +1,264 @@
+﻿#pragma once
+// b0 in VS    
+#include "Color.h"
+#include "LightManager.h"
+
+struct ModelBufferType // b0
+{
+    FMatrix Model;
+    FMatrix ModelInverseTranspose;  // For correct normal transformation with non-uniform scale
+};
+
+struct ViewProjBufferType // b1 고유번호 고정
+{
+    FMatrix View;
+    FMatrix Proj;
+    FMatrix InvView;
+    FMatrix InvProj;
+};
+
+struct DecalBufferType
+{
+    FMatrix DecalMatrix;
+    float Opacity;
+};
+
+// Fireball material parameters (b6 in PS)
+struct FireballBufferType
+{
+    float Time;
+    FVector2D Resolution;
+    float Padding0; // align to 16 bytes
+
+    FVector CameraPosition;
+    float Padding1; // align to 16 bytes
+
+    FVector2D UVScrollSpeed;
+    FVector2D UVRotateRad;
+
+    uint32 LayerCount;
+    float LayerDivBase;
+    float GateK;
+    float IntensityScale;
+};
+
+struct PostProcessBufferType // b0
+{
+    float Near;
+    float Far;
+    int IsOrthographic; // 0 = Perspective, 1 = Orthographic
+    float Padding; // 16바이트 정렬을 위한 패딩
+};
+
+struct FogBufferType // b2
+{
+    float FogDensity;
+    float FogHeightFalloff;
+    float StartDistance;
+    float FogCutoffDistance;
+
+    FVector4 FogInscatteringColor; // 16 bytes alignment 위해 중간에 넣음
+
+    float FogMaxOpacity;
+    float FogHeight; // fog base height
+    float Padding[2]; // 16바이트 정렬을 위한 패딩
+};
+
+struct alignas(16) FFadeInOutBufferType // b2
+{
+    FLinearColor FadeColor = FLinearColor(0, 0, 0, 1);  //보통 (0, 0, 0, 1)
+    
+    float Opacity = 0.0f;   // 0~1
+    float Weight  = 1.0f;
+    float _Pad[2] = {0,0};
+};
+static_assert(sizeof(FFadeInOutBufferType) % 16 == 0, "CB must be 16-byte aligned");
+
+struct alignas(16) FVinetteBufferType // b2
+{
+    FLinearColor Color;
+    
+    float     Radius    = 0.35f;                        // 효과 시작 반경(0~1)
+    float     Softness  = 0.25f;                        // 페더 폭(0~1)
+    float     Intensity = 1.0f;                       // 컬러 블렌드 강도 (0~1)
+    float     Roundness = 2.0f;                       // 1=마름모, 2= 원형, >1 더 네모에 가깝게
+    
+    float     Weight    = 1.0f;
+    float     _Pad0[3];
+};
+static_assert(sizeof(FVinetteBufferType) % 16 == 0, "CB must be 16-byte aligned");
+
+struct alignas(16) FGammaCorrectionBufferType
+{
+    float Gamma;
+    float Padding[3];
+};
+static_assert(sizeof(FGammaCorrectionBufferType) % 16 == 0, "CB must be 16-byte aligned");
+
+struct FXAABufferType // b2
+{
+    FVector2D ScreenSize; // 화면 해상도 (e.g., float2(1920.0f, 1080.0f))
+    FVector2D InvScreenSize; // 1.0f / ScreenSize (픽셀 하나의 크기)
+
+    float EdgeThresholdMin; // 엣지 감지 최소 휘도 차이 (0.0833f 권장)
+    float EdgeThresholdMax; // 엣지 감지 최대 휘도 차이 (0.166f 권장)
+    float QualitySubPix; // 서브픽셀 품질 (낮을수록 부드러움, 0.75 권장)
+    int32_t QualityIterations; // 엣지 탐색 반복 횟수 (12 권장)
+};
+
+// b0 in PS
+struct FMaterialInPs
+{
+    FVector DiffuseColor; // Kd
+    float OpticalDensity; // Ni
+
+    FVector AmbientColor; // Ka
+    float Transparency; // Tr Or d
+
+    FVector SpecularColor; // Ks
+    float SpecularExponent; // Ns
+
+    FVector EmissiveColor; // Ke
+    uint32 IlluminationModel; // illum. Default illumination model to Phong for non-Pbr materials
+
+    FVector TransmissionFilter; // Tf
+    float dummy; // 4 bytes padding
+    FMaterialInPs() = default;
+    FMaterialInPs(const FMaterialInfo& MaterialInfo)
+        :DiffuseColor(MaterialInfo.DiffuseColor),
+        OpticalDensity(MaterialInfo.OpticalDensity),
+        AmbientColor(MaterialInfo.AmbientColor),
+        Transparency(MaterialInfo.Transparency),
+        SpecularColor(MaterialInfo.SpecularColor),
+        SpecularExponent(MaterialInfo.SpecularExponent),
+        EmissiveColor(MaterialInfo.EmissiveColor),
+        IlluminationModel(MaterialInfo.IlluminationModel),
+        TransmissionFilter(MaterialInfo.TransmissionFilter),
+        dummy(0)
+    { 
+
+    }
+};
+
+
+struct FPixelConstBufferType
+{
+    FMaterialInPs Material;
+    uint32 bHasMaterial;
+    uint32 bHasDiffuseTexture;
+    uint32 bHasNormalTexture;
+	float Padding; // 16바이트 정렬을 위한 패딩
+};
+
+struct ColorBufferType // b3
+{
+    FLinearColor Color;
+    uint32 UUID;
+    FVector Padding;
+};
+
+struct FLightBufferType
+{
+    FAmbientLightInfo AmbientLight;
+    FDirectionalLightInfo DirectionalLight;
+
+    uint32 PointLightCount;
+    uint32 SpotLightCount;
+    FVector2D Padding;
+};
+
+// b10 고유번호 고정
+struct FViewportConstants
+{
+    // x = Viewport TopLeftX
+    // y = Viewport TopLeftY
+    // z = Viewport Width
+    // w = Viewport Height
+    FVector4 ViewportRect;
+
+    // x = Screen Width (전체 렌더 타겟 너비)
+    // y = Screen Height (전체 렌더 타겟 높이)
+    // z = 1.0f / Screen Width
+    // w = 1.0f / Screen Height
+    FVector4 ScreenSize;
+};
+
+struct CameraBufferType // b7
+{
+    FVector CameraPosition;
+    float Padding;
+};
+
+// b11: 타일 기반 라이트 컬링 상수 버퍼
+struct FTileCullingBufferType
+{
+    uint32 TileSize;          // 타일 크기 (픽셀, 기본 16)
+    uint32 TileCountX;        // 가로 타일 개수
+    uint32 TileCountY;        // 세로 타일 개수
+    uint32 bUseTileCulling;   // 타일 컬링 활성화 여부 (0=비활성화, 1=활성화)
+    uint32 ViewportStartX;    // 뷰포트 시작 X 좌표
+    uint32 ViewportStartY;    // 뷰포트 시작 Y 좌표
+    uint32 Padding[2];
+};
+
+struct FPointLightShadowBufferType
+{
+    FMatrix LightViewProjection[6]; // 각 큐브맵 면에 대한 뷰-프로젝션 행렬 (6개)
+    FVector LightPosition;          // 라이트의 월드 공간 위치
+    float FarPlane;                 // 섀도우 맵의 원거리 평면 (깊이 범위 계산용)
+    uint32 LightIndex;              // 현재 렌더링 중인 라이트 인덱스
+    FVector Padding;                // 16바이트 정렬
+};
+
+#define CONSTANT_BUFFER_INFO(TYPE, SLOT, VS, PS) \
+constexpr uint32 TYPE##Slot = SLOT;\
+constexpr bool TYPE##IsVS = VS;\
+constexpr bool TYPE##IsPS = PS;
+
+//매크로를 인자로 받고 그 매크로 함수에 버퍼 전달
+#define CONSTANT_BUFFER_LIST(MACRO) \
+MACRO(ModelBufferType)              \
+MACRO(DecalBufferType)              \
+MACRO(FireballBufferType)           \
+MACRO(PostProcessBufferType)        \
+MACRO(FogBufferType)                \
+MACRO(FFadeInOutBufferType)         \
+MACRO(FGammaCorrectionBufferType)   \
+MACRO(FVinetteBufferType)           \
+MACRO(FXAABufferType)               \
+MACRO(FPixelConstBufferType)        \
+MACRO(ViewProjBufferType)           \
+MACRO(ColorBufferType)              \
+MACRO(CameraBufferType)             \
+MACRO(FLightBufferType)             \
+MACRO(FViewportConstants)           \
+MACRO(FTileCullingBufferType)       \
+MACRO(FPointLightShadowBufferType)
+
+// 16 바이트 패딩 어썰트
+#define STATIC_ASSERT_CBUFFER_ALIGNMENT(Type) \
+    static_assert(sizeof(Type) % 16 == 0, "[ " #Type " ] Bad Size. Needs 16-Byte Padding.");
+CONSTANT_BUFFER_LIST(STATIC_ASSERT_CBUFFER_ALIGNMENT)
+
+//VS, PS 세팅은 함수 파라미터로 결정하게 하는게 훨씬 나을듯 나중에 수정 필요
+//그리고 UV Scroll 상수버퍼도 처리해줘야함
+CONSTANT_BUFFER_INFO(ModelBufferType, 0, true, false)
+CONSTANT_BUFFER_INFO(PostProcessBufferType, 0, false, true)
+CONSTANT_BUFFER_INFO(ViewProjBufferType, 1, true, true) // b1 카메라 행렬 고정
+CONSTANT_BUFFER_INFO(FogBufferType, 2, false, true)
+CONSTANT_BUFFER_INFO(FFadeInOutBufferType, 2, false, true)
+CONSTANT_BUFFER_INFO(FGammaCorrectionBufferType, 2, false, true)
+CONSTANT_BUFFER_INFO(FVinetteBufferType, 2, false, true)
+CONSTANT_BUFFER_INFO(FXAABufferType, 2, false, true)
+CONSTANT_BUFFER_INFO(ColorBufferType, 3, true, true)   // b3 color
+CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, true, true) // GOURAUD에도 사용되므로 VS도 true
+CONSTANT_BUFFER_INFO(DecalBufferType, 6, true, true)
+CONSTANT_BUFFER_INFO(FireballBufferType, 6, false, true)
+CONSTANT_BUFFER_INFO(CameraBufferType, 7, true, true)  // b7, VS+PS (UberLit.hlsl과 일치)
+CONSTANT_BUFFER_INFO(FLightBufferType, 8, true, true)
+CONSTANT_BUFFER_INFO(FViewportConstants, 10, true, true)   // 뷰 포트 크기에 따라 전체 화면 복사를 보정하기 위해 설정 (10번 고유번호로 사용)
+CONSTANT_BUFFER_INFO(FTileCullingBufferType, 11, false, true)  // b11, PS only (UberLit.hlsl과 일치)
+CONSTANT_BUFFER_INFO(FPointLightShadowBufferType, 12, true, true)  // b11, VS only
+
+
+

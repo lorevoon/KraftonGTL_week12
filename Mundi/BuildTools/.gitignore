@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Build outputs (if any)
+*.egg-info/
+dist/
+build/
+
+# Local analysis and documentation files
+# These are temporary files created during development
+CodeGenerator/SYSTEM_REEVALUATION.md
+CodeGenerator/UOBJECT_REFLECTION_ANALYSIS.md
+CodeGenerator/IMPROVEMENT_PROPOSAL.md
+CodeGenerator/BEFORE_AFTER_COMPARISON.md
+CodeGenerator/*.bak
+CodeGenerator/*.tmp
+
+# Test outputs
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+*.swp
+*.swo
+.*.swp
+.*.swo

@@ -1,0 +1,1027 @@
+﻿#include "pch.h"
+#include "SlateManager.h"
+
+#include "CameraActor.h"
+#include "Windows/SWindow.h"
+#include "Windows/SSplitterV.h"
+#include "Windows/SDetailsWindow.h"
+#include "Windows/SControlPanel.h"
+#include "Windows/ControlPanelWindow.h"
+#include "Windows/SViewportWindow.h"
+#include "Windows/SViewerWindow.h"
+#include "Windows/SBlendSpaceEditorWindow.h"
+#include "Windows/SSkeletalMeshViewerWindow.h"
+#include "Windows/ConsoleWindow.h"
+#include "Windows/ContentBrowserWindow.h"
+#include "Widgets/MainToolbarWidget.h"
+#include "Widgets/ConsoleWidget.h"
+#include "FViewportClient.h"
+#include "UIManager.h"
+#include "GlobalConsole.h"
+#include "ThumbnailManager.h"
+#include "Source/Runtime/Engine/Viewer/EditorAssetPreviewContext.h"
+
+IMPLEMENT_CLASS(USlateManager)
+
+USlateManager& USlateManager::GetInstance()
+{
+    static USlateManager* Instance = nullptr;
+    if (Instance == nullptr)
+    {
+        Instance = NewObject<USlateManager>();
+    }
+    return *Instance;
+}
+
+extern float CLIENTWIDTH;
+extern float CLIENTHEIGHT;
+
+SViewportWindow* USlateManager::ActiveViewport;
+
+void USlateManager::SaveSplitterConfig()
+{
+    if (!TopPanel) return;
+
+    EditorINI["TopPanel"] = std::to_string(TopPanel->SplitRatio);
+    EditorINI["LeftTop"] = std::to_string(LeftTop->SplitRatio);
+    EditorINI["LeftBottom"] = std::to_string(LeftBottom->SplitRatio);
+    EditorINI["LeftPanel"] = std::to_string(LeftPanel->SplitRatio);
+    EditorINI["RightPanel"] = std::to_string(RightPanel->SplitRatio);
+}
+
+void USlateManager::LoadSplitterConfig()
+{
+    if (!TopPanel) return;
+
+    if (EditorINI.Contains("TopPanel"))
+        TopPanel->SplitRatio = std::stof(EditorINI["TopPanel"]);
+    if (EditorINI.Contains("LeftTop"))
+        LeftTop->SplitRatio = std::stof(EditorINI["LeftTop"]);
+    if (EditorINI.Contains("LeftBottom"))
+        LeftBottom->SplitRatio = std::stof(EditorINI["LeftBottom"]);
+    if (EditorINI.Contains("LeftPanel"))
+        LeftPanel->SplitRatio = std::stof(EditorINI["LeftPanel"]);
+    if (EditorINI.Contains("RightPanel"))
+        RightPanel->SplitRatio = std::stof(EditorINI["RightPanel"]);
+}
+
+USlateManager::USlateManager()
+{
+    for (auto& Viewport : Viewports)
+        Viewport = nullptr;
+}
+
+USlateManager::~USlateManager()
+{
+    Shutdown();
+}
+
+void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FRect& InRect)
+{
+    // MainToolbar 생성
+    MainToolbar = NewObject<UMainToolbarWidget>();
+    MainToolbar->Initialize();
+
+    Device = InDevice;
+    World = InWorld;
+    Rect = InRect;
+
+    // === 전체 화면: 좌(4뷰포트) + 우(Control + Details) ===
+    TopPanel = new SSplitterH();  // 수평 분할 (좌우)
+    TopPanel->SetSplitRatio(0.7f);  // 70% 뷰포트, 30% UI
+    TopPanel->SetRect(Rect.Min.X, Rect.Min.Y, Rect.Max.X, Rect.Max.Y);
+
+    // 왼쪽: 4분할 뷰포트 영역
+    LeftPanel = new SSplitterH();  // 수평 분할 (좌우)
+    LeftTop = new SSplitterV();    // 수직 분할 (상하)
+    LeftBottom = new SSplitterV(); // 수직 분할 (상하)
+    LeftPanel->SideLT = LeftTop;
+    LeftPanel->SideRB = LeftBottom;
+
+    // 오른쪽: Control + Details (상하 분할)
+    RightPanel = new SSplitterV();  // 수직 분할 (상하)
+    RightPanel->SetSplitRatio(0.5f);  // 50-50 분할
+
+    ControlPanel = new SControlPanel();
+    DetailPanel = new SDetailsWindow();
+
+    RightPanel->SideLT = ControlPanel;   // 위쪽: ControlPanel
+    RightPanel->SideRB = DetailPanel;    // 아래쪽: DetailsWindow
+
+    // TopPanel 좌우 배치
+    TopPanel->SideLT = LeftPanel;
+    TopPanel->SideRB = RightPanel;
+
+    // === 뷰포트 생성 ===
+    Viewports[0] = new SViewportWindow();
+    Viewports[1] = new SViewportWindow();
+    Viewports[2] = new SViewportWindow();
+    Viewports[3] = new SViewportWindow();
+    MainViewport = Viewports[0];
+
+    Viewports[0]->Initialize(0, 0,
+        Rect.GetWidth() / 2, Rect.GetHeight() / 2,
+        World, Device, EViewportType::Perspective);
+
+    Viewports[1]->Initialize(Rect.GetWidth() / 2, 0,
+        Rect.GetWidth(), Rect.GetHeight() / 2,
+        World, Device, EViewportType::Orthographic_Front);
+
+    Viewports[2]->Initialize(0, Rect.GetHeight() / 2,
+        Rect.GetWidth() / 2, Rect.GetHeight(),
+        World, Device, EViewportType::Orthographic_Left);
+
+    Viewports[3]->Initialize(Rect.GetWidth() / 2, Rect.GetHeight() / 2,
+        Rect.GetWidth(), Rect.GetHeight(),
+        World, Device, EViewportType::Orthographic_Top);
+
+    World->SetEditorCameraActor(MainViewport->GetViewportClient()->GetCamera());
+
+    // 뷰포트들을 2x2로 연결
+    LeftTop->SideLT = Viewports[0];
+    LeftTop->SideRB = Viewports[1];
+    LeftBottom->SideLT = Viewports[2];
+    LeftBottom->SideRB = Viewports[3];
+
+    SwitchLayout(EViewportLayoutMode::SingleMain);
+
+    LoadSplitterConfig();
+
+    // === Console Overlay 생성 ===
+    ConsoleWindow = new UConsoleWindow();
+    if (ConsoleWindow)
+    {
+        UE_LOG("USlateManager: ConsoleWindow created successfully");
+        UGlobalConsole::SetConsoleWidget(ConsoleWindow->GetConsoleWidget());
+        UE_LOG("USlateManager: GlobalConsole connected to ConsoleWidget");
+    }
+    else
+    {
+        UE_LOG("ERROR: Failed to create ConsoleWindow");
+    }
+
+    // === Thumbnail Manager 초기화 ===
+    FThumbnailManager::GetInstance().Initialize(Device, nullptr);
+    UE_LOG("USlateManager: ThumbnailManager initialized");
+
+    // === Content Browser 생성 ===
+    ContentBrowserWindow = new UContentBrowserWindow();
+    if (ContentBrowserWindow)
+    {
+        ContentBrowserWindow->Initialize();
+        UE_LOG("USlateManager: ContentBrowserWindow created successfully");
+    }
+    else
+    {
+        UE_LOG("ERROR: Failed to create ContentBrowserWindow");
+    }
+}
+
+void USlateManager::OpenAssetViewer(UEditorAssetPreviewContext* Context)
+{
+    if (!Context) return;
+
+    SViewerWindow* TargetWindow = nullptr;
+    const EViewerType ViewerType = Context->ViewerType;
+
+    // 1. Find an existing window of the correct type by iterating through all detached windows.
+    // We also check pending open windows to handle rapid clicks.
+    TArray<SWindow*> AllWindows = DetachedWindows;
+    AllWindows.Append(PendingOpenWindows);
+
+    for (SWindow* Window : AllWindows)
+    {
+        if (ViewerType == EViewerType::Skeletal && dynamic_cast<SSkeletalMeshViewerWindow*>(Window))
+        {
+            TargetWindow = static_cast<SViewerWindow*>(Window);
+            break;
+        }
+        if (ViewerType == EViewerType::Animation && dynamic_cast<SAnimationViewerWindow*>(Window))
+        {
+            TargetWindow = static_cast<SViewerWindow*>(Window);
+            break;
+        }
+        if (ViewerType == EViewerType::BlendSpace && dynamic_cast<SBlendSpaceEditorWindow*>(Window))
+        {
+            TargetWindow = static_cast<SViewerWindow*>(Window);
+            break;
+        }
+    }
+
+    // 2. If a window of the target type already exists, tell it to open or focus a tab.
+    if (TargetWindow)
+    {
+        TargetWindow->OpenOrFocusTab(Context);
+        TargetWindow->RequestFocus();
+        UE_LOG("Found existing viewer window. Opening/focusing tab for: %s", Context->AssetPath.c_str());
+    }
+    // 3. If no such window exists, create a new one.
+    else
+    {
+        SViewerWindow* NewViewer = nullptr;
+        switch (ViewerType)
+        {
+        case EViewerType::Skeletal:
+            NewViewer = new SSkeletalMeshViewerWindow();
+            break;
+        case EViewerType::Animation:
+            NewViewer = new SAnimationViewerWindow();
+            break;
+        case EViewerType::BlendSpace:
+            NewViewer = new SBlendSpaceEditorWindow();
+            break;
+        default:
+            UE_LOG("ERROR: Unsupported asset type for viewer.");
+            return;
+        }
+
+        if (NewViewer)
+        {
+            // Open as a detached window at a default size and position
+            const float toolbarHeight = 50.0f;
+            const float availableHeight = Rect.GetHeight() - toolbarHeight;
+            const float w = Rect.GetWidth() * 0.8f;
+            const float h = availableHeight * 0.9f;
+            const float x = Rect.Left + (Rect.GetWidth() - w) * 0.5f;
+            const float y = Rect.Top + toolbarHeight + (availableHeight - h) * 0.5f;
+
+            // Initialize creates the first tab with the given context
+            NewViewer->Initialize(x, y, w, h, World, Device, Context);
+            PendingOpenWindows.Add(NewViewer);
+            UE_LOG("No existing viewer found. Opened a new asset viewer for asset: %s", Context->AssetPath.c_str());
+        }
+    }
+}
+
+void USlateManager::CloseDetachedWindow(SWindow* WindowToClose)
+{
+    if (!WindowToClose) return;
+
+    // Find 'window to close' in DetachedWindows array
+    int32 IndexToRemove = DetachedWindows.Find(WindowToClose);
+    if (IndexToRemove != -1)
+    {
+        // Clear DraggingWindow if it points to the window being closed
+        if (DraggingWindow == WindowToClose)
+        {
+            DraggingWindow = nullptr;
+        }
+
+        DetachedWindows.RemoveAt(IndexToRemove);
+        delete WindowToClose;
+        // The caller will null its pointer.
+    }
+}
+
+void USlateManager::RequestCloseDetachedWindow(SWindow* WindowToClose)
+{
+    if (PendingCloseWindows.Find(WindowToClose) == -1)
+    {
+        PendingCloseWindows.Add(WindowToClose);
+    }
+}
+
+void USlateManager::SwitchLayout(EViewportLayoutMode NewMode)
+{
+    if (NewMode == CurrentMode) return;
+
+    if (NewMode == EViewportLayoutMode::FourSplit)
+    {
+        TopPanel->SideLT = LeftPanel;
+    }
+    else if (NewMode == EViewportLayoutMode::SingleMain)
+    {
+        TopPanel->SideLT = MainViewport;
+    }
+
+    CurrentMode = NewMode;
+}
+
+void USlateManager::SwitchPanel(SWindow* SwitchPanel)
+{
+    if (TopPanel->SideLT != SwitchPanel) {
+        TopPanel->SideLT = SwitchPanel;
+        CurrentMode = EViewportLayoutMode::SingleMain;
+    }
+    else {
+        TopPanel->SideLT = LeftPanel;
+        CurrentMode = EViewportLayoutMode::FourSplit;
+    }
+}
+
+void USlateManager::Render()
+{
+    // 메인 툴바 렌더링 (항상 최상단에)
+    MainToolbar->RenderWidget();
+    if (TopPanel)
+    {
+        TopPanel->OnRender();
+    }
+
+    // Content Browser 오버레이 렌더링 (하단에서 슬라이드 업)
+    if (ContentBrowserWindow && ContentBrowserAnimationProgress > 0.0f)
+    {
+        extern float CLIENTWIDTH;
+        extern float CLIENTHEIGHT;
+
+        // 부드러운 감속을 위한 ease-out 곡선 적용
+        float EasedProgress = 1.0f - (1.0f - ContentBrowserAnimationProgress) * (1.0f - ContentBrowserAnimationProgress);
+
+        // 좌우 여백을 포함한 Content Browser 크기 계산
+        float ContentBrowserHeight = CLIENTHEIGHT * ContentBrowserHeightRatio;
+        float ContentBrowserWidth = CLIENTWIDTH - (ContentBrowserHorizontalMargin * 2.0f);
+        float ContentBrowserXPos = ContentBrowserHorizontalMargin;
+
+        // Y 위치 계산 (하단에서 슬라이드 업)
+        float YPosWhenHidden = CLIENTHEIGHT; // 화면 밖 (하단)
+        float YPosWhenVisible = CLIENTHEIGHT - ContentBrowserHeight; // 화면 내 (하단)
+        float CurrentYPos = YPosWhenHidden + (YPosWhenVisible - YPosWhenHidden) * EasedProgress;
+
+        // 둥근 모서리 스타일 적용
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.4f, 0.6f, 0.8f, 0.8f));
+
+        // 윈도우 위치 및 크기 설정
+        ImGui::SetNextWindowPos(ImVec2(ContentBrowserXPos, CurrentYPos));
+        ImGui::SetNextWindowSize(ImVec2(ContentBrowserWidth, ContentBrowserHeight));
+
+        // 윈도우 플래그
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove
+            | ImGuiWindowFlags_NoResize
+            | ImGuiWindowFlags_NoCollapse
+            | ImGuiWindowFlags_NoTitleBar;
+
+        // Content Browser 렌더링
+        bool isWindowOpen = true;
+        if (ImGui::Begin("ContentBrowserOverlay", &isWindowOpen, flags))
+        {
+            // 포커스를 잃으면 닫기
+            if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+                bIsContentBrowserVisible &&
+                !bIsContentBrowserAnimating)
+            {
+                ToggleContentBrowser(); // Content Browser 닫기
+            }
+
+            // 둥근 모서리가 있는 반투명 배경 추가
+            ImDrawList* DrawList = ImGui::GetWindowDrawList();
+            ImVec2 WindowPos = ImGui::GetWindowPos();
+            ImVec2 WindowSize = ImGui::GetWindowSize();
+            DrawList->AddRectFilled(
+                WindowPos,
+                ImVec2(WindowPos.x + WindowSize.x, WindowPos.y + WindowSize.y),
+                IM_COL32(25, 25, 30, 240), // 높은 불투명도의 어두운 배경
+                12.0f // 둥근 정도
+            );
+
+            // Content Browser 내용 렌더링
+            if (ContentBrowserWindow)
+            {
+                ContentBrowserWindow->RenderContent();
+            }
+        }
+        ImGui::End();
+
+        // 스타일 변수 및 색상 복원
+        ImGui::PopStyleColor(1);
+        ImGui::PopStyleVar(3);
+    }
+
+    // 콘솔 오버레이 렌더링 (모든 것 위에 표시)
+    if (ConsoleWindow && ConsoleAnimationProgress > 0.0f)
+    {
+        extern float CLIENTWIDTH;
+        extern float CLIENTHEIGHT;
+
+        // 부드러운 감속을 위한 ease-out 곡선 적용
+        float EasedProgress = 1.0f - (1.0f - ConsoleAnimationProgress) * (1.0f - ConsoleAnimationProgress);
+
+        // 콘솔 높이 초기화 (첫 실행 시)
+        if (ConsoleHeight == 0.0f)
+        {
+            ConsoleHeight = CLIENTHEIGHT * ConsoleHeightRatio;
+        }
+
+        // 좌우 여백을 포함한 콘솔 크기 계산
+        float ConsoleWidth = CLIENTWIDTH - (ConsoleHorizontalMargin * 2.0f);
+        float ConsoleXPos = ConsoleHorizontalMargin;
+
+        // Y 위치 계산 (하단에서 슬라이드 업)
+        float YPosWhenHidden = CLIENTHEIGHT; // 화면 밖 (하단)
+        float YPosWhenVisible = CLIENTHEIGHT - ConsoleHeight; // 화면 내 (하단)
+        float CurrentYPos = YPosWhenHidden + (YPosWhenVisible - YPosWhenHidden) * EasedProgress;
+
+        // 둥근 모서리 스타일 적용
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.4f, 0.4f, 0.4f, 0.8f));
+
+        // 윈도우 위치 및 크기 설정
+        ImGui::SetNextWindowPos(ImVec2(ConsoleXPos, CurrentYPos));
+        ImGui::SetNextWindowSize(ImVec2(ConsoleWidth, ConsoleHeight));
+
+        // 윈도우 플래그 (NoResize 유지 - 커스텀 리사이징 사용)
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove
+            | ImGuiWindowFlags_NoResize
+            | ImGuiWindowFlags_NoCollapse
+            | ImGuiWindowFlags_NoTitleBar
+            | ImGuiWindowFlags_NoScrollbar
+            | ImGuiWindowFlags_NoScrollWithMouse;
+
+        // 처음 열렸을 때 콘솔에 포커스
+        if (bConsoleShouldFocus)
+        {
+            ImGui::SetNextWindowFocus();
+            bConsoleShouldFocus = false;
+        }
+
+        // 콘솔 렌더링
+        bool isWindowOpen = true;
+        if (ImGui::Begin("ConsoleOverlay", &isWindowOpen, flags))
+        {
+            UConsoleWidget* ConsoleWidget = ConsoleWindow->GetConsoleWidget();
+            bool bIsPinned = false;
+            if (ConsoleWidget)
+            {
+                bIsPinned = ConsoleWidget->IsWindowPinned();
+            }
+
+            // 2. '핀'이 활성화되지 않았을 때만 포커스를 잃으면 닫기
+            if (!bIsPinned &&
+                !ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+                bIsConsoleVisible &&
+                !bIsConsoleAnimating)
+            {
+                ToggleConsole(); // 콘솔 닫기
+            }
+
+            // 둥근 모서리가 있는 반투명 배경 추가
+            ImDrawList* DrawList = ImGui::GetWindowDrawList();
+            ImVec2 WindowPos = ImGui::GetWindowPos();
+            ImVec2 WindowSize = ImGui::GetWindowSize();
+            DrawList->AddRectFilled(
+                WindowPos,
+                ImVec2(WindowPos.x + WindowSize.x, WindowPos.y + WindowSize.y),
+                IM_COL32(20, 20, 20, 240), // 높은 불투명도의 어두운 배경
+                12.0f // 둥근 정도
+            );
+
+            // 콘솔 위젯 렌더링
+            ConsoleWindow->RenderWidget();
+
+            // 윗 테두리 리사이징 처리 (애니메이션이 완료된 경우에만)
+            if (!bIsConsoleAnimating && EasedProgress >= 1.0f)
+            {
+                ImVec2 MousePos = ImGui::GetMousePos();
+
+                // 윗 테두리 영역 정의
+                ImVec2 ResizeBorderMin = ImVec2(WindowPos.x, WindowPos.y);
+                ImVec2 ResizeBorderMax = ImVec2(WindowPos.x + WindowSize.x, WindowPos.y + ConsoleResizeBorderThickness);
+
+                bool bIsHoveringResizeBorder = ImGui::IsMouseHoveringRect(ResizeBorderMin, ResizeBorderMax);
+
+                // 마우스 커서 변경
+                if (bIsHoveringResizeBorder || bIsResizingConsole)
+                {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                }
+
+                // 드래그 시작
+                if (bIsHoveringResizeBorder && ImGui::IsMouseClicked(0))
+                {
+                    bIsResizingConsole = true;
+                    ResizeDragStartY = MousePos.y;
+                    ResizeDragStartHeight = ConsoleHeight;
+                }
+
+                // 드래그 중
+                if (bIsResizingConsole)
+                {
+                    if (ImGui::IsMouseDown(0))
+                    {
+                        // 드래그 거리 계산 (위로 드래그하면 음수, 아래로 드래그하면 양수)
+                        float DragDelta = MousePos.y - ResizeDragStartY;
+
+                        // 새로운 높이 계산 (위로 드래그하면 높이 증가)
+                        float NewHeight = ResizeDragStartHeight - DragDelta;
+
+                        // 최소/최대 높이 제한
+                        float MaxHeight = CLIENTHEIGHT * ConsoleMaxHeightRatio;
+                        NewHeight = std::max(ConsoleMinHeight, std::min(NewHeight, MaxHeight));
+
+                        ConsoleHeight = NewHeight;
+                    }
+                    else
+                    {
+                        // 마우스 버튼을 놓으면 드래그 종료
+                        bIsResizingConsole = false;
+                    }
+                }
+
+                // 리사이징 핸들 시각화 (선택사항)
+                if (bIsHoveringResizeBorder || bIsResizingConsole)
+                {
+                    DrawList->AddRectFilled(
+                        ResizeBorderMin,
+                        ResizeBorderMax,
+                        IM_COL32(100, 150, 255, 100) // 밝은 파란색 반투명
+                    );
+                }
+            }
+        }
+        ImGui::End();
+
+        // 스타일 변수 및 색상 복원
+        ImGui::PopStyleColor(1);
+        ImGui::PopStyleVar(3);
+    }
+    
+    // Render detached viewer on top
+    for (SWindow* Window : DetachedWindows)
+    {
+        Window->OnRender();
+    }
+
+    // Process pending close windows
+    for (SWindow* Window : PendingCloseWindows)
+    {
+        CloseDetachedWindow(Window);
+    }
+    PendingCloseWindows.Empty();
+}
+
+void USlateManager::RenderAfterUI()
+{
+    // 뷰포트 렌더링은 이제 ImGui draw callback에서 처리됨
+    // (SAnimationViewerWindow::ViewportRenderCallback 참조)
+    // 따라서 여기서는 아무것도 하지 않음
+}
+
+void USlateManager::Update(float DeltaSeconds)
+{
+    ProcessInput();
+    // MainToolbar 업데이트
+    MainToolbar->Update();
+
+    if (TopPanel)
+    {
+        // 툴바 높이만큼 아래로 이동 (50px)
+        const float toolbarHeight = 50.0f;
+        TopPanel->Rect = FRect(0, toolbarHeight, CLIENTWIDTH, CLIENTHEIGHT);
+        TopPanel->OnUpdate(DeltaSeconds);
+    }
+
+    for (SWindow* Window : DetachedWindows)
+    {
+        Window->OnUpdate(DeltaSeconds);
+    }
+
+    // 콘솔 애니메이션 업데이트
+    if (bIsConsoleAnimating)
+    {
+        if (bIsConsoleVisible)
+        {
+            // 애니메이션 인 (나타남)
+            ConsoleAnimationProgress += DeltaSeconds / ConsoleAnimationDuration;
+            if (ConsoleAnimationProgress >= 1.0f)
+            {
+                ConsoleAnimationProgress = 1.0f;
+                bIsConsoleAnimating = false;
+            }
+        }
+        else
+        {
+            // 애니메이션 아웃 (사라짐)
+            ConsoleAnimationProgress -= DeltaSeconds / ConsoleAnimationDuration;
+            if (ConsoleAnimationProgress <= 0.0f)
+            {
+                ConsoleAnimationProgress = 0.0f;
+                bIsConsoleAnimating = false;
+            }
+        }
+    }
+
+    // Content Browser 애니메이션 업데이트
+    if (bIsContentBrowserAnimating)
+    {
+        if (bIsContentBrowserVisible)
+        {
+            // 애니메이션 인 (나타남)
+            ContentBrowserAnimationProgress += DeltaSeconds / ContentBrowserAnimationDuration;
+            if (ContentBrowserAnimationProgress >= 1.0f)
+            {
+                ContentBrowserAnimationProgress = 1.0f;
+                bIsContentBrowserAnimating = false;
+            }
+        }
+        else
+        {
+            // 애니메이션 아웃 (사라짐)
+            ContentBrowserAnimationProgress -= DeltaSeconds / ContentBrowserAnimationDuration;
+            if (ContentBrowserAnimationProgress <= 0.0f)
+            {
+                ContentBrowserAnimationProgress = 0.0f;
+                bIsContentBrowserAnimating = false;
+            }
+        }
+    }
+
+    // ConsoleWindow 업데이트
+    if (ConsoleWindow && ConsoleAnimationProgress > 0.0f)
+    {
+        ConsoleWindow->Update();
+    }
+}
+
+void USlateManager::ProcessInput()
+{
+    const FVector2D MousePosition = INPUT.GetMousePosition();
+
+    // ImGui가 마우스 입력을 사용 중인지 체크
+    ImGuiIO& io = ImGui::GetIO();
+    bool bImGuiWantsMouse = io.WantCaptureMouse;
+
+    SWindow* HoveredDetachedWindow = nullptr;
+
+    // 마우스가 올라가 있는 분리된 윈도우 찾기
+    // 역순으로 순회 (z-order: 마지막 = 최상단)
+    for (int i = DetachedWindows.Num() - 1; i >= 0; --i)
+    {
+        SWindow* Window = DetachedWindows[i];
+        if (Window && Window->Rect.Contains(MousePosition))
+        {
+            // 뷰어 윈도우인 경우 추가 체크
+            SViewerWindow* ViewerWindow = dynamic_cast<SViewerWindow*>(Window);
+            if (ViewerWindow)
+            {
+                // 마우스가 뷰포트 영역(CenterRect)에 있으면 입력 전달
+                // (드롭다운 팝업이 열려있어도 뷰포트 조작 가능하도록)
+                if (ViewerWindow->GetCenterRect().Contains(MousePosition))
+                {
+                    // 뷰포트가 실제로 호버되어 있는지 확인 (ImGui Z-order 고려)
+                    // 다른 뷰어의 뷰포트가 위에 있으면 스킵
+                    if (!ViewerWindow->IsViewportHovered())
+                    {
+                        continue;  // 다음 윈도우 체크
+                    }
+                    HoveredDetachedWindow = Window;
+                    break;
+                }
+
+                // 뷰포트 영역 밖이고, 뷰어가 접혀있으면(collapsed) IsWindowHovered가 false
+                // 접혀있는 뷰어는 메인 뷰포트 입력을 막지 않도록 스킵
+                if (!ViewerWindow->IsWindowHovered())
+                {
+                    continue;  // 다음 윈도우 체크
+                }
+            }
+
+            // 영역 안에 마우스가 있으면 해당 윈도우 선택
+            HoveredDetachedWindow = Window;
+            break;
+        }
+    }
+
+    // 클릭 감지
+    bool bLeftClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+    bool bRightClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+
+    // 뷰어 윈도우 클릭 시 최상단으로 가져오기 (언리얼 엔진처럼)
+    if ((bLeftClicked || bRightClicked) && HoveredDetachedWindow)
+    {
+        SViewerWindow* ClickedViewer = dynamic_cast<SViewerWindow*>(HoveredDetachedWindow);
+
+        bool bShouldBringToFront = false;
+        if (ClickedViewer)
+        {
+            // 뷰어 윈도우: 어디를 클릭하든 항상 bring-to-front (언리얼 엔진처럼)
+            // 패널 클릭, 뷰포트 클릭 상관없이 뷰어를 클릭하면 최상단으로
+            bShouldBringToFront = true;
+        }
+        else
+        {
+            // 뷰어가 아닌 윈도우: ImGui가 마우스를 원하지 않을 때만
+            bShouldBringToFront = !bImGuiWantsMouse;
+        }
+
+        if (bShouldBringToFront)
+        {
+            // 배열에서 해당 윈도우의 위치 찾기
+            int32 WindowIndex = DetachedWindows.Find(HoveredDetachedWindow);
+            if (WindowIndex != -1 && WindowIndex != DetachedWindows.Num() - 1)
+            {
+                // 배열에서 제거하고 마지막에 다시 추가 (z-order 최상단)
+                DetachedWindows.RemoveAt(WindowIndex);
+                DetachedWindows.Add(HoveredDetachedWindow);
+
+                // ImGui 포커스 요청
+                if (ClickedViewer)
+                {
+                    ClickedViewer->RequestFocus();
+                }
+            }
+        }
+    }
+
+    // 호버된 윈도우에 입력 처리
+    if (bLeftClicked)
+    {
+        if (HoveredDetachedWindow)
+        {
+            HoveredDetachedWindow->OnMouseDown(MousePosition, 0);
+            // 좌클릭 시작 - 드래그 시작 (뷰포트 밖으로 나가도 입력 계속 전달하기 위해)
+            DraggingWindow = HoveredDetachedWindow;
+        }
+        else if (!bImGuiWantsMouse)
+        {
+            OnMouseDown(MousePosition, 0);
+        }
+    }
+    if (bRightClicked)
+    {
+        if (HoveredDetachedWindow)
+        {
+            HoveredDetachedWindow->OnMouseDown(MousePosition, 1);
+        }
+        else if (!bImGuiWantsMouse)
+        {
+            OnMouseDown(MousePosition, 1);
+        }
+    }
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+    {
+        // 드래그 중이었으면 드래그 중인 윈도우에 전달 (뷰포트 밖에서 놓아도 처리)
+        if (DraggingWindow)
+        {
+            DraggingWindow->OnMouseUp(MousePosition, 0);
+            DraggingWindow = nullptr;  // 드래그 종료
+        }
+        else if (HoveredDetachedWindow)
+        {
+            HoveredDetachedWindow->OnMouseUp(MousePosition, 0);
+        }
+        else if (!bImGuiWantsMouse)
+        {
+            OnMouseUp(MousePosition, 0);
+        }
+    }
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+    {
+        if (HoveredDetachedWindow)
+        {
+            HoveredDetachedWindow->OnMouseUp(MousePosition, 1);
+        }
+        else if (!bImGuiWantsMouse)
+        {
+            OnMouseUp(MousePosition, 1);
+        }
+    }
+
+    // 마우스 이동 이벤트 전달
+    // 드래그 중이면 드래그 중인 윈도우에 우선 전달 (뷰포트 밖으로 나가도 기즈모 조작 유지)
+    if (DraggingWindow)
+    {
+        DraggingWindow->OnMouseMove(MousePosition);
+    }
+    else if (HoveredDetachedWindow)
+    {
+        HoveredDetachedWindow->OnMouseMove(MousePosition);
+    }
+    else
+    {
+        OnMouseMove(MousePosition);
+    }
+
+    // Alt + ` (억음 부호 키)로 콘솔 토글
+    if (ImGui::IsKeyPressed(ImGuiKey_GraveAccent) && ImGui::GetIO().KeyAlt)
+    {
+        ToggleConsole();
+    }
+
+    // Ctrl + Space로 Content Browser 토글
+    if (ImGui::IsKeyPressed(ImGuiKey_Space) && ImGui::GetIO().KeyCtrl)
+    {
+        ToggleContentBrowser();
+    }
+
+    // ESC closes the most recently opened detached window
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+    {
+        if (!DetachedWindows.IsEmpty())
+        {
+            SWindow* WindowToClose = DetachedWindows.Last();
+            CloseDetachedWindow(WindowToClose);
+        }
+    }
+
+    // 단축키로 기즈모 모드 변경 (뷰어가 포커스되지 않았을 때만)
+    bool bAnyViewerFocused = false;
+    for (SWindow* Window : DetachedWindows)
+    {
+        SViewerWindow* Viewer = dynamic_cast<SViewerWindow*>(Window);
+        if (Viewer && Viewer->IsWindowFocused())
+        {
+            bAnyViewerFocused = true;
+            break;
+        }
+    }
+
+    if (World->GetGizmoActor() && !bAnyViewerFocused)
+        World->GetGizmoActor()->ProcessGizmoModeSwitch();
+
+    if (!PendingCloseWindows.IsEmpty())
+    {
+        for (SWindow* Window : PendingCloseWindows)
+        {
+            CloseDetachedWindow(Window);
+        }
+        PendingCloseWindows.Empty();
+    }
+
+    if (!PendingOpenWindows.IsEmpty())
+    {
+        for (SWindow* Window : PendingOpenWindows)
+        {
+            DetachedWindows.Add(Window);
+        }
+        PendingOpenWindows.Empty();
+    }
+}
+
+void USlateManager::OnMouseMove(FVector2D MousePos)
+{
+    // 역순으로 순회 (z-order: 마지막 = 최상단)
+    for (int i = DetachedWindows.Num() - 1; i >= 0; --i)
+    {
+        SWindow* Window = DetachedWindows[i];
+        if (Window && Window->IsHover(MousePos))
+        {
+            // 뷰어 윈도우인 경우: collapsed 상태면 스킵
+            SViewerWindow* ViewerWindow = dynamic_cast<SViewerWindow*>(Window);
+            if (ViewerWindow)
+            {
+                // 뷰어가 접혀있으면 메인 뷰포트로 입력 전달
+                if (!ViewerWindow->IsWindowHovered())
+                {
+                    continue;  // 다음 윈도우 체크
+                }
+            }
+
+            Window->OnMouseMove(MousePos);
+            return;
+        }
+    }
+
+    if (ActiveViewport)
+    {
+        ActiveViewport->OnMouseMove(MousePos);
+    }
+    else if (TopPanel)
+    {
+        TopPanel->OnMouseMove(MousePos);
+    }
+}
+
+void USlateManager::OnMouseDown(FVector2D MousePos, uint32 Button)
+{
+    if (TopPanel)
+    {
+        TopPanel->OnMouseDown(MousePos, Button);
+
+        // 항상 마우스 아래에 있는 뷰포트를 체크 (이전 ActiveViewport에 고정되지 않음)
+        for (auto* VP : Viewports)
+        {
+            if (VP && VP->Rect.Contains(MousePos))
+            {
+                ActiveViewport = VP;
+
+                // 우클릭인 경우 커서 숨김 및 잠금
+                if (Button == 1)
+                {
+                    INPUT.SetCursorVisible(false);
+                    INPUT.LockCursor();
+                }
+                break;
+            }
+        }
+    }
+}
+
+void USlateManager::OnMouseUp(FVector2D MousePos, uint32 Button)
+{
+    // 우클릭 해제 시 커서 복원 (ActiveViewport와 무관하게 처리)
+    if (Button == 1 && INPUT.IsCursorLocked())
+    {
+        INPUT.SetCursorVisible(true);
+        INPUT.ReleaseCursor();
+    }
+    
+    if (ActiveViewport)
+    {
+        ActiveViewport->OnMouseUp(MousePos, Button);
+        ActiveViewport = nullptr; // 드래그 끝나면 해제
+    }
+    // NOTE: ActiveViewport가 있더라도 Up 이벤트는 항상 보내주어 드래그 관련 버그를 제거
+    if (TopPanel)
+    {
+        TopPanel->OnMouseUp(MousePos, Button);
+    }
+}
+
+void USlateManager::OnShutdown()
+{
+    SaveSplitterConfig();
+}
+
+void USlateManager::Shutdown()
+{
+    if (bIsShutdown) { return; }
+    bIsShutdown = true;
+    // 레이아웃/설정 저장
+    SaveSplitterConfig();
+
+    // 콘솔 윈도우 삭제
+    if (ConsoleWindow)
+    {
+        delete ConsoleWindow;
+        ConsoleWindow = nullptr;
+        UE_LOG("USlateManager: ConsoleWindow destroyed");
+    }
+
+    // Content Browser 윈도우 삭제
+    if (ContentBrowserWindow)
+    {
+        delete ContentBrowserWindow;
+        ContentBrowserWindow = nullptr;
+        UE_LOG("USlateManager: ContentBrowserWindow destroyed");
+    }
+
+    // Thumbnail Manager 종료
+    FThumbnailManager::GetInstance().Shutdown();
+    UE_LOG("USlateManager: ThumbnailManager shutdown");
+
+    // D3D 컨텍스트를 해제하기 위해 UI 패널과 뷰포트를 명시적으로 삭제
+    if (TopPanel) { delete TopPanel; TopPanel = nullptr; }
+    if (LeftTop) { delete LeftTop; LeftTop = nullptr; }
+    if (LeftBottom) { delete LeftBottom; LeftBottom = nullptr; }
+    if (LeftPanel) { delete LeftPanel; LeftPanel = nullptr; }
+    if (RightPanel) { delete RightPanel; RightPanel = nullptr; }
+
+    if (ControlPanel) { delete ControlPanel; ControlPanel = nullptr; }
+    if (DetailPanel) { delete DetailPanel; DetailPanel = nullptr; }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        if (Viewports[i]) { delete Viewports[i]; Viewports[i] = nullptr; }
+    }
+    MainViewport = nullptr;
+    ActiveViewport = nullptr;
+
+    for (SWindow* Window : DetachedWindows)
+    {
+        delete Window;
+    }
+    DetachedWindows.Empty();
+}
+
+void USlateManager::SetPIEWorld(UWorld* InWorld)
+{
+    MainViewport->SetVClientWorld(InWorld);
+    // PIE에도 Main Camera Set
+    InWorld->SetEditorCameraActor(MainViewport->GetViewportClient()->GetCamera());
+}
+
+void USlateManager::ToggleConsole()
+{
+    bIsConsoleVisible = !bIsConsoleVisible;
+    bIsConsoleAnimating = true;
+
+    // 콘솔을 열 때 포커스 플래그 설정
+    if (bIsConsoleVisible)
+    {
+        bConsoleShouldFocus = true;
+    }
+}
+
+void USlateManager::ForceOpenConsole()
+{
+    if (!bIsConsoleVisible)
+    {
+        // 2. 토글 함수를 호출하여 열기 상태(true)로 전환하고 애니메이션 시작
+        ToggleConsole();
+    }
+}
+
+void USlateManager::ToggleContentBrowser()
+{
+    bIsContentBrowserVisible = !bIsContentBrowserVisible;
+    bIsContentBrowserAnimating = true;
+}
+
+bool USlateManager::IsContentBrowserVisible() const
+{
+    return bIsContentBrowserVisible;
+}

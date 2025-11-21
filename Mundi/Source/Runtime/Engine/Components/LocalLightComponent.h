@@ -1,0 +1,56 @@
+﻿#pragma once
+
+#include "LightComponent.h"
+#include "ULocalLightComponent.generated.h"
+
+// 위치 기반 로컬 라이트의 공통 베이스 (Point, Spot)
+UCLASS(DisplayName="로컬 라이트 컴포넌트", Description="국소 조명 컴포넌트입니다")
+class ULocalLightComponent : public ULightComponent
+{
+public:
+
+	GENERATED_REFLECTION_BODY()
+
+	ULocalLightComponent();
+	virtual ~ULocalLightComponent() override;
+
+public:
+
+    // ===== Lua-Bindable Properties (Auto-moved from protected/private) =====
+
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 100.0")
+	float AttenuationRadius = 5.0f;			// 감쇠 반경
+
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.1, 10.0")
+	float FalloffExponent = 2.0f;			// 감쇠 지수 (bUseInverseSquareFalloff = false일 때 사용)
+
+	UPROPERTY(EditAnywhere, Category="Light")
+	bool bUseInverseSquareFalloff = true;	// true: Inverse Square Falloff (물리 법칙), false: Exponent Falloff (예술적 제어)
+	// Attenuation Properties
+	void SetAttenuationRadius(float InRadius) { AttenuationRadius = InRadius; }
+	float GetAttenuationRadius() const { return AttenuationRadius; }
+
+	void SetFalloffExponent(float InExponent) { FalloffExponent = InExponent; }
+	float GetFalloffExponent() const { return FalloffExponent; }
+
+	// 감쇠 방식 선택 (Unreal Engine style)
+	// true: Inverse Square Falloff (물리적으로 정확한 역제곱 감쇠)
+	// false: Exponent Falloff (예술적 제어를 위한 지수 기반 감쇠)
+	void SetUseInverseSquareFalloff(bool bInUse) { bUseInverseSquareFalloff = bInUse; }
+	bool IsUsingInverseSquareFalloff() const { return bUseInverseSquareFalloff; }
+
+	// 거리 기반 감쇠 계산
+	// 반환값: 0.0 (영향 없음) ~ 1.0 (최대 영향)
+	// - 0.0: AttenuationRadius 밖, 라이트 영향 없음
+	// - 0.0 < x < 1.0: 부분적 영향 (거리에 따라 감쇠)
+	// - 1.0: 라이트 중심, 최대 영향
+	virtual float GetAttenuationFactor(const FVector& WorldPosition) const;
+
+	// Serialization & Duplication
+	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+	virtual void DuplicateSubObjects() override;
+
+protected:
+
+
+};

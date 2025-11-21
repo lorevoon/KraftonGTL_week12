@@ -1,0 +1,3 @@
+[submodule "Mundi/BuildTools"]
+	path = Mundi/BuildTools
+	url = https://github.com/Mundi-Buildtool/Mundi-Buildtool
