@@ -640,8 +640,8 @@ void SViewerWindow::RenderLeftPanel(float PanelWidth)
 
     // Browse...
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.23f, 0.25f, 0.27f, 1.00f)); // #3A3F45
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.28f, 0.32f, 0.34f, 1.00f)); // #485057
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.18f, 0.20f, 0.21f, 1.00f)); // #2E3337
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.28f, 0.30f, 0.33f, 1.00f)); // #474D54
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.19f, 0.21f, 0.23f, 1.00f)); // #30363B
     if (ImGui::Button("Browse...", ImVec2(buttonWidth, buttonHeight)))
     {
         auto widePath = FPlatformProcess::OpenLoadFileDialog(
@@ -803,91 +803,87 @@ void SViewerWindow::RenderLeftPanel(float PanelWidth)
             }
 
             std::function<void(int32)> DrawNode = [&](int32 Index)
+            {
+                const bool bLeaf = Children[Index].IsEmpty();
+                ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
+
+                if (bLeaf)
                 {
-                    const bool bLeaf = Children[Index].IsEmpty();
-                    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
+                    flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+                }
 
-                    if (bLeaf)
+                // 펼쳐진 노드는 명시적으로 열린 상태로 설정
+                if (ActiveState->ExpandedBoneIndices.count(Index) > 0)
+                {
+                    ImGui::SetNextItemOpen(true);
+                }
+
+                ImGui::PushID(Index);
+                const char* Label = Bones[Index].Name.c_str();
+
+                if (ActiveState->SelectedBoneIndex == Index)
+                {
+                    flags |= ImGuiTreeNodeFlags_Selected;
+                    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.35f, 0.55f, 0.85f, 0.8f));
+                    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.40f, 0.60f, 0.90f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.30f, 0.50f, 0.80f, 1.0f));
+                }
+
+                bool open = ImGui::TreeNodeEx((void*)(intptr_t)Index, flags, "%s", Label ? Label : "<noname>");
+
+                if (ActiveState->SelectedBoneIndex == Index)
+                {
+                    ImGui::PopStyleColor(3);
+
+                    if (ActiveState->bRequestScrollToBone)
                     {
-                        flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+                        ImGui::SetScrollHereY(0.5f);    // 선택된 본까지 스크롤
+                        ActiveState->bRequestScrollToBone = false; // 요청 처리 완료
                     }
+                }
 
-                    // 펼쳐진 노드는 명시적으로 열린 상태로 설정
-                    if (ActiveState->ExpandedBoneIndices.count(Index) > 0)
+                // 사용자가 수동으로 노드를 접거나 펼쳤을 때 상태 업데이트
+                if (ImGui::IsItemToggledOpen())
+                {
+                    if (open)
+                        ActiveState->ExpandedBoneIndices.insert(Index);
+                    else
+                        ActiveState->ExpandedBoneIndices.erase(Index);
+                }
+
+                if (ImGui::IsItemClicked())
+                {
+                    if (ActiveState->SelectedBoneIndex != Index)
                     {
-                        ImGui::SetNextItemOpen(true);
-                    }
+                        ActiveState->SelectedBoneIndex = Index;
+                        ActiveState->SelectedNotify.Invalidate();
+                        ActiveState->bBoneLinesDirty = true;
+                        ActiveState->bRequestScrollToBone = true;
 
-                    if (ActiveState->SelectedBoneIndex == Index)
-                    {
-                        flags |= ImGuiTreeNodeFlags_Selected;
-                    }
+                        ExpandToSelectedBone(ActiveState, Index);
 
-                    ImGui::PushID(Index);
-                    const char* Label = Bones[Index].Name.c_str();
-
-                    if (ActiveState->SelectedBoneIndex == Index)
-                    {
-                        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.35f, 0.55f, 0.85f, 0.8f));
-                        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.40f, 0.60f, 0.90f, 1.0f));
-                        ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.30f, 0.50f, 0.80f, 1.0f));
-                    }
-
-                    bool open = ImGui::TreeNodeEx((void*)(intptr_t)Index, flags, "%s", Label ? Label : "<noname>");
-
-                    if (ActiveState->SelectedBoneIndex == Index)
-                    {
-                        ImGui::PopStyleColor(3);
-
-                        if (ActiveState->bRequestScrollToBone)
+                        if (ActiveState->PreviewActor && ActiveState->World)
                         {
-                            ImGui::SetScrollHereY(0.5f);    // 선택된 본까지 스크롤
-                            ActiveState->bRequestScrollToBone = false; // 요청 처리 완료
-                        }
-                    }
-
-                    // 사용자가 수동으로 노드를 접거나 펼쳤을 때 상태 업데이트
-                    if (ImGui::IsItemToggledOpen())
-                    {
-                        if (open)
-                            ActiveState->ExpandedBoneIndices.insert(Index);
-                        else
-                            ActiveState->ExpandedBoneIndices.erase(Index);
-                    }
-
-                    if (ImGui::IsItemClicked())
-                    {
-                        if (ActiveState->SelectedBoneIndex != Index)
-                        {
-                            ActiveState->SelectedBoneIndex = Index;
-                            ActiveState->SelectedNotify.Invalidate();
-                            ActiveState->bBoneLinesDirty = true;
-                            ActiveState->bRequestScrollToBone = true;
-
-                            ExpandToSelectedBone(ActiveState, Index);
-
-                            if (ActiveState->PreviewActor && ActiveState->World)
+                            ActiveState->PreviewActor->RepositionAnchorToBone(Index);
+                            if (USceneComponent* Anchor = ActiveState->PreviewActor->GetBoneGizmoAnchor())
                             {
-                                ActiveState->PreviewActor->RepositionAnchorToBone(Index);
-                                if (USceneComponent* Anchor = ActiveState->PreviewActor->GetBoneGizmoAnchor())
-                                {
-                                    ActiveState->World->GetSelectionManager()->SelectActor(ActiveState->PreviewActor);
-                                    ActiveState->World->GetSelectionManager()->SelectComponent(Anchor);
-                                }
+                                ActiveState->World->GetSelectionManager()->SelectActor(ActiveState->PreviewActor);
+                                ActiveState->World->GetSelectionManager()->SelectComponent(Anchor);
                             }
                         }
                     }
+                }
 
-                    if (!bLeaf && open)
+                if (!bLeaf && open)
+                {
+                    for (int32 Child : Children[Index])
                     {
-                        for (int32 Child : Children[Index])
-                        {
-                            DrawNode(Child);
-                        }
-                        ImGui::TreePop();
+                        DrawNode(Child);
                     }
-                    ImGui::PopID();
-                };
+                    ImGui::TreePop();
+                }
+                ImGui::PopID();
+            };
 
             for (int32 i = 0; i < Bones.size(); ++i)
             {
@@ -900,6 +896,21 @@ void SViewerWindow::RenderLeftPanel(float PanelWidth)
             ImGui::EndChild();
         }
     }
+}
+
+static void SetFullItemWidthWithLabelMargin()
+{
+    // ImGui's internal ItemInnerSpacing is the gap between the label and the input field.
+    // Calculate the width of the longest expected label text ("Z")
+    const float AvailableWidth = ImGui::GetContentRegionAvail().x;
+    const float LabelSpacing = ImGui::GetStyle().ItemInnerSpacing.x;
+    const float LongestLabelWidth = ImGui::CalcTextSize("Z").x;
+
+    // Calculated Input Field Width = (Available Width) - (Longest Label Width) - (Spacing)
+    const float InputWidth = AvailableWidth - LongestLabelWidth - LabelSpacing;
+
+    // Apply the calculated width to the next item (the input field of DragFloat)
+    ImGui::SetNextItemWidth(InputWidth);
 }
 
 void SViewerWindow::RenderRightPanel()
@@ -920,7 +931,7 @@ void SViewerWindow::RenderRightPanel()
     ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.35f, 0.35f, 0.6f));
     ImGui::Separator();
     ImGui::PopStyleColor();
-    ImGui::Dummy(ImVec2(0, 6));
+    ImGui::Dummy(ImVec2(0, 8));
     ImGui::Spacing();
 
     // === 선택된 본의 트랜스폼 편집 UI ===
@@ -939,7 +950,10 @@ void SViewerWindow::RenderRightPanel()
     // Bone Name
     ImGui::Text("Selected Bone");
     ImGui::Separator();
+    ImGui::Dummy(ImVec2(0, 1));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.6f, 1.0f, 1.0f));
     ImGui::TextWrapped("%s", SelectedBone.Name.c_str());
+    ImGui::PopStyleColor();
     ImGui::Dummy(ImVec2(0, 4));
 
     // Current Transform
@@ -950,13 +964,15 @@ void SViewerWindow::RenderRightPanel()
     // LOCATION
     // ------------------------------------------
     ImGui::Text("Location");
+    ImGui::Dummy(ImVec2(0, 1));
     bool bLocChanged = false;
 
-    ImGui::PushItemWidth(-1);
+    SetFullItemWidthWithLabelMargin();
     bLocChanged |= ImGui::DragFloat("X##loc", &ActiveState->EditBoneLocation.X, 0.1f);
+    SetFullItemWidthWithLabelMargin();
     bLocChanged |= ImGui::DragFloat("Y##loc", &ActiveState->EditBoneLocation.Y, 0.1f);
+    SetFullItemWidthWithLabelMargin();
     bLocChanged |= ImGui::DragFloat("Z##loc", &ActiveState->EditBoneLocation.Z, 0.1f);
-    ImGui::PopItemWidth();
 
     if (bLocChanged) {
         ApplyBoneTransform(ActiveState, true, false, false);
@@ -969,17 +985,18 @@ void SViewerWindow::RenderRightPanel()
     // ROTATION
     // ------------------------------------------
     ImGui::Text("Rotation");
-
+    ImGui::Dummy(ImVec2(0, 1));
     bool bRotChanged = false;
 
     if (ImGui::IsAnyItemActive())
         ActiveState->bBoneRotationEditing = true;
 
-    ImGui::PushItemWidth(-1);
+    SetFullItemWidthWithLabelMargin();
     bRotChanged |= ImGui::DragFloat("X##rot", &ActiveState->EditBoneRotation.X, 0.5f, -180.0f, 180.0f);
+    SetFullItemWidthWithLabelMargin();
     bRotChanged |= ImGui::DragFloat("Y##rot", &ActiveState->EditBoneRotation.Y, 0.5f, -180.0f, 180.0f);
+    SetFullItemWidthWithLabelMargin();
     bRotChanged |= ImGui::DragFloat("Z##rot", &ActiveState->EditBoneRotation.Z, 0.5f, -180.0f, 180.0f);
-    ImGui::PopItemWidth();
 
     if (!ImGui::IsAnyItemActive())
         ActiveState->bBoneRotationEditing = false;
@@ -995,13 +1012,15 @@ void SViewerWindow::RenderRightPanel()
     // SCALE
     // ------------------------------------------
     ImGui::Text("Scale");
-
+    ImGui::Dummy(ImVec2(0, 1));
     bool bScaleChanged = false;
-    ImGui::PushItemWidth(-1);
+
+    SetFullItemWidthWithLabelMargin();
     bScaleChanged |= ImGui::DragFloat("X##scale", &ActiveState->EditBoneScale.X, 0.01f, 0.001f, 100.f);
+    SetFullItemWidthWithLabelMargin();
     bScaleChanged |= ImGui::DragFloat("Y##scale", &ActiveState->EditBoneScale.Y, 0.01f, 0.001f, 100.f);
+    SetFullItemWidthWithLabelMargin();
     bScaleChanged |= ImGui::DragFloat("Z##scale", &ActiveState->EditBoneScale.Z, 0.01f, 0.001f, 100.f);
-    ImGui::PopItemWidth();
 
     if (bScaleChanged) {
         ApplyBoneTransform(ActiveState, false, false, true);
@@ -1321,7 +1340,7 @@ void SViewerWindow::LoadViewerToolbarIcons(ID3D11Device* Device)
     IconViewMode_BufferVis->Load(GDataDir + "/Icon/Viewport_ViewMode_BufferVis.png", Device);
 
 	IconBone = NewObject<UTexture>();
-	IconBone->Load(GDataDir + "/Icon/Bone.png", Device);
+	IconBone->Load(GDataDir + "/Icon/Bone_Hierarchy.png", Device);
 
     // 뷰어 아이콘 로드
     IconSkeletalViewer = NewObject<UTexture>();
@@ -2373,6 +2392,7 @@ void SViewerWindow::RenderAnimationBrowser(
     // table row colors (transparent OK)
     ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4(0, 0, 0, 0));
     ImGui::PushStyleColor(ImGuiCol_TableRowBgAlt, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.05f, 0.05f, 0.05f, 0.3f));
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8, 4));
 
     // Table flags (Sortable disabled)
@@ -2470,5 +2490,5 @@ void SViewerWindow::RenderAnimationBrowser(
     }
 
     ImGui::PopStyleVar();
-    ImGui::PopStyleColor(5);
+    ImGui::PopStyleColor(6);
 }

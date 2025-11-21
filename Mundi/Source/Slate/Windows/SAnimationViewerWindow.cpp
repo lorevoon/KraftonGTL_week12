@@ -1205,6 +1205,10 @@ void SAnimationViewerWindow::RenderLeftTrackList(float width, float RowHeight, f
         // ============================
         if (i == 0)
         {
+            if (ImGui::IsItemHovered() || ImGui::IsPopupOpen("NotifiesContextMenu"))
+            {
+                DL->AddRectFilled(rowPos, ImVec2(rowPos.x + width, rowPos.y + RowHeight), IM_COL32(70, 70, 70, 55));
+            }
             const char* arrow = ActiveState->bFoldNotifies ? "▶" : "▼";
 
             DL->AddText(
@@ -1524,7 +1528,8 @@ void SAnimationViewerWindow::RenderTimelineGridBody(float RowHeight, const TArra
             ImVec2(gridAvail.x, RowHeight)
         );
 
-        if (ImGui::IsItemHovered())
+        std::string popupId = "RowPopup_" + std::to_string(row);
+        if (ImGui::IsItemHovered() || ImGui::IsPopupOpen(popupId.c_str()))
         {
             draw->AddRectFilled(
                 ImVec2(gridOrigin.x, y0),
