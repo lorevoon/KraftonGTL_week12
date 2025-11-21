@@ -100,7 +100,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Generated;$(ProjectDir)Source\Runtime\Core\Object;$(ProjectDir)Source\Runtime\Core\Math;$(ProjectDir)Source\Runtime\Core\Containers;$(ProjectDir)Source\Runtime\Core\Misc;$(ProjectDir)Source\Runtime\Core\Memory;$(ProjectDir)Source\Runtime\Engine\GameFramework;$(ProjectDir)Source\Runtime\Engine\Scripting;$(ProjectDir)Source\Runtime\Engine\Components;$(ProjectDir)Source\Runtime\Engine\Collision;$(ProjectDir)Source\Runtime\Engine\Spatial;$(ProjectDir)Source\Runtime\Engine\Animation;$(ProjectDir)Source\Runtime\Engine\Audio;$(ProjectDir)Source\Runtime\RHI;$(ProjectDir)Source\Runtime\Renderer;$(ProjectDir)Source\Runtime\AssetManagement;$(ProjectDir)Source\Runtime\InputCore;$(ProjectDir)Source\Editor;$(ProjectDir)Source\Slate;ThirdParty\DirectXTex\include;ThirdParty\DirectXTK\include;ThirdParty\Lua\include;ThirdParty\sol;ThirdParty;ThirdParty\FBXSDK\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Generated;$(ProjectDir)Source\Runtime\Core\Object;$(ProjectDir)Source\Runtime\Core\Math;$(ProjectDir)Source\Runtime\Core\Containers;$(ProjectDir)Source\Runtime\Core\Misc;$(ProjectDir)Source\Runtime\Core\Memory;$(ProjectDir)Source\Runtime\Engine\GameFramework;$(ProjectDir)Source\Runtime\Engine\Scripting;$(ProjectDir)Source\Runtime\Engine\Components;$(ProjectDir)Source\Runtime\Engine\Collision;$(ProjectDir)Source\Runtime\Engine\Spatial;$(ProjectDir)Source\Runtime\Engine\Animation;$(ProjectDir)Source\Runtime\Engine\Audio;$(ProjectDir)Source\Runtime\Engine\Particles;$(ProjectDir)Source\Runtime\Engine\Particles\Modules;$(ProjectDir)Source\Runtime\RHI;$(ProjectDir)Source\Runtime\Renderer;$(ProjectDir)Source\Runtime\AssetManagement;$(ProjectDir)Source\Runtime\InputCore;$(ProjectDir)Source\Editor;$(ProjectDir)Source\Slate;ThirdParty\DirectXTex\include;ThirdParty\DirectXTK\include;ThirdParty\Lua\include;ThirdParty\sol;ThirdParty;ThirdParty\FBXSDK\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 /bigobj /MP %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -129,7 +129,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Generated;$(ProjectDir)Source\Runtime\Core\Object;$(ProjectDir)Source\Runtime\Core\Math;$(ProjectDir)Source\Runtime\Core\Containers;$(ProjectDir)Source\Runtime\Core\Misc;$(ProjectDir)Source\Runtime\Core\Memory;$(ProjectDir)Source\Runtime\Engine\Animation;$(ProjectDir)Source\Runtime\Engine\GameFramework;$(ProjectDir)Source\Runtime\Engine\Scripting;$(ProjectDir)Source\Runtime\Engine\Components;$(ProjectDir)Source\Runtime\Engine\Collision;$(ProjectDir)Source\Runtime\Engine\Spatial;$(ProjectDir)Source\Runtime\Engine\Audio;$(ProjectDir)Source\Runtime\RHI;$(ProjectDir)Source\Runtime\Renderer;$(ProjectDir)Source\Runtime\AssetManagement;$(ProjectDir)Source\Runtime\InputCore;$(ProjectDir)Source\Editor;$(ProjectDir)Source\Slate;ThirdParty\DirectXTex\include;ThirdParty\DirectXTK\include;ThirdParty\Lua\include;ThirdParty\sol;ThirdParty;ThirdParty\FBXSDK\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Generated;$(ProjectDir)Source\Runtime\Core\Object;$(ProjectDir)Source\Runtime\Core\Math;$(ProjectDir)Source\Runtime\Core\Containers;$(ProjectDir)Source\Runtime\Core\Misc;$(ProjectDir)Source\Runtime\Core\Memory;$(ProjectDir)Source\Runtime\Engine\Animation;$(ProjectDir)Source\Runtime\Engine\GameFramework;$(ProjectDir)Source\Runtime\Engine\Scripting;$(ProjectDir)Source\Runtime\Engine\Components;$(ProjectDir)Source\Runtime\Engine\Collision;$(ProjectDir)Source\Runtime\Engine\Spatial;$(ProjectDir)Source\Runtime\Engine\Audio;$(ProjectDir)Source\Runtime\Engine\Particles;$(ProjectDir)Source\Runtime\Engine\Particles\Modules;$(ProjectDir)Source\Runtime\RHI;$(ProjectDir)Source\Runtime\Renderer;$(ProjectDir)Source\Runtime\AssetManagement;$(ProjectDir)Source\Runtime\InputCore;$(ProjectDir)Source\Editor;$(ProjectDir)Source\Slate;ThirdParty\DirectXTex\include;ThirdParty\DirectXTK\include;ThirdParty\Lua\include;ThirdParty\sol;ThirdParty;ThirdParty\FBXSDK\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 /bigobj /MP %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -160,7 +160,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Generated;$(ProjectDir)Source\Runtime\Core\Object;$(ProjectDir)Source\Runtime\Core\Math;$(ProjectDir)Source\Runtime\Core\Containers;$(ProjectDir)Source\Runtime\Core\Misc;$(ProjectDir)Source\Runtime\Core\Memory;$(ProjectDir)Source\Runtime\Engine\Animation;$(ProjectDir)Source\Runtime\Engine\GameFramework;$(ProjectDir)Source\Runtime\Engine\Scripting;$(ProjectDir)Source\Runtime\Engine\Components;$(ProjectDir)Source\Runtime\Engine\Collision;$(ProjectDir)Source\Runtime\Engine\Spatial;$(ProjectDir)Source\Runtime\Engine\Audio;$(ProjectDir)Source\Runtime\RHI;$(ProjectDir)Source\Runtime\Renderer;$(ProjectDir)Source\Runtime\AssetManagement;$(ProjectDir)Source\Runtime\InputCore;$(ProjectDir)Source\Editor;$(ProjectDir)Source\Slate;ThirdParty\DirectXTex\include;ThirdParty\DirectXTK\include;ThirdParty\Lua\include;ThirdParty\sol;ThirdParty;ThirdParty\FBXSDK\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Generated;$(ProjectDir)Source\Runtime\Core\Object;$(ProjectDir)Source\Runtime\Core\Math;$(ProjectDir)Source\Runtime\Core\Containers;$(ProjectDir)Source\Runtime\Core\Misc;$(ProjectDir)Source\Runtime\Core\Memory;$(ProjectDir)Source\Runtime\Engine\Animation;$(ProjectDir)Source\Runtime\Engine\GameFramework;$(ProjectDir)Source\Runtime\Engine\Scripting;$(ProjectDir)Source\Runtime\Engine\Components;$(ProjectDir)Source\Runtime\Engine\Collision;$(ProjectDir)Source\Runtime\Engine\Spatial;$(ProjectDir)Source\Runtime\Engine\Audio;$(ProjectDir)Source\Runtime\Engine\Particles;$(ProjectDir)Source\Runtime\Engine\Particles\Modules;$(ProjectDir)Source\Runtime\RHI;$(ProjectDir)Source\Runtime\Renderer;$(ProjectDir)Source\Runtime\AssetManagement;$(ProjectDir)Source\Runtime\InputCore;$(ProjectDir)Source\Editor;$(ProjectDir)Source\Slate;ThirdParty\DirectXTex\include;ThirdParty\DirectXTK\include;ThirdParty\Lua\include;ThirdParty\sol;ThirdParty;ThirdParty\FBXSDK\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 /bigobj /MP %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -193,7 +193,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Generated;$(ProjectDir)Source\Runtime\Core\Object;$(ProjectDir)Source\Runtime\Core\Math;$(ProjectDir)Source\Runtime\Core\Containers;$(ProjectDir)Source\Runtime\Core\Misc;$(ProjectDir)Source\Runtime\Core\Memory;$(ProjectDir)Source\Runtime\Engine\Animation;$(ProjectDir)Source\Runtime\Engine\GameFramework;$(ProjectDir)Source\Runtime\Engine\Scripting;$(ProjectDir)Source\Runtime\Engine\Components;$(ProjectDir)Source\Runtime\Engine\Collision;$(ProjectDir)Source\Runtime\Engine\Spatial;$(ProjectDir)Source\Runtime\Engine\Audio;$(ProjectDir)Source\Runtime\RHI;$(ProjectDir)Source\Runtime\Renderer;$(ProjectDir)Source\Runtime\AssetManagement;$(ProjectDir)Source\Runtime\InputCore;$(ProjectDir)Source\Editor;$(ProjectDir)Source\Slate;ThirdParty\DirectXTex\include;ThirdParty\DirectXTK\include;ThirdParty\Lua\include;ThirdParty\sol;ThirdParty;ThirdParty\FBXSDK\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Generated;$(ProjectDir)Source\Runtime\Core\Object;$(ProjectDir)Source\Runtime\Core\Math;$(ProjectDir)Source\Runtime\Core\Containers;$(ProjectDir)Source\Runtime\Core\Misc;$(ProjectDir)Source\Runtime\Core\Memory;$(ProjectDir)Source\Runtime\Engine\Animation;$(ProjectDir)Source\Runtime\Engine\GameFramework;$(ProjectDir)Source\Runtime\Engine\Scripting;$(ProjectDir)Source\Runtime\Engine\Components;$(ProjectDir)Source\Runtime\Engine\Collision;$(ProjectDir)Source\Runtime\Engine\Spatial;$(ProjectDir)Source\Runtime\Engine\Audio;$(ProjectDir)Source\Runtime\Engine\Particles;$(ProjectDir)Source\Runtime\Engine\Particles\Modules;$(ProjectDir)Source\Runtime\RHI;$(ProjectDir)Source\Runtime\Renderer;$(ProjectDir)Source\Runtime\AssetManagement;$(ProjectDir)Source\Runtime\InputCore;$(ProjectDir)Source\Editor;$(ProjectDir)Source\Slate;ThirdParty\DirectXTex\include;ThirdParty\DirectXTK\include;ThirdParty\Lua\include;ThirdParty\sol;ThirdParty;ThirdParty\FBXSDK\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 /bigobj /MP %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -473,6 +473,18 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\Components\SceneComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\TextRenderComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleSystemComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleModule.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleRequired.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSpawn.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleLifetime.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleLocation.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleVelocity.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleColor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSize.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleLODLevel.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitter.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleSystem.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\CameraActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\DecalActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\EditorEngine.cpp" />
@@ -550,6 +562,18 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Generated\AGameStateBase.generated.cpp" />
     <ClCompile Include="Generated\UAnimBlendSpaceInstance.generated.cpp" />
     <ClCompile Include="Generated\ADancingCharacter.generated.cpp" />
+    <ClCompile Include="Generated\UParticleEmitter.generated.cpp" />
+    <ClCompile Include="Generated\UParticleLODLevel.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModule.generated.cpp" />
+    <ClCompile Include="Generated\UParticleSystem.generated.cpp" />
+    <ClCompile Include="Generated\UParticleSystemComponent.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleRequired.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleSpawn.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleLifetime.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleLocation.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleVelocity.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleColor.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleSize.generated.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
@@ -895,6 +919,20 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Components\SceneComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\StaticMeshComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\TextRenderComponent.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleTypes.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleHelper.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleModule.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleRequired.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSpawn.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleLifetime.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleLocation.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleVelocity.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleColor.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSize.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleLODLevel.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitter.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleSystem.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleSystemComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\CameraActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\DecalActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\EditorEngine.h" />
@@ -980,6 +1018,18 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\AGameStateBase.generated.h" />
     <ClInclude Include="Generated\UAnimBlendSpaceInstance.generated.h" />
     <ClInclude Include="Generated\ADancingCharacter.generated.h" />
+    <ClInclude Include="Generated\UParticleEmitter.generated.h" />
+    <ClInclude Include="Generated\UParticleLODLevel.generated.h" />
+    <ClInclude Include="Generated\UParticleModule.generated.h" />
+    <ClInclude Include="Generated\UParticleSystem.generated.h" />
+    <ClInclude Include="Generated\UParticleSystemComponent.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleRequired.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleSpawn.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleLifetime.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleLocation.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleVelocity.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleColor.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleSize.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
