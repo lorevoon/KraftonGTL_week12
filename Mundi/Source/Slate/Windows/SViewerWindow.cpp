@@ -361,7 +361,7 @@ void SViewerWindow::RenderTabsAndToolbar(EViewerType CurrentViewerType)
         return;
 
     // ============================================
-    // Viewer Tab 버튼
+    // 1. Render Tab Bar
     // ============================================
     for (int i = 0; i < Tabs.Num(); ++i)
     {
@@ -403,8 +403,19 @@ void SViewerWindow::RenderTabsAndToolbar(EViewerType CurrentViewerType)
         sprintf_s(label, "Viewer %d", maxViewerNum + 1);
         OpenNewTab(label);
     }
+    ImGui::EndTabBar();
 
+    // ============================================
+    // 2. Render ToolBar Below Tabs
+    // ============================================
+    ImGui::BeginChild("ViewerTypeToolbar", ImVec2(0, 30.0f), false, ImGuiWindowFlags_NoScrollbar);
+
+    // Center buttons vertically
+    const ImGuiStyle& style = ImGui::GetStyle();
     const ImVec2 IconSizeVec(22, 22);
+    float BtnHeight = IconSizeVec.y + style.FramePadding.y * 2.0f;
+    float availableHeight = ImGui::GetContentRegionAvail().y;
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (availableHeight - BtnHeight) * 0.5f);
 
     const float framePaddingX = ImGui::GetStyle().FramePadding.x;
     const float spacingX = ImGui::GetStyle().ItemSpacing.x;
@@ -412,23 +423,10 @@ void SViewerWindow::RenderTabsAndToolbar(EViewerType CurrentViewerType)
     const float singleButtonTotalWidth = IconSizeVec.x + framePaddingX * 2;
     const float totalButtonsWidth = (singleButtonTotalWidth * 3) + (spacingX * 2);
 
-    ImGui::SameLine();
+    // Right-align the button group
     float availableWidth = ImGui::GetContentRegionAvail().x;
     float RightPadding = 14.0f;
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + availableWidth - totalButtonsWidth - RightPadding);
-
-    // ============================================
-    // UMainToolbarWidget
-    // ============================================
-
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.7f));
-
-    ImGui::BeginGroup();
 
     // ----------------------------------------------------
     // Skeletal Viewer Button
@@ -548,33 +546,7 @@ void SViewerWindow::RenderTabsAndToolbar(EViewerType CurrentViewerType)
         if (disabled) ImGui::EndDisabled();
     }
 
-    ImGui::EndGroup();
-
-    ImVec2 groupMin = ImGui::GetItemRectMin();
-    ImVec2 groupMax = ImGui::GetItemRectMax();
-
-    const float Padding = 1.0f;
-    groupMin.x -= Padding;
-    groupMin.y -= Padding;
-    groupMax.x += Padding;
-    groupMax.y += Padding;
-
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-    drawList->AddRect(
-        groupMin,
-        groupMax,
-        ImGui::GetColorU32(ImVec4(0.4f, 0.45f, 0.5f, 0.8f)),
-        4.0f,
-        0,
-        1.3f
-    );
-
-    ImGui::PopStyleColor(3);
-    ImGui::PopStyleVar(3);
-
-    // ============================================
-    ImGui::EndTabBar();
+    ImGui::EndChild();
 }
 
 void SViewerWindow::OpenNewTab(const char* Name)
