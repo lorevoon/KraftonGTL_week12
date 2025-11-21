@@ -115,8 +115,7 @@
       <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\$(Configuration)\libfbxsdk.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
+      <Command>if exist "\\172.21.11.105\SymbolServer\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\symstore.exe" add /r /f "$(TargetDir)*.pdb" /s "\\172.21.11.105\SymbolServer\symbols" /t "Mundi" /v "$(ProjectName) $(Configuration) $(Platform)" /compress) else (echo [symstore] Store unavailable, skipping publish)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_StandAlone|x64'">
@@ -144,8 +143,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
       <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\Debug\libfbxsdk.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
+      <Command>if exist "\\172.21.11.105\SymbolServer\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\symstore.exe" add /r /f "$(TargetDir)*.pdb" /s "\\172.21.11.105\SymbolServer\symbols" /t "Mundi" /v "$(ProjectName) $(Configuration) $(Platform)" /compress) else (echo [symstore] Store unavailable, skipping publish)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -177,8 +175,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
       <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\$(Configuration)\libfbxsdk.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
+      <Command>if exist "\\172.21.11.105\SymbolServer\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\symstore.exe" add /r /f "$(TargetDir)*.pdb" /s "\\172.21.11.105\SymbolServer\symbols" /t "Mundi" /v "$(ProjectName) $(Configuration) $(Platform)" /compress) else (echo [symstore] Store unavailable, skipping publish)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_StandAlone|x64'">
@@ -210,8 +207,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
       <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\Release\libfbxsdk.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
+      <Command>if exist "\\172.21.11.105\SymbolServer\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\symstore.exe" add /r /f "$(TargetDir)*.pdb" /s "\\172.21.11.105\SymbolServer\symbols" /t "Mundi" /v "$(ProjectName) $(Configuration) $(Platform)" /compress) else (echo [symstore] Store unavailable, skipping publish)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
