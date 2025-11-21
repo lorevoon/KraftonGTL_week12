@@ -13,6 +13,11 @@
 #include <filesystem>
 #include <functional>
 
+// Suppress FBX SDK double to float conversion warnings (C4244)
+// The FBX SDK uses doubles, but Mundi engine uses floats
+#pragma warning(push)
+#pragma warning(disable: 4244)
+
 IMPLEMENT_CLASS(UFbxLoader)
 
 // 노드가 스켈레톤 속성을 포함하는지 확인
@@ -1851,4 +1856,7 @@ UAnimSequence* UFbxLoader::LoadFbxAnimation(const FString& FilePath, const struc
 
 	return AnimSequence;
 }
+
+// Restore warning state
+#pragma warning(pop)
 

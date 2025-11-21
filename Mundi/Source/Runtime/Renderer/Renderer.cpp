@@ -224,7 +224,7 @@ void URenderer::AddLines(const TArray<FVector>& Lines, const FVector4& Color)
 		LineBatchData->Color.push_back(Color);
 
 		// Add indices for line (2 vertices per line)
-		LineBatchData->Indices.push_back(startIndex + i);
+		LineBatchData->Indices.push_back(startIndex + static_cast<uint32>(i));
 	}
 }
 void URenderer::AddLinesRange(const TArray<FVector>& Lines, int startIdx, int Count, const FVector4& Color)
@@ -254,7 +254,7 @@ void URenderer::AddLinesRange(const TArray<FVector>& Lines, int startIdx, int Co
 		LineBatchData->Color.push_back(Color);
 
 		// Add indices for line (2 vertices per line)
-		LineBatchData->Indices.push_back(LineBatchStartIndex + i);
+		LineBatchData->Indices.push_back(LineBatchStartIndex + static_cast<uint32>(i));
 	}
 }
 

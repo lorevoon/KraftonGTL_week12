@@ -56,10 +56,10 @@ inline TArray<FVector> CubeVerticesToLine(const TArray<FVector>& CubeVertices)
 	{
 		return Lines;
 	}
-	int CubeCount = CubeVertices.size() / 8;
+	size_t CubeCount = CubeVertices.size() / 8;
 	Lines.reserve(24 * CubeCount);
 
-	for (int i = 0; i < CubeCount; i++)
+	for (size_t i = 0; i < CubeCount; i++)
 	{
 		Lines.emplace_back(CubeVertices[i * 8 + 0]);
 		Lines.emplace_back(CubeVertices[i * 8 + 1]);

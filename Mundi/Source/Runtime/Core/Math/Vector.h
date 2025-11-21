@@ -999,9 +999,9 @@ struct alignas(16) FMatrix
 	// 비교 연산자
 	bool operator==(const FMatrix& Other) const
 	{
-		for (uint8 i = 0; i < 4; ++i)
+		for (int i = 0; i < 4; ++i)
 		{
-			for (uint8 j = 0; j < 4; ++j)
+			for (int j = 0; j < 4; ++j)
 			{
 				if (std::fabs(M[i][j] - Other.M[i][j]) >= KINDA_SMALL_NUMBER)
 					return false;
@@ -1507,16 +1507,16 @@ inline FTransform FTransform::Inverse() const
 
 inline void operator*= (TArray<FVector>& Vectors, const FMatrix& Mat)
 {
-	uint32 VectorCount = Vectors.size();
-	for (int i = 0; i < VectorCount; i++)
+	size_t VectorCount = Vectors.size();
+	for (size_t i = 0; i < VectorCount; i++)
 	{
 		Vectors[i] = Vectors[i] * Mat;
 	}
 }
 inline void operator*= (TArray<FVector4>& Vectors, const FMatrix& Mat)
 {
-	uint32 VectorCount = Vectors.size();
-	for (int i = 0; i < VectorCount; i++)
+	size_t VectorCount = Vectors.size();
+	for (size_t i = 0; i < VectorCount; i++)
 	{
 		Vectors[i] = Vectors[i] * Mat;
 	}
