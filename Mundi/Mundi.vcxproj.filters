@@ -890,6 +890,9 @@
     <ClCompile Include="Generated\UParticleModuleVelocity.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
+    <ClCompile Include="Generated\UParticleModuleSizeScaleBySpeed.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Generated\USkinnedMeshComponent.generated.h">
@@ -1869,6 +1872,9 @@
       <Filter>Generated</Filter>
     </ClInclude>
     <ClInclude Include="Generated\UParticleModuleVelocity.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\UParticleModuleSizeScaleBySpeed.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
   </ItemGroup>

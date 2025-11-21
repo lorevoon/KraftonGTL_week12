@@ -24,7 +24,7 @@ void UParticleModuleColor::Spawn(FParticleEmitterInstance* Owner, int32 Offset, 
 
 void UParticleModuleColor::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
 {
-	MUNDI_BEGIN_UPDATE_LOOP(Owner, Offset);
+	MUNDI_BEGIN_UPDATE_LOOP
 	{
 		// RelativeTime을 기반으로 StartColor에서 EndColor로 보간
 		float Alpha = Particle->RelativeTime;
