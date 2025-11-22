@@ -1,8 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include "Object.h"
-#include "ParticleTypes.h"
 #include "UParticleModule.generated.h"
+
+struct FBaseParticle;
+struct FParticleEmitterInstance;
 
 // 파티클 모듈 베이스 클래스
 // - 실행 단계 플래그 시스템 (bSpawnModule, bUpdateModule, bFinalUpdateModule)
