@@ -83,3 +83,86 @@ inline void KillParticle(FBaseParticle* Particle)
 {
     Particle->RelativeTime = 1.0f;
 }
+
+// ============================================================
+// 동적 이미터 렌더링 데이터 (다형성 구조)
+// ============================================================
+
+// 전방 선언
+class FSceneView;
+class UMaterialInterface;
+class D3D11RHI;
+struct ID3D11DeviceContext;
+
+// Sprite 파티클 인스턴스 데이터
+struct FParticleSpriteInstance
+{
+    FVector WorldPosition;   // 파티클 월드 위치
+    FVector2D Size;          // 파티클 크기 (X, Y)
+    float Rotation;          // 파티클 회전 (라디안)
+    FVector4 Color;          // 파티클 색상 (RGBA)
+
+    FParticleSpriteInstance()
+        : WorldPosition(FVector::Zero())
+        , Size(FVector2D(1.0f, 1.0f))
+        , Rotation(0.0f)
+        , Color(FVector4(1.0f, 1.0f, 1.0f, 1.0f))
+    {
+    }
+};
+
+// 추상 베이스 클래스
+struct FDynamicEmitterDataBase
+{
+    FParticleEmitterInstance* Source;  // 원본 파티클 데이터
+
+    FDynamicEmitterDataBase(FParticleEmitterInstance* InSource)
+        : Source(InSource)
+    {
+    }
+
+    virtual ~FDynamicEmitterDataBase() {}
+
+    // 버퍼 업데이트 (각 타입별 구현)
+    virtual void UpdateRenderData(FSceneView* View) = 0;
+
+    // 렌더링 (각 타입별 구현)
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material) = 0;
+};
+
+// Sprite 파티클 렌더링 데이터
+struct FDynamicSpriteEmitterData : public FDynamicEmitterDataBase
+{
+    TArray<FParticleSpriteInstance> Instances;  // 각 파티클의 인스턴스 데이터
+
+    FDynamicSpriteEmitterData(FParticleEmitterInstance* InSource)
+        : FDynamicEmitterDataBase(InSource)
+    {
+    }
+
+    virtual void UpdateRenderData(FSceneView* View) override;
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material) override;
+
+private:
+    // 파티클 인스턴스 데이터 생성
+    void BuildSpriteInstances(FSceneView* View);
+};
+
+// Mesh 파티클 렌더링 데이터
+struct FDynamicMeshEmitterData : public FDynamicEmitterDataBase
+{
+    TArray<FMatrix> InstanceTransforms;  // 각 파티클의 Transform
+    TArray<FVector4> InstanceColors;      // 각 파티클의 Color
+
+    FDynamicMeshEmitterData(FParticleEmitterInstance* InSource)
+        : FDynamicEmitterDataBase(InSource)
+    {
+    }
+
+    virtual void UpdateRenderData(FSceneView* View) override;
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material) override;
+
+private:
+    // 각 파티클의 인스턴스 데이터 생성
+    void BuildMeshInstances();
+};

@@ -95,6 +95,11 @@ void UParticleSystemComponent::UpdateParticles(float DeltaTime)
     }
 }
 
+ TArray<FParticleEmitterInstance*> UParticleSystemComponent::GetParticleData()
+{
+    return EmitterInstances;
+}
+
 void UParticleSystemComponent::CreateEmitterInstances()
 {
     if (!Template)

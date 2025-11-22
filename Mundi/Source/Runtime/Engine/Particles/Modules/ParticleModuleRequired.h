@@ -28,9 +28,16 @@ public:
     UPROPERTY(EditAnywhere, Category="Duration")
     int32 EmitterLoops;                 // 반복 횟수 (0 = 무한)
 
+    // 이미터 타입
+    UPROPERTY(EditAnywhere, Category="Emitter")
+    EDynamicEmitterType EmitterType;    // Sprite or Mesh
+
     // 렌더링 설정
     UPROPERTY(EditAnywhere, Category="Rendering")
     UMaterialInterface* Material;       // 파티클 렌더링 머티리얼
+
+    UPROPERTY(EditAnywhere, Category="Rendering")
+    EParticleSortMode SortMode;         // 파티클 정렬 모드
 
     UPROPERTY(EditAnywhere, Category="Rendering")
     FVector EmitterOrigin;              // 이미터 원점 오프셋

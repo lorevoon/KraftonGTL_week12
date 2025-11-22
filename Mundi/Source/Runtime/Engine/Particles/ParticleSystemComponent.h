@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ParticleHelper.h"
 #include "PrimitiveComponent.h"
 #include "ParticleSystem.h"
 #include "ParticleTypes.h"
@@ -64,6 +65,7 @@ public:
     // 파티클 업데이트 (외부에서 호출)
     void UpdateParticles(float DeltaTime);
 
+     TArray<FParticleEmitterInstance*> GetParticleData();
 private:
     // 내부 함수
 

@@ -48,7 +48,9 @@
 #include "PlatformTime.h"
 #include "PostProcessing/VignettePass.h"
 #include "FbxLoader.h"
+#include "ParticleHelper.h"
 #include "ParticleSystemComponent.h"
+#include "Modules/ParticleModuleRequired.h"
 #include "SkinnedMeshComponent.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, FSceneView* InView, URenderer* InOwnerRenderer)
@@ -976,16 +978,70 @@ void FSceneRenderer::RenderTranslucentPass()
 		return;
 
 	// 컴포넌트 소팅
-
+	std::sort(Proxies.Paricles.begin(), Proxies.Paricles.end(), [&](UParticleSystemComponent* A, UParticleSystemComponent* B)
+	{
+		float distA = (A->GetWorldLocation() - View->ViewLocation).SizeSquared();
+		float distB = (B->GetWorldLocation() - View->ViewLocation).SizeSquared();
+		return distA > distB;
+	});
+	
 	// 컴포넌트 별 반복
+	for (auto Particle : Proxies.Paricles)
+	{
+		// DynamicData 배열 (각 이미터의 렌더링 데이터)
+		TArray<FDynamicEmitterDataBase*> DynamicDataArray;
 
-		// 이미터 소팅
+		// 1. 각 이미터의 DynamicData 생성
+		for (auto Emitter : Particle->EmitterInstances)
+		{
+			// 프리로드 해석
+			if (!Emitter->CurrentLODLevel || !Emitter->CurrentLODLevel->RequiredModule)
+				continue;
 
-		// 프리로드 해석
+			UParticleModuleRequired* RequiredModule = Emitter->CurrentLODLevel->RequiredModule;
+			UMaterialInterface* Material = RequiredModule->Material;
+			if (!Material)
+				continue;
 
-		// 버퍼 업데이트
+			// 이미터 소팅
+			Emitter->Sort(RequiredModule->SortMode, &View->ViewLocation);
 
-		// 드로우콜
+			// 타입별 DynamicData 생성
+			FDynamicEmitterDataBase* DynamicData = nullptr;
+			if (RequiredModule->EmitterType == EDynamicEmitterType::Sprite)
+			{
+				DynamicData = new FDynamicSpriteEmitterData(Emitter);
+			}
+			else if (RequiredModule->EmitterType == EDynamicEmitterType::Mesh)
+			{
+				DynamicData = new FDynamicMeshEmitterData(Emitter);
+			}
+
+			if (DynamicData)
+			{
+				DynamicDataArray.Add(DynamicData);
+			}
+		}
+
+		// 2. 버퍼 업데이트 및 렌더링
+		for (auto DynamicData : DynamicDataArray)
+		{
+			// 버퍼 업데이트
+			DynamicData->UpdateRenderData(View);
+
+			//@TODO 지금 버퍼가 스태틱 변수로 선언되어 있는데 책임 이전 필요
+			// 드로우콜
+			UParticleModuleRequired* RequiredModule = DynamicData->Source->CurrentLODLevel->RequiredModule;
+			DynamicData->Render(RHIDevice, View, RequiredModule->Material);
+		}
+
+		// 3. 메모리 해제
+		for (auto DynamicData : DynamicDataArray)
+		{
+			delete DynamicData;
+		}
+		DynamicDataArray.Empty();
+	}
 }
 
 void FSceneRenderer::RenderDecalPass()

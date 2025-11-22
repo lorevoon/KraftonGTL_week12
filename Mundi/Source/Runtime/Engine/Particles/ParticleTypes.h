@@ -155,4 +155,47 @@ struct FParticleEmitterInstance
         }
         ActiveParticles = 0;
     }
+
+    // 파티클 정렬
+    void Sort(EParticleSortMode SortMode = EParticleSortMode::None, const FVector* ViewLocation = nullptr)
+    {
+        if (SortMode == EParticleSortMode::None || ActiveParticles <= 1)
+            return;
+
+        // 정렬 모드에 따라 ParticleIndices 재정렬
+        switch (SortMode)
+        {
+        case EParticleSortMode::ViewDistanceDepth:
+            if (ViewLocation)
+            {
+                std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
+                    [this, ViewLocation](int32 A, int32 B) {
+                        FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
+                        FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
+                        float DistA = (ParticleA->Location - *ViewLocation).SizeSquared();
+                        float DistB = (ParticleB->Location - *ViewLocation).SizeSquared();
+                        return DistA > DistB; // 먼 것부터 (뒤에서 앞으로)
+                    });
+            }
+            break;
+
+        case EParticleSortMode::AgeOldestFirst:
+            std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
+                [this](int32 A, int32 B) {
+                    FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
+                    FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
+                    return ParticleA->RelativeTime > ParticleB->RelativeTime;
+                });
+            break;
+
+        case EParticleSortMode::AgeNewestFirst:
+            std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
+                [this](int32 A, int32 B) {
+                    FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
+                    FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
+                    return ParticleA->RelativeTime < ParticleB->RelativeTime;
+                });
+            break;
+        }
+    }
 };
