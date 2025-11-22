@@ -48,6 +48,7 @@
 #include "PlatformTime.h"
 #include "PostProcessing/VignettePass.h"
 #include "FbxLoader.h"
+#include "ParticleSystemComponent.h"
 #include "SkinnedMeshComponent.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, FSceneView* InView, URenderer* InOwnerRenderer)
@@ -182,6 +183,8 @@ void FSceneRenderer::RenderLitPath()
 	// Base Pass (GPU 타이머는 DrawMeshBatches 내에서 스켈레탈 메시만 측정)
 	RenderOpaquePass(View->RenderSettings->GetViewMode());
 
+	RenderTranslucentPass();
+	
 	RenderDecalPass();
 }
 
@@ -680,10 +683,11 @@ void FSceneRenderer::GatherVisibleProxies()
 	const bool bDrawDecals = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Decals);
 	const bool bDrawFog = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Fog);
 	const bool bDrawLight = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Lighting);
+	const bool bDrawParticle = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Particle);
 	const bool bUseAntiAliasing = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_FXAA);
 	const bool bUseBillboard = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Billboard);
 	const bool bUseIcon = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_EditorIcon);
-
+	
 	// Helper lambda to collect components from an actor
 	auto CollectComponentsFromActor = [&](AActor* Actor, bool bIsEditorActor)
 		{
@@ -757,6 +761,10 @@ void FSceneRenderer::GatherVisibleProxies()
 					else if (ULineComponent* LineComponent = Cast<ULineComponent>(PrimitiveComponent))
 					{
 						Proxies.EditorLines.Add(LineComponent);
+					}
+					else if (UParticleSystemComponent* ParticeSystemComponent = Cast<UParticleSystemComponent>(Component); ParticeSystemComponent && bDrawParticle)
+					{
+						Proxies.Paricles.Add(ParticeSystemComponent);
 					}
 				}
 				else
@@ -956,6 +964,28 @@ void FSceneRenderer::RenderOpaquePass(EViewMode InRenderViewMode)
 	// --- 3. 그리기 (Draw) ---
 	// GPU 타이머는 Renderer::BeginFrame/EndFrame에서 프레임 레벨로 측정됨
 	DrawMeshBatches(MeshBatchElements, true);
+}
+
+void FSceneRenderer::RenderTranslucentPass()
+{
+	if (!World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Particle))
+	{
+		return;
+	}
+	if (Proxies.Paricles.empty())
+		return;
+
+	// 컴포넌트 소팅
+
+	// 컴포넌트 별 반복
+
+		// 이미터 소팅
+
+		// 프리로드 해석
+
+		// 버퍼 업데이트
+
+		// 드로우콜
 }
 
 void FSceneRenderer::RenderDecalPass()
