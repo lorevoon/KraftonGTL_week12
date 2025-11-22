@@ -33,6 +33,8 @@ enum class EDistributionType : uint8
 class UParticleEmitter;
 class UParticleLODLevel;
 class UParticleSystemComponent;
+class FSceneView;
+struct FDynamicEmitterDataBase;
 
 // 파티클 데이터 구조
 // - 연속된 메모리 블록에 저장되는 파티클 데이터

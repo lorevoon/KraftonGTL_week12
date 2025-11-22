@@ -977,7 +977,7 @@ void FSceneRenderer::RenderTranslucentPass()
 	if (Proxies.Paricles.empty())
 		return;
 
-	// Ensure ViewProj constant buffer is set before particle rendering
+	// 상수 버퍼 업데이트
 	FMatrix InvView = View->ViewMatrix.InverseAffine();
 	FMatrix InvProjection;
 	if (View->ProjectionMode == ECameraProjectionMode::Perspective)
@@ -1011,59 +1011,16 @@ void FSceneRenderer::RenderTranslucentPass()
 	// 컴포넌트 별 반복
 	for (auto Particle : Proxies.Paricles)
 	{
-		// DynamicData 배열 (각 이미터의 렌더링 데이터)
-		TArray<FDynamicEmitterDataBase*> DynamicDataArray;
+		// 1. 렌더링 데이터 가져오기 (정렬, DynamicData 생성)
+		TArray<FDynamicEmitterDataBase*> DynamicDataArray = Particle->GetRenderData(View);
 
-		// 1. 각 이미터의 DynamicData 생성
-		for (auto Emitter : Particle->EmitterInstances)
-		{
-			// 프리로드 해석
-			if (!Emitter->CurrentLODLevel || !Emitter->CurrentLODLevel->RequiredModule)
-				continue;
-
-			UParticleModuleRequired* RequiredModule = Emitter->CurrentLODLevel->RequiredModule;
-			UMaterialInterface* Material = RequiredModule->Material;
-			if (!Material)
-				continue;
-
-			// 이미터 소팅
-			Emitter->Sort(RequiredModule->SortMode, &View->ViewLocation);
-
-			// 타입별 DynamicData 생성
-			FDynamicEmitterDataBase* DynamicData = nullptr;
-			if (RequiredModule->EmitterType == EDynamicEmitterType::Sprite)
-			{
-				DynamicData = new FDynamicSpriteEmitterData(Emitter);
-			}
-			else if (RequiredModule->EmitterType == EDynamicEmitterType::Mesh)
-			{
-				DynamicData = new FDynamicMeshEmitterData(Emitter);
-			}
-
-			if (DynamicData)
-			{
-				DynamicDataArray.Add(DynamicData);
-			}
-		}
-
-		// 2. 버퍼 업데이트 및 렌더링
+		// 2. 렌더링
 		for (auto DynamicData : DynamicDataArray)
 		{
-			// 버퍼 업데이트
-			DynamicData->UpdateRenderData(View);
-
-			//@TODO 지금 버퍼가 스태틱 변수로 선언되어 있는데 책임 이전 필요
-			// 드로우콜
 			UParticleModuleRequired* RequiredModule = DynamicData->Source->CurrentLODLevel->RequiredModule;
 			DynamicData->Render(RHIDevice, View, RequiredModule->Material);
-		}
-
-		// 3. 메모리 해제
-		for (auto DynamicData : DynamicDataArray)
-		{
 			delete DynamicData;
 		}
-		DynamicDataArray.Empty();
 	}
 }
 

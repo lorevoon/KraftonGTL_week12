@@ -65,7 +65,9 @@ public:
     // 파티클 업데이트 (외부에서 호출)
     void UpdateParticles(float DeltaTime);
 
-     TArray<FParticleEmitterInstance*> GetParticleData();
+    //@TODO Prepare과 Get 로직 분리
+    // 렌더링 데이터 가져오기 (렌더러에서 호출)
+    TArray<FDynamicEmitterDataBase*> GetRenderData(FSceneView* View);
 private:
     // 내부 함수
 
