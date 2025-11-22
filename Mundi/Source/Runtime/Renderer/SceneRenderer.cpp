@@ -48,6 +48,9 @@
 #include "PlatformTime.h"
 #include "PostProcessing/VignettePass.h"
 #include "FbxLoader.h"
+#include "ParticleHelper.h"
+#include "ParticleSystemComponent.h"
+#include "Modules/ParticleModuleRequired.h"
 #include "SkinnedMeshComponent.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, FSceneView* InView, URenderer* InOwnerRenderer)
@@ -182,6 +185,8 @@ void FSceneRenderer::RenderLitPath()
 	// Base Pass (GPU 타이머는 DrawMeshBatches 내에서 스켈레탈 메시만 측정)
 	RenderOpaquePass(View->RenderSettings->GetViewMode());
 
+	RenderTranslucentPass();
+	
 	RenderDecalPass();
 }
 
@@ -680,10 +685,11 @@ void FSceneRenderer::GatherVisibleProxies()
 	const bool bDrawDecals = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Decals);
 	const bool bDrawFog = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Fog);
 	const bool bDrawLight = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Lighting);
+	const bool bDrawParticle = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Particle);
 	const bool bUseAntiAliasing = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_FXAA);
 	const bool bUseBillboard = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Billboard);
 	const bool bUseIcon = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_EditorIcon);
-
+	
 	// Helper lambda to collect components from an actor
 	auto CollectComponentsFromActor = [&](AActor* Actor, bool bIsEditorActor)
 		{
@@ -757,6 +763,10 @@ void FSceneRenderer::GatherVisibleProxies()
 					else if (ULineComponent* LineComponent = Cast<ULineComponent>(PrimitiveComponent))
 					{
 						Proxies.EditorLines.Add(LineComponent);
+					}
+					else if (UParticleSystemComponent* ParticeSystemComponent = Cast<UParticleSystemComponent>(PrimitiveComponent); ParticeSystemComponent && bDrawParticle)
+					{
+						Proxies.Paricles.Add(ParticeSystemComponent);
 					}
 				}
 				else
@@ -956,6 +966,62 @@ void FSceneRenderer::RenderOpaquePass(EViewMode InRenderViewMode)
 	// --- 3. 그리기 (Draw) ---
 	// GPU 타이머는 Renderer::BeginFrame/EndFrame에서 프레임 레벨로 측정됨
 	DrawMeshBatches(MeshBatchElements, true);
+}
+
+void FSceneRenderer::RenderTranslucentPass()
+{
+	if (!World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Particle))
+	{
+		return;
+	}
+	if (Proxies.Paricles.empty())
+		return;
+
+	// 상수 버퍼 업데이트
+	FMatrix InvView = View->ViewMatrix.InverseAffine();
+	FMatrix InvProjection;
+	if (View->ProjectionMode == ECameraProjectionMode::Perspective)
+	{
+		InvProjection = View->ProjectionMatrix.InversePerspectiveProjection();
+	}
+	else
+	{
+		InvProjection = View->ProjectionMatrix.InverseOrthographicProjection();
+	}
+	ViewProjBufferType ViewProjBuffer = ViewProjBufferType(View->ViewMatrix, View->ProjectionMatrix, InvView, InvProjection);
+	RHIDevice->SetAndUpdateConstantBuffer(ViewProjBufferType(ViewProjBuffer));
+
+	static bool bLoggedOnce = false;
+	if (!bLoggedOnce)
+	{
+		bLoggedOnce = true;
+		UE_LOG("[debug] Camera - Pos: (%.1f, %.1f, %.1f), Looking at: (%.1f, %.1f, %.1f)",
+			View->ViewLocation.X, View->ViewLocation.Y, View->ViewLocation.Z,
+			View->ViewMatrix.VRows[2].X, View->ViewMatrix.VRows[2].Y, View->ViewMatrix.VRows[2].Z);
+	}
+
+	// 컴포넌트 소팅
+	std::sort(Proxies.Paricles.begin(), Proxies.Paricles.end(), [&](UParticleSystemComponent* A, UParticleSystemComponent* B)
+	{
+		float distA = (A->GetWorldLocation() - View->ViewLocation).SizeSquared();
+		float distB = (B->GetWorldLocation() - View->ViewLocation).SizeSquared();
+		return distA > distB;
+	});
+	
+	// 컴포넌트 별 반복
+	for (auto Particle : Proxies.Paricles)
+	{
+		// 1. 렌더링 데이터 가져오기 (정렬, DynamicData 생성)
+		TArray<FDynamicEmitterDataBase*> DynamicDataArray = Particle->GetRenderData(View);
+
+		// 2. 렌더링
+		for (auto DynamicData : DynamicDataArray)
+		{
+			UParticleModuleRequired* RequiredModule = DynamicData->Source->CurrentLODLevel->RequiredModule;
+			DynamicData->Render(RHIDevice, View, RequiredModule->Material);
+			delete DynamicData;
+		}
+	}
 }
 
 void FSceneRenderer::RenderDecalPass()

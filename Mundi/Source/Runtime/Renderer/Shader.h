@@ -135,6 +135,29 @@ struct FVertexPositionBillBoard
 
 };
 
+// Particle Sprite (Instancing)
+// Slot 0: Quad vertices (float2)
+// Slot 1: Instance data (WorldPosition, Size, Rotation, Color)
+struct FVertexParticleSprite
+{
+	static const D3D11_INPUT_ELEMENT_DESC* GetLayout()
+	{
+		static const D3D11_INPUT_ELEMENT_DESC layout[] = {
+			// Slot 0: Per-vertex quad position
+			{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+
+			// Slot 1: Per-instance particle data
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },  // WorldPosition
+			{ "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 1, 12, D3D11_INPUT_PER_INSTANCE_DATA, 1 },     // Size
+			{ "TEXCOORD", 2, DXGI_FORMAT_R32_FLOAT, 1, 20, D3D11_INPUT_PER_INSTANCE_DATA, 1 },        // Rotation
+			{ "TEXCOORD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 24, D3D11_INPUT_PER_INSTANCE_DATA, 1 } // Color
+		};
+		return layout;
+	}
+
+	static uint32 GetLayoutCount() { return 5; }
+};
+
 // ======================== 오클루전 관련 메소드들 ============================
 /*
 // 실패 시 false 반환, *OutVS/*OutPS는 성공 시 유효

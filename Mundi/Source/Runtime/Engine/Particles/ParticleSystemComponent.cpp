@@ -5,6 +5,7 @@
 #include "ParticleLODLevel.h"
 #include "ParticleModule.h"
 #include "ParticleHelper.h"
+#include "SceneView.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -93,6 +94,55 @@ void UParticleSystemComponent::UpdateParticles(float DeltaTime)
             UpdateEmitterInstance(Instance, DeltaTime);
         }
     }
+}
+
+TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneView* View)
+{
+    TArray<FDynamicEmitterDataBase*> RenderDataArray;
+
+    if (!bIsActive || !Template)
+    {
+        return RenderDataArray;
+    }
+
+    // 각 이미터 인스턴스의 렌더 데이터 수집
+    for (FParticleEmitterInstance* Instance : EmitterInstances)
+    {
+        if (!Instance || !Instance->CurrentLODLevel || !Instance->CurrentLODLevel->RequiredModule)
+            continue;
+
+        UParticleModuleRequired* RequiredModule = Instance->CurrentLODLevel->RequiredModule;
+
+        // Material이 없으면 렌더링 불가
+        if (!RequiredModule->Material)
+            continue;
+
+        // 파티클이 없으면 스킵
+        if (Instance->ActiveParticles == 0)
+            continue;
+
+        // 이미터 정렬 (필요한 경우)
+        Instance->Sort(RequiredModule->SortMode, &View->ViewLocation);
+
+        // 타입별 DynamicData 생성 (매 프레임 생성, 렌더러에서 삭제)
+        FDynamicEmitterDataBase* DynamicData = nullptr;
+        if (RequiredModule->EmitterType == EDynamicEmitterType::Sprite)
+        {
+            DynamicData = new FDynamicSpriteEmitterData(Instance);
+        }
+        else if (RequiredModule->EmitterType == EDynamicEmitterType::Mesh)
+        {
+            DynamicData = new FDynamicMeshEmitterData(Instance);
+        }
+
+        if (DynamicData)
+        {
+            DynamicData->UpdateRenderData(View);
+            RenderDataArray.Add(DynamicData);
+        }
+    }
+
+    return RenderDataArray;
 }
 
 void UParticleSystemComponent::CreateEmitterInstances()

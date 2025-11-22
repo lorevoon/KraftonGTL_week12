@@ -23,6 +23,7 @@
 #include "DirectionalLightActor.h"
 #include "DirectionalLightComponent.h"
 #include "AmbientLightActor.h"
+#include "ParticleSystemComponent.h"
 #include "AmbientLightComponent.h"
 #include "Frustum.h"
 #include "Level.h"
@@ -280,6 +281,29 @@ void UWorld::Tick(float DeltaSeconds)
 	if (LuaManager && bPie)
 	{
 		LuaManager->Tick(GetDeltaTime(EDeltaTime::Game));
+	}
+
+	
+	// =======================================
+	// ============= 파티클 전용 틱  =============
+	// ======================================= 
+	if (Level)
+	{
+		TArray<AActor*> LevelActors = Level->GetActors();
+		for (AActor* Actor : LevelActors)
+		{
+			if (Actor && Actor->IsActorActive())
+			{
+				// 액터의 모든 컴포넌트 순회
+				for (UActorComponent* Component : Actor->GetOwnedComponents())
+				{
+					if (UParticleSystemComponent* ParticleComponent = Cast<UParticleSystemComponent>(Component))
+					{
+						ParticleComponent->UpdateParticles(GetDeltaTime(EDeltaTime::Game));
+					}
+				}
+			}
+		}
 	}
 
 	// 지연 삭제 처리

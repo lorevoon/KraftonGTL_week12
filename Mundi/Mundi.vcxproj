@@ -359,6 +359,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Info.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PointLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpotLightActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleHelper.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\GameObject.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaBindHelpers.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaBindingRegistry.cpp" />
