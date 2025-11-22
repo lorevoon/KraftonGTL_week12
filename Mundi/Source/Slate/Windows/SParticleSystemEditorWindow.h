@@ -1,0 +1,36 @@
+#pragma once
+#include "SViewerWindow.h"
+
+class UEditorAssetPreviewContext;
+
+// Minimal Cascade-style particle editor shell
+// Provides: top toolbar, left column (viewport + details), right column (emitters + curves)
+// Viewport renders via ImGui::Image using the viewer state's FViewport
+class SParticleSystemEditorWindow : public SViewerWindow
+{
+public:
+    SParticleSystemEditorWindow();
+    ~SParticleSystemEditorWindow() override;
+
+    // SWindow override
+    void OnRender() override;
+
+protected:
+    // SViewerWindow requirements
+    ViewerState* CreateViewerState(const char* Name, UEditorAssetPreviewContext* Context) override;
+    void DestroyViewerState(ViewerState*& State) override;
+    FString GetWindowTitle() const override { return "Cascade Particle Editor"; }
+
+    void PreRenderViewportUpdate() override {}
+
+private:
+    // Layout state
+    float ColumnSplitRatio = 0.6f;      // Left vs Right
+    float LeftRowSplitRatio = 0.6f;     // Viewport vs Details (left column)
+    float RightRowSplitRatio = 0.45f;   // Emitters vs Curves (right column)
+
+    void RenderLeftColumn(float width, float height);
+    void RenderRightColumn(float width, float height);
+    void RenderViewportArea(float width, float height);
+};
+
