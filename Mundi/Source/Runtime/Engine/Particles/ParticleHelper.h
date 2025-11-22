@@ -97,16 +97,16 @@ struct ID3D11DeviceContext;
 // Sprite 파티클 인스턴스 데이터
 struct FParticleSpriteInstance
 {
-    FVector WorldPosition;   // 파티클 월드 위치
-    FVector2D Size;          // 파티클 크기 (X, Y)
-    float Rotation;          // 파티클 회전 (라디안)
-    FVector4 Color;          // 파티클 색상 (RGBA)
+    // 셰이더와 메모리 레이아웃을 일치시키기 위해 명시적으로 float로 선언
+    // 16바이트 단위로 정렬 (셰이더 상수 버퍼 규칙과 FVector4 alignas(16) 대응)
+    float WorldPositionX, WorldPositionY, WorldPositionZ, Padding0;  // 16 bytes
+    float SizeX, SizeY, Rotation, Padding1;                          // 16 bytes
+    float ColorR, ColorG, ColorB, ColorA;                            // 16 bytesㅉ
 
     FParticleSpriteInstance()
-        : WorldPosition(FVector::Zero())
-        , Size(FVector2D(1.0f, 1.0f))
-        , Rotation(0.0f)
-        , Color(FVector4(1.0f, 1.0f, 1.0f, 1.0f))
+        : WorldPositionX(0.0f), WorldPositionY(0.0f), WorldPositionZ(0.0f), Padding0(0.0f)
+        , SizeX(1.0f), SizeY(1.0f), Rotation(0.0f), Padding1(0.0f)
+        , ColorR(1.0f), ColorG(1.0f), ColorB(1.0f), ColorA(1.0f)
     {
     }
 };

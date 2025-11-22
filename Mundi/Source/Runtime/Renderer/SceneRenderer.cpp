@@ -764,7 +764,7 @@ void FSceneRenderer::GatherVisibleProxies()
 					{
 						Proxies.EditorLines.Add(LineComponent);
 					}
-					else if (UParticleSystemComponent* ParticeSystemComponent = Cast<UParticleSystemComponent>(Component); ParticeSystemComponent && bDrawParticle)
+					else if (UParticleSystemComponent* ParticeSystemComponent = Cast<UParticleSystemComponent>(PrimitiveComponent); ParticeSystemComponent && bDrawParticle)
 					{
 						Proxies.Paricles.Add(ParticeSystemComponent);
 					}
@@ -976,6 +976,29 @@ void FSceneRenderer::RenderTranslucentPass()
 	}
 	if (Proxies.Paricles.empty())
 		return;
+
+	// Ensure ViewProj constant buffer is set before particle rendering
+	FMatrix InvView = View->ViewMatrix.InverseAffine();
+	FMatrix InvProjection;
+	if (View->ProjectionMode == ECameraProjectionMode::Perspective)
+	{
+		InvProjection = View->ProjectionMatrix.InversePerspectiveProjection();
+	}
+	else
+	{
+		InvProjection = View->ProjectionMatrix.InverseOrthographicProjection();
+	}
+	ViewProjBufferType ViewProjBuffer = ViewProjBufferType(View->ViewMatrix, View->ProjectionMatrix, InvView, InvProjection);
+	RHIDevice->SetAndUpdateConstantBuffer(ViewProjBufferType(ViewProjBuffer));
+
+	static bool bLoggedOnce = false;
+	if (!bLoggedOnce)
+	{
+		bLoggedOnce = true;
+		UE_LOG("[debug] Camera - Pos: (%.1f, %.1f, %.1f), Looking at: (%.1f, %.1f, %.1f)",
+			View->ViewLocation.X, View->ViewLocation.Y, View->ViewLocation.Z,
+			View->ViewMatrix.VRows[2].X, View->ViewMatrix.VRows[2].Y, View->ViewMatrix.VRows[2].Z);
+	}
 
 	// 컴포넌트 소팅
 	std::sort(Proxies.Paricles.begin(), Proxies.Paricles.end(), [&](UParticleSystemComponent* A, UParticleSystemComponent* B)

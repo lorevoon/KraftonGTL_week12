@@ -68,6 +68,15 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
     int32 ParticleCount = Source->ActiveParticles;
     Instances.SetNum(ParticleCount);
 
+    static bool bLoggedParticles = false;
+    bool bShouldLog = !bLoggedParticles && ParticleCount > 0;
+    if (false /*bShouldLog*/)
+    {
+        UE_LOG("[debug] === PARTICLE DEBUG INFO ===");
+        UE_LOG("[debug] Active Particles: %d", ParticleCount);
+        bLoggedParticles = true;
+    }
+
     // 각 파티클의 인스턴스 데이터 생성
     for (int32 i = 0; i < ParticleCount; ++i)
     {
@@ -75,18 +84,46 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
         if (!Particle)
             continue;
 
-        // 인스턴스 데이터 설정
-        Instances[i].WorldPosition = Particle->Location;
-        Instances[i].Size = FVector2D(Particle->Size.X, Particle->Size.Y);
+        // 인스턴스 데이터 설정 (명시적 float 필드로 변경)
+        Instances[i].WorldPositionX = Particle->Location.X;
+        Instances[i].WorldPositionY = Particle->Location.Y;
+        Instances[i].WorldPositionZ = Particle->Location.Z;
+        Instances[i].Padding0 = 0.0f;
+
+        Instances[i].SizeX = Particle->Size.X;
+        Instances[i].SizeY = Particle->Size.Y;
         Instances[i].Rotation = Particle->Rotation;
-        Instances[i].Color = FVector4(Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);
+        Instances[i].Padding1 = 0.0f;
+
+        Instances[i].ColorR = Particle->Color.R;
+        Instances[i].ColorG = Particle->Color.G;
+        Instances[i].ColorB = Particle->Color.B;
+        Instances[i].ColorA = Particle->Color.A;
+
+        // 처음 3개 파티클 로그
+        if (false /*i < 3 && bShouldLog*/)
+        {
+            UE_LOG("[debug] Particle[%d] - Pos: (%.2f, %.2f, %.2f), Size: (%.2f, %.2f), Color: (%.2f, %.2f, %.2f, %.2f)",
+                i,
+                Particle->Location.X, Particle->Location.Y, Particle->Location.Z,
+                Particle->Size.X, Particle->Size.Y,
+                Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);
+        }
     }
 }
 
 void FDynamicSpriteEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material)
 {
     if (Instances.Num() == 0)
+    {
+        UE_LOG("[debug] FDynamicSpriteEmitterData::Render - No instances to render");
         return;
+    }
+    
+    if (false)
+    {
+        UE_LOG("[debug] FDynamicSpriteEmitterData::Render - Rendering %d instances", Instances.Num());
+    }
 
     ID3D11Device* Device = RHI->GetDevice();
     ID3D11DeviceContext* Context = RHI->GetDeviceContext();
@@ -133,8 +170,14 @@ void FDynamicSpriteEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMateria
         Context->Unmap(InstanceBuffer, 0);
     }
 
-    // 4. 블렌딩 상태 설정
+    // 4. Rasterizer 상태 설정 (양면 렌더링)
+    RHI->RSSetState(ERasterizerMode::Solid_NoCull);
+
+    // 4.5. 블렌딩 상태 설정
     RHI->OMSetBlendState(true);
+
+    // 4.6. Depth/Stencil 상태 설정 (반투명 파티클: depth test 활성화, depth write 비활성화)
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
 
     // 5. Material 바인딩 (셰이더, 텍스처, 샘플러)
     if (Material)
@@ -144,6 +187,11 @@ void FDynamicSpriteEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMateria
         if (Shader)
         {
             RHI->PrepareShader(Shader);
+            UE_LOG("[debug] Shader bound: %s", Shader ? "Valid" : "Null");
+        }
+        else
+        {
+            UE_LOG("[error] Shader is null!");
         }
 
         // 텍스처 바인딩
@@ -151,6 +199,11 @@ void FDynamicSpriteEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMateria
         if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
         {
             DiffuseSRV = DiffuseTexture->GetShaderResourceView();
+            UE_LOG("[debug] Texture SRV: %s", DiffuseSRV ? "Valid" : "Null");
+        }
+        else
+        {
+            UE_LOG("[warn] No diffuse texture in material");
         }
         Context->PSSetShaderResources(0, 1, &DiffuseSRV);
 
@@ -158,19 +211,33 @@ void FDynamicSpriteEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMateria
         ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
         Context->PSSetSamplers(0, 1, &DefaultSampler);
     }
+    else
+    {
+        UE_LOG("[error] Material is null!");
+    }
 
     // 6. 버퍼 바인딩
     UINT Strides[2] = { sizeof(FVector2D), sizeof(FParticleSpriteInstance) };
     UINT Offsets[2] = { 0, 0 };
     ID3D11Buffer* Buffers[2] = { QuadVertexBuffer, InstanceBuffer };
+
+    if (false)
+    {
+        UE_LOG("[debug] Vertex stride: %d bytes (expected 8), Instance stride: %d bytes (expected 48)",
+           Strides[0], Strides[1]);
+    }
+
     Context->IASetVertexBuffers(0, 2, Buffers, Strides, Offsets);
     Context->IASetIndexBuffer(QuadIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // 7. DrawIndexedInstanced
     Context->DrawIndexedInstanced(6, Instances.Num(), 0, 0, 0);
 
-    // 8. 블렌드 상태 복원
+    // 8. 렌더 상태 복원
+    RHI->RSSetState(ERasterizerMode::Solid);
     RHI->OMSetBlendState(false);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqual);
 }
 
 // ============================================================

@@ -516,7 +516,19 @@ void UResourceManager::InitShaderILMap()
     ShaderToInputLayoutMap["Shaders/PostProcess/HeightFog_PS.hlsl"] = layout;
     ShaderToInputLayoutMap["Shaders/Utility/SceneDepth_PS.hlsl"] = layout;
     layout.clear();
-    
+
+    // ────────────────────────────────
+    // Particle Sprite (Instancing)
+    // Slot 0: Quad vertices (float2)
+    // Slot 1: Instance data - 48 bytes total (16 + 16 + 16 with padding for FVector4 alignment)
+    // ────────────────────────────────
+    layout.Add({ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });              // QuadPos (Slot 0)
+    layout.Add({ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 });      // WorldPosition + Padding (16 bytes)
+    layout.Add({ "TEXCOORD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 });     // Size + Rotation + Padding (16 bytes)
+    layout.Add({ "TEXCOORD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 });     // Color (16 bytes)
+    ShaderToInputLayoutMap["Shaders/Effects/ParticleSprite.hlsl"] = layout;
+    layout.clear();
+
     ShaderToInputLayoutMap["Shaders/Utility/FullScreenTriangle_VS.hlsl"] = {};  // FullScreenTriangle 는 InputLayout을 사용하지 않는다
 }
 
