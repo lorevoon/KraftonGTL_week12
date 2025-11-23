@@ -11,7 +11,7 @@
 #undef CURRENT_CLASS_GENERATED_BODY
 #endif
 
-// Define class-specific body macro
+// Define class-specific body macro (Abstract class)
 #define U_MOVEMENT_COMPONENT_BODY \
 public: \
     using Super = UActorComponent; \
@@ -24,13 +24,6 @@ public: \
     } \
     virtual UClass* GetClass() const override { return UMovementComponent::StaticClass(); } \
     UMovementComponent(const UMovementComponent&) = default; \
-    UMovementComponent* Duplicate() const override \
-    { \
-        UMovementComponent* NewObject = ObjectFactory::DuplicateObject<UMovementComponent>(this); \
-        NewObject->DuplicateSubObjects(); \
-        NewObject->PostDuplicate(); \
-        return NewObject; \
-    } \
 private: \
     static void StaticRegisterProperties(); \
     static const bool bPropertiesRegistered; \

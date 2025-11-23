@@ -162,6 +162,7 @@ class ClassInfo:
     functions: List[Function] = field(default_factory=list)
     is_component: bool = False
     is_spawnable: bool = False
+    is_abstract: bool = False
     display_name: str = ""
     description: str = ""
     uclass_metadata: Dict[str, str] = field(default_factory=dict)
@@ -311,6 +312,10 @@ class HeaderParser:
             metadata_start = uclass_match.end()
             metadata, _ = self._extract_balanced_parens(content_no_comments, metadata_start)
             class_info.uclass_metadata = self._parse_metadata(metadata)
+
+            # Abstract 플래그 체크
+            if 'Abstract' in metadata:
+                class_info.is_abstract = True
 
             # DisplayName과 Description 추출
             if 'DisplayName' in class_info.uclass_metadata:

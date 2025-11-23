@@ -5,6 +5,9 @@
 #include "Modules/ParticleModuleRequired.h"
 #include "UParticleLODLevel.generated.h"
 
+// 전방 선언
+class UParticleModuleTypeDataBase;
+
 // LOD 레벨별 모듈 리스트
 // - LOD별로 다른 모듈 리스트 보유
 // - 실행 단계별로 모듈을 필터링하여 반환
@@ -19,6 +22,12 @@ public:
     // 필수 모듈 (모든 이미터가 반드시 가져야 함)
     UPROPERTY(EditAnywhere, Category="Required")
     UParticleModuleRequired* RequiredModule;
+
+    // 타입 데이터 모듈 (이미터 타입 결정)
+    // - nullptr이면 Sprite (기본)
+    // - ParticleModuleTypeDataMesh면 Mesh
+    UPROPERTY(EditAnywhere, Category="TypeData")
+    UParticleModuleTypeDataBase* TypeDataModule;
 
     // 옵션 모듈 리스트
     UPROPERTY(EditAnywhere, Category="Modules")

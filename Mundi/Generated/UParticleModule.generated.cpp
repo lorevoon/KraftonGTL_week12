@@ -8,19 +8,9 @@
 
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
 
-// IMPLEMENT_CLASS(UParticleModule) expansion
+// IMPLEMENT_ABSTRACT_CLASS(UParticleModule) expansion
+// Abstract class - no factory registration (cannot be instantiated)
 namespace {
-    struct UParticleModuleFactoryRegister
-    {
-        UParticleModuleFactoryRegister()
-        {
-            ObjectFactory::RegisterClassType(
-                UParticleModule::StaticClass(),
-                []() -> UObject* { return new UParticleModule(); }
-            );
-        }
-    };
-    static UParticleModuleFactoryRegister GRegister_UParticleModule;
     static bool bIsRegistered_UParticleModule = [](){ UParticleModule::StaticClass(); return true; }();
 }
 

@@ -5,6 +5,7 @@
 
 UParticleLODLevel::UParticleLODLevel()
     : RequiredModule(nullptr)
+    , TypeDataModule(nullptr)
     , Level(0)
     , DistanceThreshold(0.0f)
 {

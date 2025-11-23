@@ -8,19 +8,9 @@
 
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
 
-// IMPLEMENT_CLASS(UMovementComponent) expansion
+// IMPLEMENT_ABSTRACT_CLASS(UMovementComponent) expansion
+// Abstract class - no factory registration (cannot be instantiated)
 namespace {
-    struct UMovementComponentFactoryRegister
-    {
-        UMovementComponentFactoryRegister()
-        {
-            ObjectFactory::RegisterClassType(
-                UMovementComponent::StaticClass(),
-                []() -> UObject* { return new UMovementComponent(); }
-            );
-        }
-    };
-    static UMovementComponentFactoryRegister GRegister_UMovementComponent;
     static bool bIsRegistered_UMovementComponent = [](){ UMovementComponent::StaticClass(); return true; }();
 }
 
