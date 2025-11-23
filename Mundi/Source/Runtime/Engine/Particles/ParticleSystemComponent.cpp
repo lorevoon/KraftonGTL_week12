@@ -25,6 +25,7 @@ void UParticleSystemComponent::OnRegister(UWorld* InWorld)
 
     if (Template && bAutoActivate)
     {
+		CreateEmitterInstances();
         Activate();
     }
 }
@@ -37,12 +38,15 @@ void UParticleSystemComponent::OnUnregister()
 
 void UParticleSystemComponent::Activate()
 {
-    if (bIsActive)
-    {
+    if (!Template || bIsActive)
         return;
-    }
 
-    CreateEmitterInstances();
+	// 템플릿 설정만 되어 있고 인스턴스가 없으면 생성
+    if(Template && EmitterInstances.Num() == 0)
+    {
+        CreateEmitterInstances();
+	}
+
     bIsActive = true;
 }
 
@@ -53,13 +57,13 @@ void UParticleSystemComponent::Deactivate()
 
 void UParticleSystemComponent::Stop()
 {
-    DestroyEmitterInstances();
-    bIsActive = false;
+    Deactivate();
+    ResetInstances();
 }
 
 void UParticleSystemComponent::Restart()
 {
-    Stop();
+	Stop(); // Deactivate + ResetInstances
     Activate();
 }
 
@@ -70,7 +74,7 @@ void UParticleSystemComponent::SetTemplate(UParticleSystem* NewTemplate)
         DestroyEmitterInstances();
         Template = NewTemplate;
 
-        if (bIsActive && Template)
+        if (Template)
         {
             CreateEmitterInstances();
         }
@@ -152,6 +156,7 @@ void UParticleSystemComponent::CreateEmitterInstances()
         return;
     }
 
+	// Ensure previous instances are cleared
     DestroyEmitterInstances();
 
     // Day 2에서 구현 예정
@@ -170,6 +175,17 @@ void UParticleSystemComponent::DestroyEmitterInstances()
         }
     }
     EmitterInstances.Empty();
+}
+
+void UParticleSystemComponent::ResetInstances()
+{
+    for (FParticleEmitterInstance* Instance : EmitterInstances)
+    {
+        if (Instance)
+        {
+            Instance->Reset();
+        }
+    }
 }
 
 void UParticleSystemComponent::UpdateEmitterInstance(FParticleEmitterInstance* Instance, float DeltaTime)

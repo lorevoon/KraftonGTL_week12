@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "ParticleHelper.h"
 #include "ParticleEmitterInstance.h"
@@ -53,10 +53,10 @@ public:
     // 파티클 시스템 비활성화
     void Deactivate();
 
-    // 즉시 정지 및 파티클 제거
+    // 즉시 정지 및 이미터 인스턴스 상태 초기화
     void Stop();
 
-    // 파티클 시스템 재시작
+    // 이미터 인스턴스 상태 초기화 및 다시 시작
     void Restart();
 
     // 파티클 시스템 에셋 설정
@@ -76,6 +76,9 @@ private:
 
     // 이미터 인스턴스 제거
     void DestroyEmitterInstances();
+    
+    // 전체 이미터 인스턴스 리셋
+    void ResetInstances();
 
     // 단일 이미터 업데이트
     void UpdateEmitterInstance(FParticleEmitterInstance* Instance, float DeltaTime);
