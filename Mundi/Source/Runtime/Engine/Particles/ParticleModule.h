@@ -70,4 +70,11 @@ public:
     {
         // 기본 구현 없음
     }
+
+    // 모듈이 파티클 하나당 추가로 요구하는 바이트 수
+    // - 기본값 0, 페이로드를 사용하는 모듈이 override
+    virtual uint32 RequiredBytes() const
+    {
+        return 0;
+    }
 };

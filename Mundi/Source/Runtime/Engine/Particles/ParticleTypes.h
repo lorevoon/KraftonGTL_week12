@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cmath>
 #include <cstring>
@@ -91,6 +91,8 @@ struct FBaseParticle
 // - 메모리 풀 관리 및 파티클 생명주기 제어
 struct FParticleEmitterInstance
 {
+    static constexpr uint32 ParticleStrideAlignment = 16u; // 파티클 메모리 정렬 단위
+
     UParticleEmitter* EmitterTemplate;       // 에셋 참조
     UParticleLODLevel* CurrentLODLevel;      // 현재 LOD
     UParticleSystemComponent* Component;     // 소유 컴포넌트
@@ -132,6 +134,21 @@ struct FParticleEmitterInstance
             delete[] ParticleIndices;
             ParticleIndices = nullptr;
         }
+    }
+
+    /**
+	 * @brief 주어진 값과 정렬 단위에 맞춰 값을 올림 정렬합니다.
+	 * @note: Alignment는 2의 거듭제곱이어야 합니다.
+     */
+    static uint32 AlignUp(uint32 Value, uint32 Alignment)
+    {
+        // Alignment를 이진수로 표현하면 한 비트만 1인 형태 -> Mask는 그 아래 값이 전부 1, 나머지는 0
+        const uint32 Mask = Alignment - 1u;
+        // Value에 Mask(=Alignment -1)을 더하면
+        // 1. value가 이미 정렬된 경우 -> 다음 정렬 넘어가기 직전 값이 됨
+		// 2. value가 정렬되지 않은 경우 -> 다음 정렬 경계값 이상의 값이 됨
+        // ~Mask와 AND연산하면 정렬 경계값으로 clipping됨.
+        return (Value + Mask) & ~Mask;
     }
 
     // Stride 기반 파티클 접근
@@ -228,7 +245,7 @@ struct FParticleEmitterInstance
         EmitterTemplate = InTemplate;
         Component = InComponent;
         SetLODLevel(InLODIndex);
-		ParticleStride = sizeof(FBaseParticle); // 임시값. 향후 페이로드 모듈에 따라 동적 조정 필요.
+        ParticleStride = CalculateParticleStride(); // 페이로드 요구량 + 정렬 반영
 
 		// 파티클 최댓값: 지정값 우선, 없으면 이미터 템플릿 기준
         const int32 RequestedMax = (InMaxActiveParticles > 0) ? InMaxActiveParticles :
@@ -246,6 +263,19 @@ struct FParticleEmitterInstance
 
         SpawnFraction = 0.0f;
         SecondsSinceCreation = 0.0f;
+    }
+
+    /** @brief: 모듈 요구 바이트를 합산해 정렬(align)까지 고려한 Stride를 계산합니다. */
+    uint32 CalculateParticleStride() const
+    {
+        uint32 ParticleSize = sizeof(FBaseParticle);
+
+        if (CurrentLODLevel)
+        {
+            ParticleSize += CurrentLODLevel->GetRequiredBytes();
+        }
+
+        return AlignUp(ParticleSize, ParticleStrideAlignment);
     }
 
     /** @brief 한 프레임 틱 업데이트를 수행합니다. (스폰 → 업데이트 → 파이널 업데이트 → Kill) */
