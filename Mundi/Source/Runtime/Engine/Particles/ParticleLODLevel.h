@@ -49,6 +49,9 @@ public:
     // 모든 모듈 반환 (RequiredModule + Modules)
     TArray<UParticleModule*> GetAllModules() const;
 
+    // 페이로드 포함 파티클 바이트 요구량(Required + Modules 합산)
+    uint32 GetRequiredBytes() const;
+
     // 모듈 추가/제거
     void AddModule(UParticleModule* Module);
     void RemoveModule(UParticleModule* Module);
