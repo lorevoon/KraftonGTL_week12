@@ -1,5 +1,8 @@
-#pragma once
+﻿#pragma once
 
+#include <cmath>
+#include <cstring>
+#include <algorithm>
 #include "Vector.h"
 #include "Color.h"
 
@@ -79,125 +82,5 @@ struct FBaseParticle
         , OneOverMaxLifetime(0.0f)
         , Flags(0)
     {
-    }
-};
-
-// 파티클 이미터 인스턴스 (런타임)
-// - 실제 파티클 시뮬레이션을 담당하는 비-UObject 구조체
-// - 메모리 풀 관리 및 파티클 생명주기 제어
-struct FParticleEmitterInstance
-{
-    UParticleEmitter* EmitterTemplate;       // 에셋 참조
-    UParticleLODLevel* CurrentLODLevel;      // 현재 LOD
-    UParticleSystemComponent* Component;     // 소유 컴포넌트
-
-    // 메모리 관리
-    uint8* ParticleData;                           // 연속된 파티클 메모리 블록
-    int32* ParticleIndices;                        // 활성 파티클 인덱스 배열
-    uint32 ParticleStride;                         // sizeof(FBaseParticle) + 추가 페이로드
-    int32 ActiveParticles;                         // 현재 활성 파티클 수
-    int32 MaxActiveParticles;                      // 최대 파티클 수
-
-    // 스폰 제어
-    float SpawnFraction;                           // 누적 스폰 잔량
-    float SecondsSinceCreation;                    // 생성 후 경과 시간
-
-    FParticleEmitterInstance()
-        : EmitterTemplate(nullptr)
-        , CurrentLODLevel(nullptr)
-        , Component(nullptr)
-        , ParticleData(nullptr)
-        , ParticleIndices(nullptr)
-        , ParticleStride(sizeof(FBaseParticle))
-        , ActiveParticles(0)
-        , MaxActiveParticles(0)
-        , SpawnFraction(0.0f)
-        , SecondsSinceCreation(0.0f)
-    {
-    }
-
-    ~FParticleEmitterInstance()
-    {
-        if (ParticleData)
-        {
-            delete[] ParticleData;
-            ParticleData = nullptr;
-        }
-        if (ParticleIndices)
-        {
-            delete[] ParticleIndices;
-            ParticleIndices = nullptr;
-        }
-    }
-
-    // Stride 기반 파티클 접근
-    FBaseParticle* GetParticle(int32 Index)
-    {
-        if (Index < 0 || Index >= ActiveParticles)
-            return nullptr;
-        return reinterpret_cast<FBaseParticle*>(ParticleData + ParticleIndices[Index] * ParticleStride);
-    }
-
-    const FBaseParticle* GetParticle(int32 Index) const
-    {
-        if (Index < 0 || Index >= ActiveParticles)
-            return nullptr;
-        return reinterpret_cast<const FBaseParticle*>(ParticleData + ParticleIndices[Index] * ParticleStride);
-    }
-
-    // 메모리 할당
-    void InitParticles(int32 InMaxParticles)
-    {
-        MaxActiveParticles = InMaxParticles;
-        ParticleData = new uint8[MaxActiveParticles * ParticleStride];
-        ParticleIndices = new int32[MaxActiveParticles];
-        for (int32 i = 0; i < MaxActiveParticles; ++i)
-        {
-            ParticleIndices[i] = i;
-        }
-        ActiveParticles = 0;
-    }
-
-    // 파티클 정렬
-    void Sort(EParticleSortMode SortMode = EParticleSortMode::None, const FVector* ViewLocation = nullptr)
-    {
-        if (SortMode == EParticleSortMode::None || ActiveParticles <= 1)
-            return;
-
-        // 정렬 모드에 따라 ParticleIndices 재정렬
-        switch (SortMode)
-        {
-        case EParticleSortMode::ViewDistanceDepth:
-            if (ViewLocation)
-            {
-                std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
-                    [this, ViewLocation](int32 A, int32 B) {
-                        FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
-                        FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
-                        float DistA = (ParticleA->Location - *ViewLocation).SizeSquared();
-                        float DistB = (ParticleB->Location - *ViewLocation).SizeSquared();
-                        return DistA > DistB; // 먼 것부터 (뒤에서 앞으로)
-                    });
-            }
-            break;
-
-        case EParticleSortMode::AgeOldestFirst:
-            std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
-                [this](int32 A, int32 B) {
-                    FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
-                    FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
-                    return ParticleA->RelativeTime > ParticleB->RelativeTime;
-                });
-            break;
-
-        case EParticleSortMode::AgeNewestFirst:
-            std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
-                [this](int32 A, int32 B) {
-                    FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
-                    FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
-                    return ParticleA->RelativeTime < ParticleB->RelativeTime;
-                });
-            break;
-        }
     }
 };

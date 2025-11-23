@@ -938,6 +938,10 @@
     <ClCompile Include="Generated\UParticleModuleTypeDataMesh.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleHelper.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.cpp">
+      <Filter>Source\Runtime\Engine\Particles</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Generated\USkinnedMeshComponent.generated.h">
@@ -1972,6 +1976,9 @@
     </ClInclude>
     <ClInclude Include="Generated\UParticleModuleTypeDataMesh.generated.h">
       <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.h">
+      <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

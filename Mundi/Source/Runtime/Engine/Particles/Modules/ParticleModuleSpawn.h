@@ -1,5 +1,5 @@
 ﻿#pragma once
-
+#include "ParticleTypes.h"
 #include "ParticleModule.h"
 #include "UParticleModuleSpawn.generated.h"
 

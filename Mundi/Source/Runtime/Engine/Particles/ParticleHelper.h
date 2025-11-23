@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ParticleTypes.h"
+#include "ParticleEmitterInstance.h"
 
 // 파티클 헬퍼 매크로
 // - 반복적인 파티클 접근 코드를 간소화
