@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "ParticleModule.h"
+#include "ParticleTypes.h"
 #include "UParticleModuleRequired.generated.h"
 
 // 전방 선언

@@ -2,10 +2,9 @@
 
 #include <cmath>
 #include <cstring>
+#include <algorithm>
 #include "Vector.h"
 #include "Color.h"
-#include "ParticleEmitter.h"
-#include "ParticleModule.h"
 
 // 파티클 이미터 타입
 enum class EDynamicEmitterType : uint8
@@ -229,225 +228,32 @@ struct FParticleEmitterInstance
 	 * @param InLODIndex 초기 LOD 인덱스
 	 * @param InMaxActiveParticles 최대 활성 파티클 수 (0이하 값을 주면 템플릿 설정을 사용합니다)
      */
-    void Initialize(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, int32 InLODIndex, int32 InMaxActiveParticles)
-    {
-        if (ParticleData)
-        {
-            delete[] ParticleData;
-            ParticleData = nullptr;
-        }
-        if (ParticleIndices)
-        {
-            delete[] ParticleIndices;
-            ParticleIndices = nullptr;
-        }
-
-        EmitterTemplate = InTemplate;
-        Component = InComponent;
-        SetLODLevel(InLODIndex);
-        ParticleStride = CalculateParticleStride(); // 페이로드 요구량 + 정렬 반영
-
-		// 파티클 최댓값: 지정값 우선, 없으면 이미터 템플릿 기준
-        const int32 RequestedMax = (InMaxActiveParticles > 0) ? InMaxActiveParticles :
-            (EmitterTemplate ? EmitterTemplate->MaxParticleCount : 0);
-
-        if (RequestedMax > 0)
-        {
-            InitParticles(RequestedMax);
-        }
-        else
-        {
-            MaxActiveParticles = 0;
-            ActiveParticles = 0;
-        }
-
-        SpawnFraction = 0.0f;
-        SecondsSinceCreation = 0.0f;
-    }
+    void Initialize(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, int32 InLODIndex, int32 InMaxActiveParticles);
 
     /** @brief: 모듈 요구 바이트를 합산해 정렬(align)까지 고려한 Stride를 계산합니다. */
-    uint32 CalculateParticleStride() const
-    {
-        uint32 ParticleSize = sizeof(FBaseParticle);
-
-        if (CurrentLODLevel)
-        {
-            ParticleSize += CurrentLODLevel->GetRequiredBytes();
-        }
-
-        return AlignUp(ParticleSize, ParticleStrideAlignment);
-    }
+    uint32 CalculateParticleStride() const;
 
     /** @brief 한 프레임 틱 업데이트를 수행합니다. (스폰 → 업데이트 → 파이널 업데이트 → Kill) */
-    void Tick(float DeltaTime)
-    {
-        if (!CurrentLODLevel || MaxActiveParticles == 0)
-        {
-            return;
-        }
-
-        SpawnParticles(DeltaTime);
-        RunUpdateModules(DeltaTime);
-        RunFinalUpdateModules(DeltaTime);
-        KillDeadParticles();
-
-        SecondsSinceCreation += DeltaTime;
-    }
+    void Tick(float DeltaTime);
 
     // SpawnRate 기반 파티클 생성
-    void SpawnParticles(float DeltaTime)
-    {
-        if (!CurrentLODLevel || !CurrentLODLevel->RequiredModule)
-        {
-            return;
-        }
-
-        if (ActiveParticles >= MaxActiveParticles)
-        {
-            return;
-        }
-
-        const float SpawnRate = CurrentLODLevel->RequiredModule->SpawnRate;
-        if (SpawnRate <= 0.0f)
-        {
-            return;
-        }
-
-        const float Desired = SpawnFraction + SpawnRate * DeltaTime;
-        int32 SpawnCount = static_cast<int32>(std::floor(Desired));
-        SpawnFraction = Desired - SpawnCount;
-
-        const int32 CapacityLeft = MaxActiveParticles - ActiveParticles;
-        SpawnCount = FMath::Min(SpawnCount, CapacityLeft);
-
-        if (SpawnCount <= 0)
-        {
-            return;
-        }
-
-        const TArray<UParticleModule*> SpawnModules = CurrentLODLevel->GetSpawnModules();
-
-        for (int32 i = 0; i < SpawnCount; ++i)
-        {
-            const int32 NewActiveIndex = ActiveParticles;
-
-            if (NewActiveIndex >= MaxActiveParticles)
-            {
-                break;
-            }
-
-            const int32 DataIndex = ParticleIndices[NewActiveIndex];
-            FBaseParticle* Particle = reinterpret_cast<FBaseParticle*>(ParticleData + DataIndex * ParticleStride);
-            std::memset(Particle, 0, ParticleStride);
-            Particle->RelativeTime = 0.0f;
-            Particle->OneOverMaxLifetime = 0.0f;
-            Particle->OldLocation = Particle->Location;
-
-            for (UParticleModule* Module : SpawnModules)
-            {
-                if (Module && Module->bEnabled)
-                {
-                    Module->Spawn(this, NewActiveIndex, SecondsSinceCreation, Particle);
-                }
-            }
-
-            Particle->OldLocation = Particle->Location;
-            ActiveParticles++;
-        }
-    }
+    void SpawnParticles(float DeltaTime);
 
     // Update 단계 모듈 실행
-    void RunUpdateModules(float DeltaTime)
-    {
-        if (!CurrentLODLevel)
-        {
-            return;
-        }
-
-        for (int32 i = 0; i < ActiveParticles; ++i)
-        {
-            FBaseParticle* Particle = GetParticle(i);
-            if (Particle && Particle->OneOverMaxLifetime > 0.0f)
-            {
-                Particle->RelativeTime += DeltaTime * Particle->OneOverMaxLifetime;
-            }
-        }
-
-        const TArray<UParticleModule*> UpdateModules = CurrentLODLevel->GetUpdateModules();
-        for (UParticleModule* Module : UpdateModules)
-        {
-            if (Module && Module->bEnabled)
-            {
-                Module->Update(this, 0, DeltaTime);
-            }
-        }
-    }
+    void RunUpdateModules(float DeltaTime);
 
     // FinalUpdate 단계 모듈 실행
-    void RunFinalUpdateModules(float DeltaTime)
-    {
-        if (!CurrentLODLevel)
-        {
-            return;
-        }
-
-        const TArray<UParticleModule*> FinalModules = CurrentLODLevel->GetFinalUpdateModules();
-        for (UParticleModule* Module : FinalModules)
-        {
-            if (Module && Module->bEnabled)
-            {
-                Module->FinalUpdate(this, 0, DeltaTime);
-            }
-        }
-    }
+    void RunFinalUpdateModules(float DeltaTime);
 
     // 사망 파티클 정리
-    void KillDeadParticles()
-    {
-        for (int32 i = ActiveParticles - 1; i >= 0; --i)
-        {
-            const FBaseParticle* Particle = GetParticle(i);
-            if (Particle && Particle->RelativeTime >= 1.0f)
-            {
-                KillParticle(i);
-            }
-        }
-    }
+    void KillDeadParticles();
 
     // 특정 활성 인덱스 파티클 제거
-    void KillParticle(int32 ActiveIndex)
-    {
-        if (ActiveIndex < 0 || ActiveIndex >= ActiveParticles)
-        {
-            return;
-        }
-
-        const int32 LastActive = ActiveParticles - 1;
-        if (ActiveIndex != LastActive)
-        {
-            ParticleIndices[ActiveIndex] = ParticleIndices[LastActive];
-        }
-        ActiveParticles = LastActive;
-    }
+    void KillParticle(int32 ActiveIndex);
 
     // 상태 리셋(메모리 유지)
-    void Reset()
-    {
-        ActiveParticles = 0;
-        SpawnFraction = 0.0f;
-        SecondsSinceCreation = 0.0f;
-    }
+    void Reset();
 
     // LOD 전환
-    void SetLODLevel(int32 LODIndex)
-    {
-        if (!EmitterTemplate || LODIndex < 0)
-        {
-            CurrentLODLevel = nullptr;
-            return;
-        }
-
-        UParticleLODLevel* LOD = EmitterTemplate->GetLODLevel(LODIndex);
-        CurrentLODLevel = LOD;
-    }
+    void SetLODLevel(int32 LODIndex);
 };

@@ -932,7 +932,8 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleHelper.cpp">
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleHelper.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleTypes.cpp">
       <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClCompile>
   </ItemGroup>
