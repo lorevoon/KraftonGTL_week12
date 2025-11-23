@@ -933,7 +933,7 @@
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleHelper.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleTypes.cpp">
+    <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.cpp">
       <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1964,6 +1964,9 @@
     </ClInclude>
     <ClInclude Include="ThirdParty\Lua\include\lualib.h">
       <Filter>ThirdParty\Lua\include</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.h">
+      <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

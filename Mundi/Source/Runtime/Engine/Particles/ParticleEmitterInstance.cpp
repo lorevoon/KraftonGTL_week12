@@ -1,8 +1,51 @@
 ﻿#include "pch.h"
-#include "ParticleTypes.h"
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include "ParticleEmitterInstance.h"
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
 #include "ParticleModule.h"
+
+FParticleEmitterInstance::FParticleEmitterInstance()
+    : EmitterTemplate(nullptr)
+    , CurrentLODLevel(nullptr)
+    , Component(nullptr)
+    , ParticleData(nullptr)
+    , ParticleIndices(nullptr)
+    , ParticleStride(sizeof(FBaseParticle))
+    , ActiveParticles(0)
+    , MaxActiveParticles(0)
+    , SpawnFraction(0.0f)
+    , SecondsSinceCreation(0.0f)
+{
+}
+
+FParticleEmitterInstance::~FParticleEmitterInstance()
+{
+    if (ParticleData)
+    {
+        delete[] ParticleData;
+        ParticleData = nullptr;
+    }
+    if (ParticleIndices)
+    {
+        delete[] ParticleIndices;
+        ParticleIndices = nullptr;
+    }
+}
+
+void FParticleEmitterInstance::InitParticles(int32 InMaxParticles)
+{
+    MaxActiveParticles = InMaxParticles;
+    ParticleData = new uint8[MaxActiveParticles * ParticleStride];
+    ParticleIndices = new int32[MaxActiveParticles];
+    for (int32 i = 0; i < MaxActiveParticles; ++i)
+    {
+        ParticleIndices[i] = i;
+    }
+    ActiveParticles = 0;
+}
 
 void FParticleEmitterInstance::Initialize(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, int32 InLODIndex, int32 InMaxActiveParticles)
 {
@@ -171,6 +214,50 @@ void FParticleEmitterInstance::RunFinalUpdateModules(float DeltaTime)
     }
 }
 
+void FParticleEmitterInstance::Sort(EParticleSortMode SortMode, const FVector* ViewLocation)
+{
+    if (SortMode == EParticleSortMode::None || ActiveParticles <= 1)
+        return;
+
+    switch (SortMode)
+    {
+    case EParticleSortMode::ViewDistanceDepth:
+        if (ViewLocation)
+        {
+            std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
+                [this, ViewLocation](int32 A, int32 B) {
+                    FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
+                    FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
+                    float DistA = (ParticleA->Location - *ViewLocation).SizeSquared();
+                    float DistB = (ParticleB->Location - *ViewLocation).SizeSquared();
+                    return DistA > DistB; // 먼 것부터 (뒤에서 앞으로)
+                });
+        }
+        break;
+
+    case EParticleSortMode::AgeOldestFirst:
+        std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
+            [this](int32 A, int32 B) {
+                FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
+                FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
+                return ParticleA->RelativeTime > ParticleB->RelativeTime;
+            });
+        break;
+
+    case EParticleSortMode::AgeNewestFirst:
+        std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
+            [this](int32 A, int32 B) {
+                FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
+                FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
+                return ParticleA->RelativeTime < ParticleB->RelativeTime;
+            });
+        break;
+
+    default:
+        break;
+    }
+}
+
 void FParticleEmitterInstance::KillDeadParticles()
 {
     for (int32 i = ActiveParticles - 1; i >= 0; --i)
@@ -215,4 +302,18 @@ void FParticleEmitterInstance::SetLODLevel(int32 LODIndex)
 
     UParticleLODLevel* LOD = EmitterTemplate->GetLODLevel(LODIndex);
     CurrentLODLevel = LOD;
+}
+
+FBaseParticle* FParticleEmitterInstance::GetParticle(int32 ActiveIndex)
+{
+    if (ActiveIndex < 0 || ActiveIndex >= ActiveParticles)
+        return nullptr;
+    return reinterpret_cast<FBaseParticle*>(ParticleData + ParticleIndices[ActiveIndex] * ParticleStride);
+}
+
+const FBaseParticle* FParticleEmitterInstance::GetParticle(int32 ActiveIndex) const
+{
+    if (ActiveIndex < 0 || ActiveIndex >= ActiveParticles)
+        return nullptr;
+    return reinterpret_cast<const FBaseParticle*>(ParticleData + ParticleIndices[ActiveIndex] * ParticleStride);
 }

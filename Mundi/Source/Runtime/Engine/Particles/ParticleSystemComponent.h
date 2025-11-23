@@ -1,9 +1,9 @@
 #pragma once
 
 #include "ParticleHelper.h"
+#include "ParticleEmitterInstance.h"
 #include "PrimitiveComponent.h"
 #include "ParticleSystem.h"
-#include "ParticleTypes.h"
 #include "UParticleSystemComponent.generated.h"
 
 // 파티클 시스템 컴포넌트 (런타임)
