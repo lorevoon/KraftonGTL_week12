@@ -5,6 +5,9 @@
 #include "Material.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "ParticleLODLevel.h"
+#include "Modules/TypeData/ParticleModuleTypeDataMesh.h"
+#include "StaticMesh.h"
 
 // ============================================================
 // 헬퍼 함수들
@@ -299,32 +302,114 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     if (InstanceTransforms.Num() == 0)
         return;
 
+    ID3D11Device* Device = RHI->GetDevice();
     ID3D11DeviceContext* Context = RHI->GetDeviceContext();
 
-    // 1. 블렌딩 상태 설정 (알파 블렌딩 활성화)
+    // 1. TypeDataModule에서 Mesh 가져오기
+    UParticleLODLevel* LODLevel = Source->CurrentLODLevel;
+    if (!LODLevel || !LODLevel->TypeDataModule)
+        return;
+
+    UParticleModuleTypeDataMesh* TypeDataMesh = Cast<UParticleModuleTypeDataMesh>(LODLevel->TypeDataModule);
+    if (!TypeDataMesh || !TypeDataMesh->Mesh)
+        return;
+
+    UStaticMesh* ParticleMesh = TypeDataMesh->Mesh;
+
+    // 2. 인스턴스 버퍼 생성 (Transform + Color를 하나의 구조체로)
+    // 구조체: FMatrix(64 bytes) + FVector4(16 bytes) = 80 bytes per instance
+    struct FMeshInstance
+    {
+        FMatrix Transform;
+        FVector4 Color;
+    };
+
+    static ID3D11Buffer* InstanceBuffer = nullptr;
+    static uint32 MaxInstances = 0;
+
+    uint32 RequiredInstances = InstanceTransforms.Num();
+    if (!InstanceBuffer || MaxInstances < RequiredInstances)
+    {
+        if (InstanceBuffer)
+        {
+            InstanceBuffer->Release();
+            InstanceBuffer = nullptr;
+        }
+
+        MaxInstances = RequiredInstances * 3 / 2;
+
+        D3D11_BUFFER_DESC desc = {};
+        desc.ByteWidth = sizeof(FMeshInstance) * MaxInstances;
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        Device->CreateBuffer(&desc, nullptr, &InstanceBuffer);
+    }
+
+    // 3. Map으로 인스턴스 데이터 업로드
+    if (InstanceBuffer)
+    {
+        D3D11_MAPPED_SUBRESOURCE mapped;
+        Context->Map(InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+        FMeshInstance* InstanceData = (FMeshInstance*)mapped.pData;
+        for (int32 i = 0; i < RequiredInstances; ++i)
+        {
+            InstanceData[i].Transform = InstanceTransforms[i];
+            InstanceData[i].Color = InstanceColors[i];
+        }
+
+        Context->Unmap(InstanceBuffer, 0);
+    }
+
+    // 4. Rasterizer 상태 설정
+    RHI->RSSetState(ERasterizerMode::Solid_NoCull);
+
+    // 5. 블렌딩 상태 설정
     RHI->OMSetBlendState(true);
 
-    // 2. TODO: Material 바인딩
-    // Material->Bind(RHI);
+    // 6. Depth/Stencil 상태 설정
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
 
-    // 3. TODO: 인스턴싱 버퍼에 Transform, Color 업로드
-    // ID3D11Buffer* InstanceBuffer = nullptr;
-    // CreateInstanceBuffer(RHI->GetDevice(), InstanceTransforms, InstanceColors, &InstanceBuffer);
+    // 7. Material 바인딩
+    if (Material)
+    {
+        UShader* Shader = Material->GetShader();
+        if (Shader)
+        {
+            RHI->PrepareShader(Shader);
+        }
 
-    // 4. TODO: Mesh 바인딩 (ParticleMesh가 RequiredModule에 있어야 함)
-    // UStaticMesh* ParticleMesh = RequiredModule->ParticleMesh;
-    // if (ParticleMesh)
-    // {
-    //     Context->IASetVertexBuffers(...);
-    //     Context->IASetIndexBuffer(...);
-    //     Context->IASetVertexBuffers(1, 1, &InstanceBuffer, ...); // 인스턴스 버퍼는 슬롯 1
-    // }
+        ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+        if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
+        {
+            DiffuseSRV = DiffuseTexture->GetShaderResourceView();
+        }
+        Context->PSSetShaderResources(0, 1, &DiffuseSRV);
 
-    // 5. TODO: DrawIndexedInstanced 호출
-    // UINT IndexCount = ParticleMesh->GetIndexCount();
-    // UINT InstanceCount = InstanceTransforms.Num();
-    // Context->DrawIndexedInstanced(IndexCount, InstanceCount, 0, 0, 0);
+        ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
+        Context->PSSetSamplers(0, 1, &DefaultSampler);
+    }
 
-    // 블렌드 상태 복원
+    // 8. 버퍼 바인딩 (Mesh vertex buffer + Instance buffer)
+    UINT VertexStride = ParticleMesh->GetVertexStride();
+    UINT InstanceStride = sizeof(FMeshInstance);
+    UINT Offsets[2] = { 0, 0 };
+    ID3D11Buffer* Buffers[2] = { ParticleMesh->GetVertexBuffer(), InstanceBuffer };
+    UINT Strides[2] = { VertexStride, InstanceStride };
+
+    Context->IASetVertexBuffers(0, 2, Buffers, Strides, Offsets);
+    Context->IASetIndexBuffer(ParticleMesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+    Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // 9. DrawIndexedInstanced
+    UINT IndexCount = ParticleMesh->GetIndexCount();
+    UINT InstanceCount = InstanceTransforms.Num();
+    Context->DrawIndexedInstanced(IndexCount, InstanceCount, 0, 0, 0);
+
+    // 10. 렌더 상태 복원
+    RHI->RSSetState(ERasterizerMode::Solid);
     RHI->OMSetBlendState(false);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqual);
 }
