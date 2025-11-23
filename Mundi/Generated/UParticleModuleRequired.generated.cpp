@@ -6,6 +6,8 @@
 #include "Source/Runtime/Core/Object/ObjectMacros.h"
 #include "Source/Runtime/Engine/Scripting/LuaBindHelpers.h"
 
+#include "Vector.h"
+
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
 
 // IMPLEMENT_CLASS(UParticleModuleRequired) expansion
@@ -38,7 +40,6 @@ BEGIN_PROPERTIES(UParticleModuleRequired)
     ADD_PROPERTY(float, SpawnRate, "Spawn", true)
     ADD_PROPERTY(float, EmitterDuration, "Duration", true)
     ADD_PROPERTY(int32, EmitterLoops, "Duration", true)
-    ADD_PROPERTY(EDynamicEmitterType, EmitterType, "Emitter", true)
     ADD_PROPERTY_MATERIAL(UMaterialInterface*, Material, "Rendering", true)
     ADD_PROPERTY(EParticleSortMode, SortMode, "Rendering", true)
     ADD_PROPERTY(FVector, EmitterOrigin, "Rendering", true)
@@ -55,8 +56,6 @@ LUA_BIND_BEGIN(UParticleModuleRequired)
         T, "EmitterDuration", &UParticleModuleRequired::EmitterDuration);
     AddProperty<UParticleModuleRequired, int32>(
         T, "EmitterLoops", &UParticleModuleRequired::EmitterLoops);
-    AddProperty<UParticleModuleRequired, EDynamicEmitterType>(
-        T, "EmitterType", &UParticleModuleRequired::EmitterType);
     AddPropertyPtr<UParticleModuleRequired, UMaterialInterface>(
         T, "Material", &UParticleModuleRequired::Material);
     AddProperty<UParticleModuleRequired, EParticleSortMode>(

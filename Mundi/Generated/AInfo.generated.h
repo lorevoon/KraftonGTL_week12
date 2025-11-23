@@ -11,7 +11,7 @@
 #undef CURRENT_CLASS_GENERATED_BODY
 #endif
 
-// Define class-specific body macro
+// Define class-specific body macro (Abstract class)
 #define A_INFO_BODY \
 public: \
     using Super = AActor; \
@@ -24,13 +24,6 @@ public: \
     } \
     virtual UClass* GetClass() const override { return AInfo::StaticClass(); } \
     AInfo(const AInfo&) = default; \
-    AInfo* Duplicate() const override \
-    { \
-        AInfo* NewObject = ObjectFactory::DuplicateObject<AInfo>(this); \
-        NewObject->DuplicateSubObjects(); \
-        NewObject->PostDuplicate(); \
-        return NewObject; \
-    } \
 private: \
     static void StaticRegisterProperties(); \
     static const bool bPropertiesRegistered; \

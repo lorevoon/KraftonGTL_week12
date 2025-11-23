@@ -6,6 +6,8 @@
 #include "Source/Runtime/Core/Object/ObjectMacros.h"
 #include "Source/Runtime/Engine/Scripting/LuaBindHelpers.h"
 
+#include "ParticleLODLevel.h"
+
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
 
 // IMPLEMENT_CLASS(UParticleEmitter) expansion

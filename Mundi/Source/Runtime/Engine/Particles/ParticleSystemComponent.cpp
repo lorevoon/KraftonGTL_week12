@@ -6,6 +6,8 @@
 #include "ParticleModule.h"
 #include "ParticleHelper.h"
 #include "SceneView.h"
+#include "Modules/TypeData/ParticleModuleTypeDataBase.h"
+#include "Modules/TypeData/ParticleModuleTypeDataMesh.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -130,13 +132,21 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
 
         // 타입별 DynamicData 생성 (매 프레임 생성, 렌더러에서 삭제)
         FDynamicEmitterDataBase* DynamicData = nullptr;
-        if (RequiredModule->EmitterType == EDynamicEmitterType::Sprite)
+        UParticleLODLevel* LODLevel = Instance->CurrentLODLevel;
+
+        if (LODLevel->TypeDataModule == nullptr)
         {
+            // TypeData가 없으면 기본 Sprite
             DynamicData = new FDynamicSpriteEmitterData(Instance);
         }
-        else if (RequiredModule->EmitterType == EDynamicEmitterType::Mesh)
+        else if (Cast<UParticleModuleTypeDataMesh>(LODLevel->TypeDataModule))
         {
+            // Mesh TypeData
             DynamicData = new FDynamicMeshEmitterData(Instance);
+        }
+        else
+        {
+            continue;
         }
 
         if (DynamicData)
