@@ -35,8 +35,8 @@ void SCascadeEmittersPanel::Render(float width, float height)
     ImGui::BeginChild("Cascade_Emitters_Canvas", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
     const float columnWidth = 180.0f;
-    const float headerHeight = 32.0f;
-    const float thumbnailSize = 32.0f;
+    const float headerHeight = 50.0f;
+    const float thumbnailSize = 36.0f;
     const float moduleHeight = 24.0f;
     const float columnSpacing = 10.0f;
     const float iconSize = 16.0f;
@@ -56,40 +56,63 @@ void SCascadeEmittersPanel::Render(float width, float height)
         // ===== HEADER SECTION =====
         bool selected = (i == SelectedEmitterIndex);
 
-        // Header background (left part with name and icons)
+        // Header background
         ImVec4 headerBgColor = selected ? ImVec4(0.25f, 0.25f, 0.25f, 1.0f) : ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_ChildBg, headerBgColor);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 0));
-        ImGui::BeginChild("EmitterHeader", ImVec2(columnWidth, headerHeight), true);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
+        ImGui::BeginChild("EmitterHeader", ImVec2(columnWidth, headerHeight), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-        // Draw icon boxes (visibility, render mode, solo mode)
+        // Left side: Name and control buttons
+        ImGui::BeginGroup();
+
+        // First row: Emitter name
+        ImGui::TextUnformatted(Name.c_str());
+
+        // Second row: Control icons (horizontal layout)
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
 
-        if (ImGui::SmallButton("[]")) {} // Visibility checkbox
+        const float iconButtonSize = 16.0f;
+        if (ImGui::Button("V##vis", ImVec2(iconButtonSize, iconButtonSize))) {} // Visibility
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle Visibility");
+
         ImGui::SameLine();
 
-        if (ImGui::SmallButton("[]")) {} // Render mode
+        if (ImGui::Button("R##render", ImVec2(iconButtonSize, iconButtonSize))) {} // Render mode
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Render Mode");
+
         ImGui::SameLine();
 
-        if (ImGui::SmallButton("[]")) {} // Solo mode
+        if (ImGui::Button("S##solo", ImVec2(iconButtonSize, iconButtonSize))) {} // Solo mode
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Solo Mode");
 
         ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(2);
 
+        ImGui::EndGroup();
+
+        // Right side: Particle sprite preview thumbnail
         ImGui::SameLine();
+        float rightSideX = columnWidth - thumbnailSize - 8.0f;
+        ImGui::SetCursorPosX(rightSideX);
 
-        // Emitter number badge on the right
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
-        char badgeLabel[8];
-        sprintf_s(badgeLabel, " %d ", i);
-        ImGui::Button(badgeLabel, ImVec2(thumbnailSize, headerHeight - 4));
+        float thumbnailDisplaySize = 36.0f;
+        ImGui::Button("##thumbnail", ImVec2(thumbnailDisplaySize, thumbnailDisplaySize));
         ImGui::PopStyleVar();
-        ImGui::PopStyleColor();
+        ImGui::PopStyleColor(3);
+
+        // Draw a simple particle sprite representation in the thumbnail
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImVec2 thumbMin = ImGui::GetItemRectMin();
+        ImVec2 thumbMax = ImGui::GetItemRectMax();
+        ImVec2 center = ImVec2((thumbMin.x + thumbMax.x) * 0.5f, (thumbMin.y + thumbMax.y) * 0.5f);
+        drawList->AddCircleFilled(center, 6.0f, IM_COL32(255, 255, 255, 200), 8);
+        drawList->AddCircleFilled(center, 4.0f, IM_COL32(255, 200, 100, 255), 8);
 
         ImGui::EndChild();
         ImGui::PopStyleVar();
