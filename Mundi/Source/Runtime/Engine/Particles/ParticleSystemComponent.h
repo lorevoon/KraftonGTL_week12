@@ -65,13 +65,16 @@ public:
     // 파티클 업데이트 (외부에서 호출)
     void UpdateParticles(float DeltaTime);
 
+    // 컴포넌트 틱
+    void TickComponent(float DeltaTime) override;
+
     //@TODO Prepare과 Get 로직 분리
     // 렌더링 데이터 가져오기 (렌더러에서 호출)
     TArray<FDynamicEmitterDataBase*> GetRenderData(FSceneView* View);
 private:
     // 내부 함수
 
-    // 이미터 인스턴스 생성
+	// 이미터 인스턴스 생성. Template 변경하거나 OnRegister 시점에서 이미 템플릿 세팅 완료 + 자동 시작 설정시 호출
     void CreateEmitterInstances();
 
     // 이미터 인스턴스 제거
@@ -83,9 +86,9 @@ private:
     // 단일 이미터 업데이트
     void UpdateEmitterInstance(FParticleEmitterInstance* Instance, float DeltaTime);
 
-    // 파티클 스폰 처리
+	// 파티클 스폰 처리 (UpdateEmitterInstance에서 이미 처리 중. 강제 스폰시에만 사용할 것)
     void SpawnParticles(FParticleEmitterInstance* Instance, float DeltaTime);
 
-    // 파티클 제거 처리
+    // 파티클 제거 처리 *UpdateEmitterInstance에서 이미 처리 중. 강제 제거시에만 사용할 것)
     void KillDeadParticles(FParticleEmitterInstance* Instance);
 };
