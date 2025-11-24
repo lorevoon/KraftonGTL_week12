@@ -3,14 +3,20 @@
 #include "SlateManager.h"
 #include "Source/Runtime/Engine/Viewer/ParticleSystemEditorBootstrap.h"
 #include "Source/Runtime/Renderer/FViewport.h"
+#include "ResourceManager.h"
+#include "SCascadeEmittersPanel.h"
+#include "Source/Runtime/Engine/Particles/ParticleModule.h"
+#include "Source/Runtime/Core/Object/Property.h"
 
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
     CenterRect = FRect(0, 0, 0, 0);
+    EmittersPanel = new SCascadeEmittersPanel();
 }
 
 SParticleSystemEditorWindow::~SParticleSystemEditorWindow()
 {
+    if (EmittersPanel) { delete EmittersPanel; EmittersPanel = nullptr; }
     for (int i = 0; i < Tabs.Num(); ++i)
     {
         ViewerState* State = Tabs[i];
@@ -55,13 +61,46 @@ void SParticleSystemEditorWindow::OnRender()
         bIsWindowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
         // Top toolbar area specific to the particle editor
-        ImGui::BeginChild("Cascade_Toolbar", ImVec2(0, 32.0f), false, ImGuiWindowFlags_NoScrollbar);
-        // Simple placeholder toolbar — customize later
-        ImGui::TextUnformatted("Particle Toolbar");
+        ImGui::BeginChild("Cascade_Toolbar", ImVec2(0, 36.0f), false, ImGuiWindowFlags_NoScrollbar);
+        // BEGIN Icon Toolbar Inject
+        if (!IconNew || !IconSave || !IconLoad) { LoadToolbarIcons(); }
+        const ImVec2 IconSizeVec(IconSize, IconSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 4));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(9, 0));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.7f));
         ImGui::SameLine();
-        ImGui::Button("New"); ImGui::SameLine();
-        ImGui::Button("Open"); ImGui::SameLine();
-        ImGui::Button("Save");
+        if (IconNew && IconNew->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_NewBtn", (void*)IconNew->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("New Particle System");
+        }
+        else { ImGui::Button("New"); }
+        ImGui::SameLine();
+        if (IconLoad && IconLoad->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_LoadBtn", (void*)IconLoad->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Open Particle System");
+        }
+        else { ImGui::Button("Open"); }
+        ImGui::SameLine();
+        if (IconSave && IconSave->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_SaveBtn", (void*)IconSave->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Save Particle System");
+        }
+        else { ImGui::Button("Save"); }
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(3);
+        // END Icon Toolbar Inject
+        // Hide legacy placeholder controls below
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,0,0,0));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0,0,0,0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0,0,0,0));
+        ImGui::PopStyleColor(4);
         ImGui::EndChild();
 
         // Early out if just closed
@@ -168,9 +207,7 @@ void SParticleSystemEditorWindow::RenderLeftColumn(float width, float height)
 
     // Details panel (bottom)
     ImGui::BeginChild("Cascade_Details", ImVec2(width, detailsH), true, ImGuiWindowFlags_NoScrollbar);
-    ImGui::TextUnformatted("Details");
-    ImGui::Separator();
-    ImGui::TextUnformatted("(Property grid placeholder)");
+    RenderDetailsPanel(width, detailsH);
     ImGui::EndChild();
 }
 
@@ -183,9 +220,8 @@ void SParticleSystemEditorWindow::RenderRightColumn(float width, float height)
 
     // Emitters panel (top)
     ImGui::BeginChild("Cascade_Emitters", ImVec2(width, emittersH), true, ImGuiWindowFlags_NoScrollbar);
-    ImGui::TextUnformatted("Emitters");
-    ImGui::Separator();
-    ImGui::TextUnformatted("(Emitter list placeholder)");
+    if (EmittersPanel)
+        EmittersPanel->Render(width, emittersH);
     ImGui::EndChild();
 
     // Horizontal splitter
@@ -257,4 +293,147 @@ ViewerState* SParticleSystemEditorWindow::CreateViewerState(const char* Name, UE
 void SParticleSystemEditorWindow::DestroyViewerState(ViewerState*& State)
 {
     ParticleSystemEditorBootstrap::DestroyViewerState(State);
+}
+
+void SParticleSystemEditorWindow::LoadToolbarIcons()
+{
+    if (!IconNew)
+        IconNew = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Toolbar_New.png");
+    if (!IconSave)
+        IconSave = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Toolbar_Save.png");
+    if (!IconLoad)
+        IconLoad = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Toolbar_Load.png");
+}
+
+void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
+{
+    ImGui::TextUnformatted("Details");
+    ImGui::Separator();
+
+    if (!EmittersPanel)
+    {
+        ImGui::TextUnformatted("(No emitters panel)");
+        return;
+    }
+
+    UParticleModule* SelectedModule = EmittersPanel->GetSelectedModule();
+    if (!SelectedModule)
+    {
+        ImGui::TextUnformatted("Select a module to view properties");
+        return;
+    }
+
+    // Get the module's class and properties
+    UClass* ModuleClass = SelectedModule->GetClass();
+    if (!ModuleClass)
+    {
+        ImGui::TextUnformatted("(Invalid module class)");
+        return;
+    }
+
+    // Display module name header
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.5f, 1.0f));
+    ImGui::TextUnformatted(SelectedModule->ModuleName.c_str());
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+
+    // Get all properties including inherited ones
+    const TArray<FProperty>& Properties = ModuleClass->GetAllProperties();
+
+    // Group properties by category
+    TMap<FString, TArray<const FProperty*>> CategorizedProperties;
+    for (const FProperty& Prop : Properties)
+    {
+        if (Prop.bIsEditAnywhere)
+        {
+            FString Category = Prop.Category ? FString(Prop.Category) : FString("General");
+            if (!CategorizedProperties.Contains(Category))
+            {
+                CategorizedProperties.Add(Category, TArray<const FProperty*>());
+            }
+            CategorizedProperties[Category].Add(&Prop);
+        }
+    }
+
+    // Render properties by category
+    for (auto& Pair : CategorizedProperties)
+    {
+        const FString& CategoryName = Pair.first;
+        const TArray<const FProperty*>& CategoryProps = Pair.second;
+
+        // Category header
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
+        ImGui::TextUnformatted(CategoryName.c_str());
+        ImGui::PopStyleColor();
+        ImGui::Separator();
+
+        // Render each property
+        for (const FProperty* Prop : CategoryProps)
+        {
+            RenderProperty(SelectedModule, Prop);
+        }
+
+        ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+    }
+}
+
+void SParticleSystemEditorWindow::RenderProperty(UParticleModule* Module, const FProperty* Prop)
+{
+    if (!Module || !Prop)
+        return;
+
+    ImGui::PushID(Prop->Name);
+
+    // Property label
+    ImGui::Text("%s:", Prop->Name);
+
+    switch (Prop->Type)
+    {
+    case EPropertyType::Bool:
+    {
+        bool* Value = Prop->GetValuePtr<bool>(Module);
+        ImGui::Checkbox("##value", Value);
+        break;
+    }
+    case EPropertyType::Int32:
+    {
+        int32* Value = Prop->GetValuePtr<int32>(Module);
+        ImGui::DragInt("##value", Value, 1.0f, (int)Prop->MinValue, (int)Prop->MaxValue);
+        break;
+    }
+    case EPropertyType::Float:
+    {
+        float* Value = Prop->GetValuePtr<float>(Module);
+        ImGui::DragFloat("##value", Value, 0.01f, Prop->MinValue, Prop->MaxValue);
+        break;
+    }
+    case EPropertyType::FVector:
+    {
+        FVector* Value = Prop->GetValuePtr<FVector>(Module);
+        ImGui::DragFloat3("##value", &Value->X, 0.1f);
+        break;
+    }
+    case EPropertyType::FLinearColor:
+    {
+        FLinearColor* Value = Prop->GetValuePtr<FLinearColor>(Module);
+        ImGui::ColorEdit4("##value", &Value->R);
+        break;
+    }
+    case EPropertyType::FString:
+    {
+        FString* Value = Prop->GetValuePtr<FString>(Module);
+        char buffer[256];
+        strncpy_s(buffer, Value->c_str(), sizeof(buffer) - 1);
+        if (ImGui::InputText("##value", buffer, sizeof(buffer)))
+        {
+            *Value = FString(buffer);
+        }
+        break;
+    }
+    default:
+        ImGui::TextUnformatted("(Unsupported type)");
+        break;
+    }
+
+    ImGui::PopID();
 }

@@ -1,7 +1,10 @@
 #pragma once
+#include "ParticleModule.h"
 #include "SViewerWindow.h"
 
 class UEditorAssetPreviewContext;
+class UTexture;
+class SCascadeEmittersPanel;
 
 // Minimal Cascade-style particle editor shell
 // Provides: top toolbar, left column (viewport + details), right column (emitters + curves)
@@ -32,5 +35,16 @@ private:
     void RenderLeftColumn(float width, float height);
     void RenderRightColumn(float width, float height);
     void RenderViewportArea(float width, float height);
-};
+    void RenderDetailsPanel(float width, float height);
+    void RenderProperty(UParticleModule* Module, const struct FProperty* Prop);
 
+    // Toolbar icons and helpers
+    void LoadToolbarIcons();
+    UTexture* IconNew = nullptr;
+    UTexture* IconSave = nullptr;
+    UTexture* IconLoad = nullptr;
+    float IconSize = 24.0f;
+
+    // Panels
+    SCascadeEmittersPanel* EmittersPanel = nullptr;
+};
