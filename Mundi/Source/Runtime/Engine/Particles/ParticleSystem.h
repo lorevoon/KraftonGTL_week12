@@ -48,6 +48,7 @@ public:
     UParticleEmitter* GetEmitter(int32 Index) const;
     void AddEmitter(UParticleEmitter* Emitter);
     void RemoveEmitter(UParticleEmitter* Emitter);
+    void SwapEmitters(int32 IndexA, int32 IndexB);
     int32 GetEmitterCount() const { return Emitters.Num(); }
 
     // Serialization

@@ -35,6 +35,16 @@ void UParticleSystem::RemoveEmitter(UParticleEmitter* Emitter)
     }
 }
 
+void UParticleSystem::SwapEmitters(int32 IndexA, int32 IndexB)
+{
+    if (IndexA >= 0 && IndexA < Emitters.Num() && IndexB >= 0 && IndexB < Emitters.Num())
+    {
+        UParticleEmitter* Temp = Emitters[IndexA];
+        Emitters[IndexA] = Emitters[IndexB];
+        Emitters[IndexB] = Temp;
+    }
+}
+
 void UParticleSystem::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
     Super::Serialize(bInIsLoading, InOutHandle);

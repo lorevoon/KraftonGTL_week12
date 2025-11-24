@@ -140,6 +140,16 @@ void UParticleLODLevel::RemoveModule(UParticleModule* Module)
     }
 }
 
+void UParticleLODLevel::SwapModules(int32 IndexA, int32 IndexB)
+{
+    if (IndexA >= 0 && IndexA < Modules.Num() && IndexB >= 0 && IndexB < Modules.Num())
+    {
+        UParticleModule* Temp = Modules[IndexA];
+        Modules[IndexA] = Modules[IndexB];
+        Modules[IndexB] = Temp;
+    }
+}
+
 // Helper function to create module from type name
 static UParticleModule* CreateModuleFromTypeName(const FString& TypeName)
 {
