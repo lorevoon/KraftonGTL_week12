@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
     <FxCompile Include="Shaders\PostProcess\GammaCorrection_PS.hlsl">
@@ -942,15 +942,22 @@
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.cpp">
       <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClCompile>
-    <ClCompile Include="Generated\AParticleActor.generated.cpp">
-      <Filter>Generated</Filter>
-    </ClCompile>
     <ClCompile Include="Generated\ASpriteParticleActor.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
     <ClCompile Include="Generated\AMeshParticleActor.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Runtime\AssetManagement\ParticleDynamicBuffers.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Gamma.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Viewer\ParticleSystemEditorBootstrap.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\ParticleSystemEditorViewportClient.cpp" />
+    <ClCompile Include="Source\Slate\Windows\SParticleSystemEditorWindow.cpp" />
+    <ClCompile Include="Source\Slate\Windows\SCascadeEmittersPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Generated\USkinnedMeshComponent.generated.h">
@@ -1989,15 +1996,22 @@
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.h">
       <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClInclude>
-    <ClInclude Include="Generated\AParticleActor.generated.h">
-      <Filter>Generated</Filter>
-    </ClInclude>
     <ClInclude Include="Generated\ASpriteParticleActor.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
     <ClInclude Include="Generated\AMeshParticleActor.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Runtime\AssetManagement\ParticleDynamicBuffers.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Gamma.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.h" />
+    <ClInclude Include="Source\Runtime\Engine\Viewer\ParticleSystemEditorBootstrap.h" />
+    <ClInclude Include="Source\Runtime\Renderer\ParticleSystemEditorViewportClient.h" />
+    <ClInclude Include="Source\Slate\Windows\SParticleSystemEditorWindow.h" />
+    <ClInclude Include="Source\Slate\Windows\SCascadeEmittersPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py">
