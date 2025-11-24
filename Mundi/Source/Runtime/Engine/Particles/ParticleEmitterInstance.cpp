@@ -63,7 +63,10 @@ void FParticleEmitterInstance::Initialize(UParticleEmitter* InTemplate, UParticl
 
     EmitterTemplate = InTemplate;
     Component = InComponent;
-    SetLODLevel(InLODIndex);
+
+    // @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것. 
+    //SetLODLevel(InLODIndex);
+    SetLODLevel(0);
     ParticleStride = CalculateParticleStride(); // 페이로드 요구량 + 정렬 반영
 
     // 파티클 최댓값: 지정값 우선, 없으면 이미터 템플릿 기준
@@ -321,18 +324,34 @@ void FParticleEmitterInstance::Reset()
     SecondsSinceCreation = 0.0f;
 }
 
+// @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것. 
 void FParticleEmitterInstance::SetLODLevel(int32 LODIndex)
 {
     if (!EmitterTemplate || LODIndex < 0)
     {
-        CurrentLODLevel = nullptr;
-		CurrentLODLevelIndex = -1;
+        if (CurrentLODLevel)
+        {
+            CurrentLODLevel = nullptr;
+            CurrentLODLevelIndex = -1;
+            const uint32 BaseStride = AlignUp(sizeof(FBaseParticle), ParticleStrideAlignment);
+            ReallocateParticleData(BaseStride);
+        }
+        return;
+    }
+
+    if (CurrentLODLevelIndex == LODIndex && CurrentLODLevel != nullptr)
+    {
         return;
     }
 
     UParticleLODLevel* LOD = EmitterTemplate->GetLODLevel(LODIndex);
+    if (!LOD)
+    {
+        return;
+    }
+
     CurrentLODLevel = LOD;
-	CurrentLODLevelIndex = LODIndex;
+    CurrentLODLevelIndex = LODIndex;
 
     const uint32 NewStride = CalculateParticleStride();
     ReallocateParticleData(NewStride);
