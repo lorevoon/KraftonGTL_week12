@@ -942,6 +942,15 @@
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.cpp">
       <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClCompile>
+    <ClCompile Include="Generated\AParticleActor.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\ASpriteParticleActor.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\AMeshParticleActor.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Generated\USkinnedMeshComponent.generated.h">
@@ -1979,6 +1988,15 @@
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.h">
       <Filter>Source\Runtime\Engine\Particles</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\AParticleActor.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\ASpriteParticleActor.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\AMeshParticleActor.generated.h">
+      <Filter>Generated</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
