@@ -9,6 +9,7 @@
 #include "Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "StaticMesh.h"
 #include "ParticleDynamicBuffers.h"
+#include "ParticleSystemComponent.h"
 
 // ============================================================
 // 헬퍼 함수들
@@ -45,6 +46,13 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
         bLoggedParticles = true;
     }
 
+    // 컴포넌트의 월드 위치 가져오기
+    FVector ComponentWorldLocation = FVector::Zero();
+    if (Source->Component)
+    {
+        ComponentWorldLocation = Source->Component->GetWorldLocation();
+    }
+
     // 각 파티클의 인스턴스 데이터 생성
     for (int32 i = 0; i < ParticleCount; ++i)
     {
@@ -52,10 +60,13 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
         if (!Particle)
             continue;
 
+        // 로컬 좌표를 월드 좌표로 변환
+        FVector WorldPosition = Particle->Location + ComponentWorldLocation;
+
         // 인스턴스 데이터 설정 (명시적 float 필드로 변경)
-        Instances[i].WorldPositionX = Particle->Location.X;
-        Instances[i].WorldPositionY = Particle->Location.Y;
-        Instances[i].WorldPositionZ = Particle->Location.Z;
+        Instances[i].WorldPositionX = WorldPosition.X;
+        Instances[i].WorldPositionY = WorldPosition.Y;
+        Instances[i].WorldPositionZ = WorldPosition.Z;
         Instances[i].Padding0 = 0.0f;
 
         Instances[i].SizeX = Particle->Size.X;
@@ -213,11 +224,21 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
     int32 ParticleCount = Source->ActiveParticles;
     Instances.SetNum(ParticleCount);
 
+    // 컴포넌트의 월드 위치 가져오기
+    FVector ComponentWorldLocation = FVector::Zero();
+    if (Source->Component)
+    {
+        ComponentWorldLocation = Source->Component->GetWorldLocation();
+    }
+
     for (int32 i = 0; i < ParticleCount; ++i)
     {
         FBaseParticle* Particle = Source->GetParticle(i);
         if (!Particle)
             continue;
+
+        // 로컬 좌표를 월드 좌표로 변환
+        FVector WorldPosition = Particle->Location + ComponentWorldLocation;
 
         // Transform 행렬 생성 (Scale, Rotation, Translation)
         FMatrix ScaleMatrix = FMatrix::MakeScale(Particle->Size);
@@ -234,8 +255,8 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
             RotationMatrix.M[1][1] = CosRot;
         }
 
-        // Translation
-        FMatrix TranslationMatrix = FMatrix::MakeTranslation(Particle->Location);
+        // Translation (월드 좌표 사용)
+        FMatrix TranslationMatrix = FMatrix::MakeTranslation(WorldPosition);
 
         // 최종 변환: Scale * Rotation * Translation
         FMatrix Transform = ScaleMatrix * RotationMatrix * TranslationMatrix;
