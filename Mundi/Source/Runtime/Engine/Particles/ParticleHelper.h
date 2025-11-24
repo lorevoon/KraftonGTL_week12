@@ -93,6 +93,7 @@ inline void KillParticle(FBaseParticle* Particle)
 class FSceneView;
 class UMaterialInterface;
 class D3D11RHI;
+class UParticleDynamicBuffers;
 struct ID3D11DeviceContext;
 
 // Sprite 파티클 인스턴스 데이터
@@ -128,7 +129,7 @@ struct FDynamicEmitterDataBase
     virtual void UpdateRenderData(FSceneView* View) = 0;
 
     // 렌더링 (각 타입별 구현)
-    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material) = 0;
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool) = 0;
 };
 
 // Sprite 파티클 렌더링 데이터
@@ -142,7 +143,7 @@ struct FDynamicSpriteEmitterData : public FDynamicEmitterDataBase
     }
 
     virtual void UpdateRenderData(FSceneView* View) override;
-    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material) override;
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool) override;
 
 private:
     // 파티클 인스턴스 데이터 생성
@@ -161,7 +162,7 @@ struct FDynamicMeshEmitterData : public FDynamicEmitterDataBase
     }
 
     virtual void UpdateRenderData(FSceneView* View) override;
-    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material) override;
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool) override;
 
 private:
     // 각 파티클의 인스턴스 데이터 생성

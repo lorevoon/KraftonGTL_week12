@@ -7,6 +7,7 @@
 #include "Quad.h"
 #include "MeshBVH.h"
 #include "Enums.h"
+#include "ParticleDynamicBuffers.h"
 
 #include <filesystem>
 #include <cwctype>
@@ -49,6 +50,10 @@ void UResourceManager::Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* I
     CreateTextBillboardTexture();
     CreateDefaultShader();
     CreateDefaultMaterial();
+
+    // 파티클 동적 버퍼 초기화
+    ParticleBuffers = NewObject<UParticleDynamicBuffers>();
+    ParticleBuffers->Initialize(Device);
 }
 
 // 전체 해제
@@ -119,6 +124,12 @@ void UResourceManager::Clear()
         Array.Empty();
     }
     Resources.Empty();
+
+    // ParticleBuffers 정리 (UObject이므로 소멸자에서 버퍼 자동 해제)
+    if (ParticleBuffers)
+    {
+        ParticleBuffers = nullptr;
+    }
 
     // Instance lifetime is managed by ObjectFactory
 }
