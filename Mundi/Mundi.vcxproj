@@ -145,7 +145,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\Debug\libfbxsdk.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
+xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"
+if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\symstore.exe" add /r /f "$(TargetDir)*.pdb" /s "\\172.21.11.115\symbols" /t "Mundi" /v "$(Configuration)_$(Platform)" /compress) else (echo [SymStore] Symbol server unavailable - skipping symbol publish)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -211,7 +212,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\Release\libfbxsdk.dll" "$(OutDir)"
-xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
+xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"
+if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\symstore.exe" add /r /f "$(TargetDir)*.pdb" /s "\\172.21.11.115\symbols" /t "Mundi" /v "$(Configuration)_$(Platform)" /compress) else (echo [SymStore] Symbol server unavailable - skipping symbol publish)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
