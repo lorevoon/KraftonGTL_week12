@@ -201,8 +201,7 @@ void FDynamicMeshEmitterData::UpdateRenderData(FSceneView* View)
 {
     if (!Source || Source->ActiveParticles == 0)
     {
-        InstanceTransforms.Empty();
-        InstanceColors.Empty();
+        Instances.Empty();
         return;
     }
 
@@ -212,8 +211,7 @@ void FDynamicMeshEmitterData::UpdateRenderData(FSceneView* View)
 void FDynamicMeshEmitterData::BuildMeshInstances()
 {
     int32 ParticleCount = Source->ActiveParticles;
-    InstanceTransforms.SetNum(ParticleCount);
-    InstanceColors.SetNum(ParticleCount);
+    Instances.SetNum(ParticleCount);
 
     for (int32 i = 0; i < ParticleCount; ++i)
     {
@@ -242,14 +240,14 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
         // 최종 변환: Scale * Rotation * Translation
         FMatrix Transform = ScaleMatrix * RotationMatrix * TranslationMatrix;
 
-        InstanceTransforms[i] = Transform;
-        InstanceColors[i] = FVector4(Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);
+        Instances[i].Transform = Transform;
+        Instances[i].Color = FVector4(Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);
     }
 }
 
 void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool)
 {
-    if (InstanceTransforms.Num() == 0)
+    if (Instances.Num() == 0)
         return;
 
     if (!BufferPool)
@@ -271,17 +269,9 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
         return;
 
     UStaticMesh* ParticleMesh = TypeDataMesh->Mesh;
-
-    // 2. BufferPool에서 인스턴스 버퍼 가져오기 (자동 확장)
-    // 구조체: FMatrix(64 bytes) + FVector4(16 bytes) = 80 bytes per instance
-    struct FMeshInstance
-    {
-        FMatrix Transform;
-        FVector4 Color;
-    };
-
+    
     uint32 MaxInstances = 0;
-    uint32 RequiredInstances = InstanceTransforms.Num();
+    uint32 RequiredInstances = Instances.Num();
     ID3D11Buffer* InstanceBuffer = BufferPool->GetOrCreateMeshInstanceBuffer(RequiredInstances, MaxInstances);
 
     if (!InstanceBuffer)
@@ -293,14 +283,7 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     // 3. Map으로 인스턴스 데이터 업로드
     D3D11_MAPPED_SUBRESOURCE mapped;
     Context->Map(InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-
-    FMeshInstance* InstanceData = (FMeshInstance*)mapped.pData;
-    for (int32 i = 0; i < RequiredInstances; ++i)
-    {
-        InstanceData[i].Transform = InstanceTransforms[i];
-        InstanceData[i].Color = InstanceColors[i];
-    }
-
+    memcpy(mapped.pData, Instances.GetData(), sizeof(FParticleMeshInstance) * Instances.Num());
     Context->Unmap(InstanceBuffer, 0);
 
     // 4. Rasterizer 상태 설정
@@ -334,7 +317,7 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
 
     // 8. 버퍼 바인딩 (Mesh vertex buffer + Instance buffer)
     UINT VertexStride = ParticleMesh->GetVertexStride();
-    UINT InstanceStride = sizeof(FMeshInstance);
+    UINT InstanceStride = sizeof(FParticleMeshInstance);
     UINT Offsets[2] = { 0, 0 };
     ID3D11Buffer* Buffers[2] = { ParticleMesh->GetVertexBuffer(), InstanceBuffer };
     UINT Strides[2] = { VertexStride, InstanceStride };
@@ -345,7 +328,7 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
 
     // 9. DrawIndexedInstanced
     UINT IndexCount = ParticleMesh->GetIndexCount();
-    UINT InstanceCount = InstanceTransforms.Num();
+    UINT InstanceCount = Instances.Num();
     Context->DrawIndexedInstanced(IndexCount, InstanceCount, 0, 0, 0);
 
     // 10. 렌더 상태 복원

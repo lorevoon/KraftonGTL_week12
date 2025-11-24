@@ -103,12 +103,24 @@ struct FParticleSpriteInstance
     // 16바이트 단위로 정렬 (셰이더 상수 버퍼 규칙과 FVector4 alignas(16) 대응)
     float WorldPositionX, WorldPositionY, WorldPositionZ, Padding0;  // 16 bytes
     float SizeX, SizeY, Rotation, Padding1;                          // 16 bytes
-    float ColorR, ColorG, ColorB, ColorA;                            // 16 bytesㅉ
+    float ColorR, ColorG, ColorB, ColorA;                            // 16 bytes
 
     FParticleSpriteInstance()
         : WorldPositionX(0.0f), WorldPositionY(0.0f), WorldPositionZ(0.0f), Padding0(0.0f)
         , SizeX(1.0f), SizeY(1.0f), Rotation(0.0f), Padding1(0.0f)
         , ColorR(1.0f), ColorG(1.0f), ColorB(1.0f), ColorA(1.0f)
+    {
+    }
+};
+
+// Sprite 파티클 인스턴스 데이터
+struct FParticleMeshInstance
+{
+    FMatrix Transform;
+    FVector4 Color;
+
+    FParticleMeshInstance()
+        :Transform(FMatrix::Identity()), Color(1.f, 1.f,1.f,1.f)
     {
     }
 };
@@ -153,8 +165,7 @@ private:
 // Mesh 파티클 렌더링 데이터
 struct FDynamicMeshEmitterData : public FDynamicEmitterDataBase
 {
-    TArray<FMatrix> InstanceTransforms;  // 각 파티클의 Transform
-    TArray<FVector4> InstanceColors;      // 각 파티클의 Color
+    TArray<FParticleMeshInstance> Instances;
 
     FDynamicMeshEmitterData(FParticleEmitterInstance* InSource)
         : FDynamicEmitterDataBase(InSource)
