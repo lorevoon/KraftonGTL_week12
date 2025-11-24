@@ -148,6 +148,7 @@ enum class EEngineShowFlags : uint64
     SF_BillboardText = 1ull << 3, // Show/hide UUID text above objects
     SF_BoundingBoxes = 1ull << 4, // Show/hide collision bounds
     SF_Grid = 1ull << 5,          // Show/hide world grid
+    SF_Axis = 1ull << 21,         // Show/hide world axis
 
     // Lighting
     SF_Lighting = 1ull << 6,      // Enable/disable lighting
@@ -174,7 +175,7 @@ enum class EEngineShowFlags : uint64
     SF_Particle = 1ull << 20,  // Enable/disable GPU skinning (CPU skinning when disabled)
 
     // Default enabled flags
-    SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_SkeletalMeshes | SF_Grid | SF_Lighting | SF_Decals |
+    SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_SkeletalMeshes | SF_Grid | SF_Axis | SF_Lighting | SF_Decals |
         SF_Fog | SF_FXAA | SF_Billboard | SF_EditorIcon | SF_Shadows | SF_ShadowAntiAliasing | SF_GPUSkinning | SF_Particle,
 
     // All flags (for initialization/reset)

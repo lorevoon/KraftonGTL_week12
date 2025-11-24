@@ -9,8 +9,7 @@
 #include "Source/Runtime/Engine/Particles/ParticleSystem.h"
 #include "Source/Runtime/Core/Object/Property.h"
 #include "Source/Runtime/Core/Misc/JsonSerializer.h"
-#include <windows.h>
-#include <commdlg.h>
+#include "FViewportClient.h"
 
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
@@ -233,15 +232,22 @@ void SParticleSystemEditorWindow::OnRender()
         ImGui::SameLine();
         if (IconOriginAxis && IconOriginAxis->GetShaderResourceView())
         {
-            if (ImGui::ImageButton("##Cascade_OriginBtn", (void*)IconOriginAxis->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::ImageButton("##Cascade_OriginBtn", (void*)IconOriginAxis->GetShaderResourceView(), IconSizeVec))
+            {
+                // Toggle axis visibility
+                if (ActiveState && ActiveState->World)
+                {
+                    ActiveState->World->GetRenderSettings().ToggleShowFlag(EEngineShowFlags::SF_Axis);
+                }
+            }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Origin Axis");
         }
-        ImGui::SameLine();
-        if (IconParticle && IconParticle->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_ParticleBtn", (void*)IconParticle->GetShaderResourceView(), IconSizeVec)) { }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Particles");
-        }
+        // ImGui::SameLine();
+        // if (IconParticle && IconParticle->GetShaderResourceView())
+        // {
+        //     if (ImGui::ImageButton("##Cascade_ParticleBtn", (void*)IconParticle->GetShaderResourceView(), IconSizeVec)) { }
+        //     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Particles");
+        // }
 
         // Separator
         ImGui::SameLine();
@@ -480,6 +486,207 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
     {
         ImGui::Dummy(ImVec2(actualW, actualH));
     }
+
+    // Overlay menu buttons at top left (like Unreal Engine Cascade)
+    ImGui::SetCursorScreenPos(ImVec2(pos.x + 4, pos.y + 4));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8, 4));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 0.7f)); // Translucent dark background
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.25f, 0.25f, 0.85f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.35f, 0.35f, 0.35f, 0.95f));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f)); // White text
+
+    // View menu button
+    if (ImGui::Button("View"))
+    {
+        ImGui::OpenPopup("ViewMenu");
+    }
+
+    if (ImGui::BeginPopup("ViewMenu"))
+    {
+        // Get current view mode from viewport client
+        EViewMode CurrentViewMode = EViewMode::VMI_Lit_Phong;
+        if (ActiveState && ActiveState->Client)
+        {
+            CurrentViewMode = ActiveState->Client->GetViewMode();
+        }
+
+        // View Modes submenu
+        if (ImGui::BeginMenu("View Modes"))
+        {
+            if (ImGui::MenuItem("Wireframe", nullptr, CurrentViewMode == EViewMode::VMI_Wireframe))
+            {
+                if (ActiveState && ActiveState->Client)
+                {
+                    ActiveState->Client->SetViewMode(EViewMode::VMI_Wireframe);
+                }
+            }
+            if (ImGui::MenuItem("Unlit", nullptr, CurrentViewMode == EViewMode::VMI_Unlit))
+            {
+                if (ActiveState && ActiveState->Client)
+                {
+                    ActiveState->Client->SetViewMode(EViewMode::VMI_Unlit);
+                }
+            }
+            if (ImGui::MenuItem("Lit (Phong)", nullptr, CurrentViewMode == EViewMode::VMI_Lit_Phong))
+            {
+                if (ActiveState && ActiveState->Client)
+                {
+                    ActiveState->Client->SetViewMode(EViewMode::VMI_Lit_Phong);
+                }
+            }
+            if (ImGui::MenuItem("Lit (Gouraud)", nullptr, CurrentViewMode == EViewMode::VMI_Lit_Gouraud))
+            {
+                if (ActiveState && ActiveState->Client)
+                {
+                    ActiveState->Client->SetViewMode(EViewMode::VMI_Lit_Gouraud);
+                }
+            }
+            if (ImGui::MenuItem("Lit (Lambert)", nullptr, CurrentViewMode == EViewMode::VMI_Lit_Lambert))
+            {
+                if (ActiveState && ActiveState->Client)
+                {
+                    ActiveState->Client->SetViewMode(EViewMode::VMI_Lit_Lambert);
+                }
+            }
+            ImGui::EndMenu();
+        }
+
+        // Detail Modes submenu
+        if (ImGui::BeginMenu("Detail Modes"))
+        {
+            if (ImGui::MenuItem("Low", nullptr, CurrentDetailMode == EDetailMode::Low))
+            {
+                CurrentDetailMode = EDetailMode::Low;
+            }
+            if (ImGui::MenuItem("Medium", nullptr, CurrentDetailMode == EDetailMode::Medium))
+            {
+                CurrentDetailMode = EDetailMode::Medium;
+            }
+            if (ImGui::MenuItem("High", nullptr, CurrentDetailMode == EDetailMode::High))
+            {
+                CurrentDetailMode = EDetailMode::High;
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
+
+        // Get current grid flag from render settings
+        bool bShowGrid = false;
+        if (ActiveState && ActiveState->World)
+        {
+            bShowGrid = ActiveState->World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Grid);
+        }
+
+        // Grid toggle
+        if (ImGui::MenuItem("Grid", nullptr, bShowGrid))
+        {
+            if (ActiveState && ActiveState->World)
+            {
+                ActiveState->World->GetRenderSettings().ToggleShowFlag(EEngineShowFlags::SF_Grid);
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+
+    ImGui::SameLine();
+
+    // Time menu button
+    if (ImGui::Button("Time"))
+    {
+        ImGui::OpenPopup("TimeMenu");
+    }
+
+    if (ImGui::BeginPopup("TimeMenu"))
+    {
+        // Play/Pause toggle
+        if (bIsPlaying)
+        {
+            if (ImGui::MenuItem("Pause"))
+            {
+                bIsPlaying = false;
+                // TODO: Pause particle simulation
+            }
+        }
+        else
+        {
+            if (ImGui::MenuItem("Play"))
+            {
+                bIsPlaying = true;
+                // TODO: Play particle simulation
+            }
+        }
+
+        ImGui::Separator();
+
+        // Realtime toggle
+        if (ImGui::MenuItem("Realtime", nullptr, &bRealtime))
+        {
+            // TODO: Toggle realtime simulation
+        }
+
+        // Loop toggle
+        if (ImGui::MenuItem("Loop", nullptr, &bLoopSimulation))
+        {
+            // TODO: Toggle loop simulation
+        }
+
+        ImGui::Separator();
+
+        // AnimSpeed submenu
+        if (ImGui::BeginMenu("AnimSpeed"))
+        {
+            if (ImGui::MenuItem("100%", nullptr, AnimSpeed == 1.0f))
+            {
+                AnimSpeed = 1.0f;
+                // TODO: Set animation speed to 100%
+            }
+            if (ImGui::MenuItem("50%", nullptr, AnimSpeed == 0.5f))
+            {
+                AnimSpeed = 0.5f;
+                // TODO: Set animation speed to 50%
+            }
+            if (ImGui::MenuItem("25%", nullptr, AnimSpeed == 0.25f))
+            {
+                AnimSpeed = 0.25f;
+                // TODO: Set animation speed to 25%
+            }
+            if (ImGui::MenuItem("10%", nullptr, AnimSpeed == 0.1f))
+            {
+                AnimSpeed = 0.1f;
+                // TODO: Set animation speed to 10%
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("200%", nullptr, AnimSpeed == 2.0f))
+            {
+                AnimSpeed = 2.0f;
+                // TODO: Set animation speed to 200%
+            }
+            if (ImGui::MenuItem("500%", nullptr, AnimSpeed == 5.0f))
+            {
+                AnimSpeed = 5.0f;
+                // TODO: Set animation speed to 500%
+            }
+            if (ImGui::MenuItem("1000%", nullptr, AnimSpeed == 10.0f))
+            {
+                AnimSpeed = 10.0f;
+                // TODO: Set animation speed to 1000%
+            }
+
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    ImGui::PopStyleColor(4);
+    ImGui::PopStyleVar(3);
 }
 
 ViewerState* SParticleSystemEditorWindow::CreateViewerState(const char* Name, UEditorAssetPreviewContext* Context)

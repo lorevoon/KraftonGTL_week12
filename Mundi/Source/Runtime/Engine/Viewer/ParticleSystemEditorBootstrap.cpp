@@ -16,6 +16,7 @@ ViewerState* ParticleSystemEditorBootstrap::CreateViewerState(const char* Name, 
     State->World->SetWorldType(EWorldType::PreviewMinimal);
     State->World->Initialize();
     State->World->GetRenderSettings().DisableShowFlag(EEngineShowFlags::SF_EditorIcon);
+    State->World->GetRenderSettings().DisableShowFlag(EEngineShowFlags::SF_Grid);
 
     // Viewport
     State->Viewport = new FViewport();

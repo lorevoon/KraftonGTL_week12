@@ -62,4 +62,14 @@ private:
 
     // Panels
     SCascadeEmittersPanel* EmittersPanel = nullptr;
+
+    // Viewport menu state
+    enum class EDetailMode { Low, Medium, High };
+    EDetailMode CurrentDetailMode = EDetailMode::High;
+
+    // Time menu state
+    bool bIsPlaying = false;
+    bool bRealtime = true;
+    bool bLoopSimulation = true;
+    float AnimSpeed = 1.0f;
 };
