@@ -18,6 +18,7 @@ FParticleEmitterInstance::FParticleEmitterInstance()
     , MaxActiveParticles(0)
     , SpawnFraction(0.0f)
     , SecondsSinceCreation(0.0f)
+	, CurrentLODLevelIndex(-1)
 {
 }
 
@@ -93,6 +94,34 @@ uint32 FParticleEmitterInstance::CalculateParticleStride() const
     }
 
     return AlignUp(ParticleSize, ParticleStrideAlignment);
+}
+
+void FParticleEmitterInstance::ReallocateParticleData(uint32 NewStride)
+{
+    if (NewStride == ParticleStride)
+    {
+        return;
+    }
+
+    ParticleStride = NewStride;
+
+    if (ParticleData)
+    {
+        delete[] ParticleData;
+        ParticleData = nullptr;
+    }
+    if (ParticleIndices)
+    {
+        delete[] ParticleIndices;
+        ParticleIndices = nullptr;
+    }
+
+    ActiveParticles = 0;
+
+    if (MaxActiveParticles > 0)
+    {
+        InitParticles(MaxActiveParticles);
+    }
 }
 
 void FParticleEmitterInstance::Tick(float DeltaTime)
@@ -297,11 +326,16 @@ void FParticleEmitterInstance::SetLODLevel(int32 LODIndex)
     if (!EmitterTemplate || LODIndex < 0)
     {
         CurrentLODLevel = nullptr;
+		CurrentLODLevelIndex = -1;
         return;
     }
 
     UParticleLODLevel* LOD = EmitterTemplate->GetLODLevel(LODIndex);
     CurrentLODLevel = LOD;
+	CurrentLODLevelIndex = LODIndex;
+
+    const uint32 NewStride = CalculateParticleStride();
+    ReallocateParticleData(NewStride);
 }
 
 FBaseParticle* FParticleEmitterInstance::GetParticle(int32 ActiveIndex)

@@ -20,8 +20,9 @@ struct FParticleEmitterInstance
     static constexpr uint32 ParticleStrideAlignment = 16u; // 파티클 메모리 정렬 단위
 
     UParticleEmitter* EmitterTemplate;       // 에셋 참조
-    UParticleLODLevel* CurrentLODLevel;      // 현재 LOD
     UParticleSystemComponent* Component;     // 소유 컴포넌트
+    UParticleLODLevel* CurrentLODLevel;      // 현재 LOD
+	int32 CurrentLODLevelIndex;              // 현재 LOD 인덱스 (0 = highest quality)
 
     // 메모리 관리
     uint8* ParticleData;                           // 연속된 파티클 메모리 블록
@@ -61,6 +62,9 @@ struct FParticleEmitterInstance
 
     /** @brief: 모듈 요구 바이트를 합산해 정렬(align)까지 고려한 Stride를 계산합니다. */
     uint32 CalculateParticleStride() const;
+
+    /** @brief: LOD 변경 등으로 Stride가 달라질 때 기존 파티클 메모리를 정리하고 새 Stride로 재할당 */
+    void ReallocateParticleData(uint32 NewStride);
 
     /** @brief 한 프레임 틱 업데이트를 수행합니다. (스폰 → 업데이트 → 파이널 업데이트 → Kill) */
     void Tick(float DeltaTime);
