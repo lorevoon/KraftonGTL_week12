@@ -86,9 +86,9 @@ private:
     // 단일 이미터 업데이트
     void UpdateEmitterInstance(FParticleEmitterInstance* Instance, float DeltaTime);
 
-    // 파티클 스폰 처리
+	// 파티클 스폰 처리 (UpdateEmitterInstance에서 이미 처리 중. 강제 스폰시에만 사용할 것)
     void SpawnParticles(FParticleEmitterInstance* Instance, float DeltaTime);
 
-    // 파티클 제거 처리
+    // 파티클 제거 처리 *UpdateEmitterInstance에서 이미 처리 중. 강제 제거시에만 사용할 것)
     void KillDeadParticles(FParticleEmitterInstance* Instance);
 };

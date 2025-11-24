@@ -113,7 +113,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     {
         if (Instance)
         {
-            SpawnParticles(Instance, DeltaTime);
+            UpdateEmitterInstance(Instance, DeltaTime);
         }
     }
 }
@@ -225,6 +225,7 @@ void UParticleSystemComponent::CreateEmitterInstances()
             : 0;
         if (MaxParticles <= 0)
         {
+            UE_LOG("WARNING: Emitter %d skipped due to MaxParticleCount <= 0", i);
             continue;
         }
 
@@ -259,10 +260,13 @@ void UParticleSystemComponent::ResetInstances()
 
 void UParticleSystemComponent::UpdateEmitterInstance(FParticleEmitterInstance* Instance, float DeltaTime)
 {
-    // Day 2에서 구현 예정
-    // 1. SpawnParticles()
-    // 2. UpdateParticles()
-    // 3. KillDeadParticles()
+    if (!Instance)
+    {
+        return;
+    }
+
+	// 틱에서 스폰 -> 갱신 -> 제거 순서로 처리
+    Instance->Tick(DeltaTime);
 }
 
 void UParticleSystemComponent::SpawnParticles(FParticleEmitterInstance* Instance, float DeltaTime)
@@ -277,7 +281,10 @@ void UParticleSystemComponent::SpawnParticles(FParticleEmitterInstance* Instance
 
 void UParticleSystemComponent::KillDeadParticles(FParticleEmitterInstance* Instance)
 {
-    // Day 2에서 구현 예정
-    // - RelativeTime >= 1.0인 파티클 제거
-    // - ParticleIndices 배열 재정렬
+    if (!Instance)
+    {
+        return;
+    }
+
+    Instance->KillDeadParticles();
 }
