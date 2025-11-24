@@ -250,8 +250,8 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
             float CosRot = cosf(Particle->Rotation);
             float SinRot = sinf(Particle->Rotation);
             RotationMatrix.M[0][0] = CosRot;
-            RotationMatrix.M[0][1] = SinRot;
-            RotationMatrix.M[1][0] = -SinRot;
+            RotationMatrix.M[0][1] = -SinRot;
+            RotationMatrix.M[1][0] = SinRot;
             RotationMatrix.M[1][1] = CosRot;
         }
 
@@ -308,7 +308,7 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     Context->Unmap(InstanceBuffer, 0);
 
     // 4. Rasterizer 상태 설정
-    RHI->RSSetState(ERasterizerMode::Solid_NoCull);
+    RHI->RSSetState(ERasterizerMode::Solid);
 
     // 5. 블렌딩 상태 설정
     RHI->OMSetBlendState(true);

@@ -61,6 +61,7 @@ ASpriteParticleActor::ASpriteParticleActor()
 	RequiredModule->EmitterDuration = 1.0f;
 	RequiredModule->EmitterLoops = 0; // 무한 반복
 	RequiredModule->Material = ParticleMaterial; // 파티클 머티리얼 할당
+	RequiredModule->SortMode = EParticleSortMode::ViewDistanceDepth;
 	LODLevel->RequiredModule = RequiredModule;
 
 	// Lifetime 모듈
