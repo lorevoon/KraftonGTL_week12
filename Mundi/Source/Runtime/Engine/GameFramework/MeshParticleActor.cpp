@@ -59,8 +59,8 @@ AMeshParticleActor::AMeshParticleActor()
 
 	// Required 모듈 (필수)
 	UParticleModuleRequired* RequiredModule = NewObject<UParticleModuleRequired>();
-	RequiredModule->SpawnRate = 5.0f; // 초당 10개 파티클 생성
-	RequiredModule->EmitterDuration = 1.0f;
+	RequiredModule->SpawnRate = 100.0f; // 초당 10개 파티클 생성
+	RequiredModule->EmitterDuration = 5.0f;
 	RequiredModule->EmitterLoops = 0; // 무한 반복
 	RequiredModule->Material = ParticleMaterial;
 	LODLevel->RequiredModule = RequiredModule;

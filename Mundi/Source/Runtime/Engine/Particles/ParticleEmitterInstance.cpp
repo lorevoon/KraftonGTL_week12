@@ -206,6 +206,17 @@ void FParticleEmitterInstance::RunFinalUpdateModules(float DeltaTime)
             Module->FinalUpdate(this, 0, DeltaTime);
         }
     }
+
+    // Velocity integration: Apply velocity to location
+    for (int32 i = 0; i < ActiveParticles; ++i)
+    {
+        FBaseParticle* Particle = GetParticle(i);
+        if (Particle)
+        {
+            Particle->OldLocation = Particle->Location;
+            Particle->Location = Particle->Location + (Particle->Velocity * DeltaTime);
+        }
+    }
 }
 
 void FParticleEmitterInstance::Sort(EParticleSortMode SortMode, const FVector* ViewLocation)
