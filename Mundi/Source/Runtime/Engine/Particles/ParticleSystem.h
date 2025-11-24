@@ -49,4 +49,7 @@ public:
     void AddEmitter(UParticleEmitter* Emitter);
     void RemoveEmitter(UParticleEmitter* Emitter);
     int32 GetEmitterCount() const { return Emitters.Num(); }
+
+    // Serialization
+    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 };

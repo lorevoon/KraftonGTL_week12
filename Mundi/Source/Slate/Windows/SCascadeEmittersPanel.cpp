@@ -1,0 +1,487 @@
+#include "pch.h"
+#include "SCascadeEmittersPanel.h"
+#include "ImGui/imgui.h"
+
+#include "Source/Runtime/Engine/Particles/ParticleSystem.h"
+#include "Source/Runtime/Engine/Particles/ParticleEmitter.h"
+#include "Source/Runtime/Engine/Particles/ParticleLODLevel.h"
+#include "Source/Runtime/Engine/Particles/ParticleModule.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleRequired.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSpawn.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleLifetime.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleLocation.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleVelocity.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleColor.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSize.h"
+
+void SCascadeEmittersPanel::EnsureEditingSystem()
+{
+    if (!EditingSystem)
+    {
+        EditingSystem = NewObject<UParticleSystem>();
+        EditingSystem->SystemName = "NewParticleSystem";
+    }
+}
+
+void SCascadeEmittersPanel::Render(float width, float height)
+{
+    EnsureEditingSystem();
+
+    // Header row with optional add button
+    ImGui::TextUnformatted("Emitters");
+    ImGui::Separator();
+
+    // Horizontally scrollable canvas for vertical emitter stacks
+    ImGui::BeginChild("Cascade_Emitters_Canvas", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
+    const float columnWidth = 180.0f;
+    const float headerHeight = 50.0f;
+    const float thumbnailSize = 36.0f;
+    const float moduleHeight = 24.0f;
+    const float columnSpacing = 10.0f;
+    const float iconSize = 16.0f;
+
+    int count = EditingSystem->GetEmitterCount();
+    for (int i = 0; i < count; ++i)
+    {
+        UParticleEmitter* Emitter = EditingSystem->GetEmitter(i);
+        FString Name = Emitter ? Emitter->EmitterName : FString("<Unnamed>");
+
+        if (i > 0)
+            ImGui::SameLine(0.0f, columnSpacing);
+
+        ImGui::PushID(i);
+        ImGui::BeginGroup();
+
+        // ===== HEADER SECTION =====
+        bool selected = (i == SelectedEmitterIndex);
+
+        // Header background
+        ImVec4 headerBgColor = selected ? ImVec4(0.25f, 0.25f, 0.25f, 1.0f) : ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, headerBgColor);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
+        ImGui::BeginChild("EmitterHeader", ImVec2(columnWidth, headerHeight), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        // Left side: Name and control buttons
+        ImGui::BeginGroup();
+
+        // First row: Emitter name
+        ImGui::TextUnformatted(Name.c_str());
+
+        // Second row: Control icons (horizontal layout)
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+
+        const float iconButtonSize = 16.0f;
+        if (ImGui::Button("V##vis", ImVec2(iconButtonSize, iconButtonSize))) {} // Visibility
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle Visibility");
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("R##render", ImVec2(iconButtonSize, iconButtonSize))) {} // Render mode
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Render Mode");
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("S##solo", ImVec2(iconButtonSize, iconButtonSize))) {} // Solo mode
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Solo Mode");
+
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar(2);
+
+        ImGui::EndGroup();
+
+        // Right side: Particle sprite preview thumbnail
+        ImGui::SameLine();
+        float rightSideX = columnWidth - thumbnailSize - 8.0f;
+        ImGui::SetCursorPosX(rightSideX);
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+        float thumbnailDisplaySize = 36.0f;
+        ImGui::Button("##thumbnail", ImVec2(thumbnailDisplaySize, thumbnailDisplaySize));
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(3);
+
+        // Draw a simple particle sprite representation in the thumbnail
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImVec2 thumbMin = ImGui::GetItemRectMin();
+        ImVec2 thumbMax = ImGui::GetItemRectMax();
+        ImVec2 center = ImVec2((thumbMin.x + thumbMax.x) * 0.5f, (thumbMin.y + thumbMax.y) * 0.5f);
+        drawList->AddCircleFilled(center, 6.0f, IM_COL32(255, 255, 255, 200), 8);
+        drawList->AddCircleFilled(center, 4.0f, IM_COL32(255, 200, 100, 255), 8);
+
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+
+        // Click on header to select
+        if (ImGui::IsItemClicked())
+        {
+            SelectedEmitterIndex = i;
+        }
+
+        // Popup on header
+        if (ImGui::BeginPopupContextItem("EmitterHeaderPopup"))
+        {
+            if (ImGui::MenuItem("Delete Emitter"))
+            {
+                UParticleEmitter* ToRemove = EditingSystem->GetEmitter(i);
+                EditingSystem->RemoveEmitter(ToRemove);
+                if (SelectedEmitterIndex >= EditingSystem->GetEmitterCount())
+                    SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+                ImGui::EndPopup();
+                ImGui::EndGroup();
+                ImGui::PopID();
+                break;
+            }
+            ImGui::EndPopup();
+        }
+
+        // ===== MODULES SECTION =====
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 1));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        ImGui::BeginChild("EmitterModules", ImVec2(columnWidth, 0), true, ImGuiWindowFlags_NoScrollbar);
+
+        UParticleLODLevel* LOD0 = Emitter ? Emitter->GetDefaultLODLevel() : nullptr;
+        if (LOD0)
+        {
+            // Required module - YELLOW, NO CHECKBOX
+            if (LOD0->RequiredModule)
+            {
+                const char* reqName = LOD0->RequiredModule->ModuleName.c_str();
+                if (reqName)
+                {
+                    RenderModuleCard(LOD0->RequiredModule,
+                                   LOD0,
+                                   reqName,
+                                   ImVec4(0.6f, 0.5f, 0.2f, 1.0f), // Yellow
+                                   columnWidth, moduleHeight, false); // No checkbox
+                }
+            }
+
+            // Other modules
+            const TArray<UParticleModule*>& Modules = LOD0->Modules;
+            for (int m = 0; m < Modules.Num(); ++m)
+            {
+                if (UParticleModule* Mod = Modules[m])
+                {
+                    const char* modName = Mod->ModuleName.c_str();
+                    if (modName)
+                    {
+                        ImVec4 moduleColor = GetModuleColor(Mod->ModuleName);
+                        RenderModuleCard(Mod, LOD0, modName, moduleColor, columnWidth, moduleHeight, true); // With checkbox
+                    }
+                }
+            }
+        }
+
+        // Empty area popup - Add Module context menu
+        if (ImGui::BeginPopupContextWindow("EmitterColumnEmpty", ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight))
+        {
+            ImGui::TextUnformatted("Add Module");
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Spawn"))
+            {
+                UParticleModuleSpawn* NewModule = NewObject<UParticleModuleSpawn>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Spawn";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Lifetime"))
+            {
+                UParticleModuleLifetime* NewModule = NewObject<UParticleModuleLifetime>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Lifetime";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Initial Location"))
+            {
+                UParticleModuleLocation* NewModule = NewObject<UParticleModuleLocation>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Location";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Initial Velocity"))
+            {
+                UParticleModuleVelocity* NewModule = NewObject<UParticleModuleVelocity>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Velocity";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Initial Size"))
+            {
+                UParticleModuleSize* NewModule = NewObject<UParticleModuleSize>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Size";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Color Over Life"))
+            {
+                UParticleModuleColor* NewModule = NewObject<UParticleModuleColor>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Color";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            ImGui::EndPopup();
+        }
+
+        ImGui::EndChild();
+        ImGui::PopStyleVar(2);
+
+        ImGui::EndGroup();
+        ImGui::PopID();
+    }
+
+    // Right-click empty canvas to add new emitter
+    if (ImGui::BeginPopupContextWindow("EmittersEmptyContext", ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight))
+    {
+        if (ImGui::MenuItem("New Particle Sprite Emitter"))
+        {
+            if (UParticleEmitter* NewEmitter = CreateDefaultSpriteEmitter())
+            {
+                EditingSystem->AddEmitter(NewEmitter);
+                SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+            }
+        }
+        ImGui::EndPopup();
+    }
+
+    ImGui::EndChild();
+}
+
+UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
+{
+    UParticleEmitter* Emitter = NewObject<UParticleEmitter>();
+    if (!Emitter)
+        return nullptr;
+
+    // Basic defaults
+    Emitter->EmitterName = "Sprite Emitter";
+    Emitter->MaxParticleCount = 1000;
+
+    // Create default LOD 0
+    UParticleLODLevel* LOD0 = NewObject<UParticleLODLevel>();
+    if (!LOD0)
+        return nullptr;
+
+    LOD0->Level = 0;
+    LOD0->DistanceThreshold = 0.0f;
+
+    // Required module
+    UParticleModuleRequired* Required = NewObject<UParticleModuleRequired>();
+    if (Required)
+    {
+        Required->ModuleName = "Required";
+        LOD0->RequiredModule = Required;
+    }
+
+    // Spawn module
+    if (UParticleModuleSpawn* Spawn = NewObject<UParticleModuleSpawn>())
+    {
+        Spawn->ModuleName = "Spawn";
+        LOD0->AddModule(Spawn);
+    }
+    // Lifetime
+    if (UParticleModuleLifetime* Lifetime = NewObject<UParticleModuleLifetime>())
+    {
+        Lifetime->ModuleName = "Lifetime";
+        LOD0->AddModule(Lifetime);
+    }
+    // Initial Location
+    if (UParticleModuleLocation* Location = NewObject<UParticleModuleLocation>())
+    {
+        Location->ModuleName = "Location";
+        LOD0->AddModule(Location);
+    }
+    // Initial Velocity
+    if (UParticleModuleVelocity* Velocity = NewObject<UParticleModuleVelocity>())
+    {
+        Velocity->ModuleName = "Velocity";
+        LOD0->AddModule(Velocity);
+    }
+    // Initial Color / Color Over Life
+    if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
+    {
+        Color->ModuleName = "Color";
+        LOD0->AddModule(Color);
+    }
+
+    Emitter->AddLODLevel(LOD0);
+    return Emitter;
+}
+
+void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleLODLevel* parentLOD, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox)
+{
+    if (!module)
+    {
+        // Safety check: render a placeholder if module is null
+        ImGui::TextUnformatted("(Invalid module)");
+        return;
+    }
+
+    // Use module pointer as unique ID
+    ImGui::PushID(module);
+
+    // Highlight if this module is selected
+    bool isSelected = (module == SelectedModule);
+    ImVec4 finalBackgroundColor = backgroundColor;
+    if (isSelected)
+    {
+        // Add a bright border/highlight effect for selected module
+        finalBackgroundColor = ImVec4(backgroundColor.x * 1.3f, backgroundColor.y * 1.3f, backgroundColor.z * 1.3f, backgroundColor.w);
+    }
+
+    ImGui::PushStyleColor(ImGuiCol_Button, finalBackgroundColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(finalBackgroundColor.x * 1.1f, finalBackgroundColor.y * 1.1f, finalBackgroundColor.z * 1.1f, finalBackgroundColor.w));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(finalBackgroundColor.x * 0.9f, finalBackgroundColor.y * 0.9f, finalBackgroundColor.z * 0.9f, finalBackgroundColor.w));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
+
+    // Create a horizontal layout with checkbox (if needed) and button
+    ImGui::BeginGroup();
+
+    if (showCheckbox)
+    {
+        // Render checkbox for enable/disable
+        bool enabled = module->bEnabled;
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+        if (ImGui::Checkbox("##enabled", &enabled))
+        {
+            module->bEnabled = enabled;
+        }
+        ImGui::PopStyleVar();
+        ImGui::SameLine();
+
+        // Button takes remaining width
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+        if (ImGui::Button(moduleName, ImVec2(width - 30, height)))
+        {
+            SelectedModule = module;
+        }
+        ImGui::PopStyleVar();
+
+        // Context menu on the button
+        if (ImGui::BeginPopupContextItem())
+        {
+            ImGui::TextUnformatted(moduleName);
+            ImGui::Separator();
+
+            // Toggle enable/disable
+            bool isEnabled = module->bEnabled;
+            if (ImGui::MenuItem("Enable/Disable", nullptr, &isEnabled))
+            {
+                module->bEnabled = isEnabled;
+            }
+
+            if (ImGui::MenuItem("Delete"))
+            {
+                if (parentLOD)
+                {
+                    // Clear selection if we're deleting the selected module
+                    if (SelectedModule == module)
+                    {
+                        SelectedModule = nullptr;
+                    }
+                    parentLOD->RemoveModule(module);
+                }
+            }
+
+            if (ImGui::MenuItem("Duplicate"))
+            {
+                if (parentLOD && module)
+                {
+                    // Duplicate the module
+                    UParticleModule* ClonedModule = static_cast<UParticleModule*>(module->Duplicate());
+                    if (ClonedModule)
+                    {
+                        // Add it to the parent LOD level
+                        parentLOD->AddModule(ClonedModule);
+                    }
+                }
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+    else
+    {
+        // No checkbox for Required module, just the button with left padding
+        char buttonLabel[128];
+        sprintf_s(buttonLabel, "     %s", moduleName);
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+        if (ImGui::Button(buttonLabel, ImVec2(width, height)))
+        {
+            SelectedModule = module;
+        }
+        ImGui::PopStyleVar();
+
+        // Context menu on the button (Required module)
+        if (ImGui::BeginPopupContextItem())
+        {
+            ImGui::TextUnformatted(moduleName);
+            ImGui::Separator();
+
+            // Required module cannot be deleted
+            ImGui::TextDisabled("(Required modules cannot be deleted)");
+
+            if (ImGui::MenuItem("Duplicate"))
+            {
+                if (parentLOD && module)
+                {
+                    // Duplicate the required module and add it as a regular module
+                    UParticleModule* ClonedModule = static_cast<UParticleModule*>(module->Duplicate());
+                    if (ClonedModule)
+                    {
+                        // Add it to the parent LOD level as a regular module
+                        parentLOD->AddModule(ClonedModule);
+                    }
+                }
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
+    ImGui::EndGroup();
+
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(3);
+
+    ImGui::PopID(); // Pop the unique ID
+}
+
+ImVec4 SCascadeEmittersPanel::GetModuleColor(const FString& moduleName)
+{
+    // Color scheme matching Unreal Cascade
+    // Required = yellow (handled separately)
+    // Spawn = red
+    // Everything else = grey
+    if (moduleName == "Spawn")
+        return ImVec4(0.55f, 0.2f, 0.2f, 1.0f); // Red for Spawn
+    else
+        return ImVec4(0.3f, 0.3f, 0.3f, 1.0f); // Grey for all other modules
+}
+

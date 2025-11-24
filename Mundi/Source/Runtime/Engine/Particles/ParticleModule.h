@@ -77,4 +77,7 @@ public:
     {
         return 0;
     }
+
+    // Serialization - uses reflection to serialize all properties
+    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 };

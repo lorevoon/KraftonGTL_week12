@@ -8,6 +8,9 @@
 #include "EditorEngine.h"
 #include "PlatformProcess.h"
 #include "SlateManager.h"
+// ----- TEMP ------
+#include "Source/Runtime/Engine/Viewer/EditorAssetPreviewContext.h"
+// -----------------
 #include <commdlg.h>
 #include <random>
 
@@ -122,6 +125,29 @@ void UMainToolbarWidget::RenderToolbar()
         // PIE 제어 버튼들
         ImGui::SameLine(0, 12.0f);
         RenderPIEButtons();
+
+        // --------- TEMP --------
+        // Separator
+        ImGui::SameLine(0, 12.0f);
+        ImVec2 sep2 = ImGui::GetCursorScreenPos();
+        sep2.y += 4.0f;
+        ImGui::GetWindowDrawList()->AddLine(
+            sep2,
+            ImVec2(sep2.x, sep2.y + IconSize),
+            ImGui::GetColorU32(ImVec4(0.25f, 0.25f, 0.25f, 0.8f)),
+            2.0f
+        );
+        ImGui::Dummy(ImVec2(2.0f, IconSize));
+
+        // Temporary: Open Cascade Particle Editor
+        ImGui::SameLine(0, 12.0f);
+        if (ImGui::Button("Cascade Editor"))
+        {
+            UEditorAssetPreviewContext* Context = NewObject<UEditorAssetPreviewContext>();
+            Context->ViewerType = EViewerType::Particle;
+            USlateManager::GetInstance().OpenAssetViewer(Context);
+        }
+        // --------------------------
 
         // 로고를 오른쪽에 배치
         if (LogoTexture && LogoTexture->GetShaderResourceView())

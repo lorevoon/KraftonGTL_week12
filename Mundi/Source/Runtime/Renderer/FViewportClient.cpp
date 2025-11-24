@@ -163,6 +163,12 @@ void FViewportClient::Draw(FViewport* Viewport)
 
 	FSceneView RenderView(Camera->GetCameraComponent(), Viewport, &World->GetRenderSettings());
 
+	// Set background color from ViewerState if available
+	if (ViewerState_Ptr)
+	{
+		RenderView.BackgroundColor = ViewerState_Ptr->BackgroundColor;
+	}
+
 	// 더 명확한 이름의 함수를 호출
 	Renderer->RenderSceneForView(World, &RenderView, Viewport);
 

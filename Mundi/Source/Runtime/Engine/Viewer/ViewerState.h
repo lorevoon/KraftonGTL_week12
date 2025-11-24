@@ -89,4 +89,7 @@ public:
 
     // 기즈모 드래그 첫 프레임 감지용 (부동소수점 오차로 인한 불필요한 업데이트 방지)
     bool bWasGizmoDragging = false;
+
+    // Viewport background color (for particle editor)
+    FLinearColor BackgroundColor = FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
 };
