@@ -10,6 +10,7 @@ UParticleModuleRequired::UParticleModuleRequired()
     , Material(nullptr)
     , EmitterOrigin()
     , EmitterRotation(0.0f)
+    , bUseLocalSpace(false)
 {
     // Required 모듈은 Spawn 단계에서만 실행
     bSpawnModule = true;

@@ -10,6 +10,7 @@
 #include "Modules/ParticleModuleColor.h"
 #include "Modules/ParticleModuleVelocity.h"
 #include "Modules/ParticleModuleLocation.h"
+#include "Modules/ParticleModuleSpawn.h"
 #include "Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "ObjectFactory.h"
 #include "Material.h"
@@ -73,6 +74,13 @@ AMeshParticleActor::AMeshParticleActor()
 	TypeDataMesh->Mesh = CubeMesh;
 
 	LODLevel->TypeDataModule = TypeDataMesh;
+
+	// Spawn 모듈
+	UParticleModuleSpawn* SpawnModule = NewObject<UParticleModuleSpawn>();
+	SpawnModule->LocationMin = FVector(0.0f, 0.0f, 0.0f);
+	SpawnModule->LocationMax = FVector(0.0f, 0.0f, 0.0f);
+	SpawnModule->DistributionType = EDistributionType::Constant;
+	LODLevel->AddModule(SpawnModule);
 
 	// Lifetime 모듈
 	UParticleModuleLifetime* LifetimeModule = NewObject<UParticleModuleLifetime>();
