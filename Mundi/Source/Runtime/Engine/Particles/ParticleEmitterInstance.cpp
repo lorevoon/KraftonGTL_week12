@@ -14,11 +14,14 @@ FParticleEmitterInstance::FParticleEmitterInstance()
     , ParticleData(nullptr)
     , ParticleIndices(nullptr)
     , ParticleStride(sizeof(FBaseParticle))
-    , ActiveParticles(0)
     , MaxActiveParticles(0)
+    , ActiveParticles(0)
     , SpawnFraction(0.0f)
-    , SecondsSinceCreation(0.0f)
-	, CurrentLODLevelIndex(-1)
+    , ParticleCounter(0)
+    , EmitterTime(0.0f)
+    , EmitterDuration(0.0f)
+    , LoopCount(0)
+    , CurrentLODLevelIndex(-1)
 {
 }
 
@@ -54,7 +57,9 @@ void FParticleEmitterInstance::Initialize(UParticleEmitter* InTemplate, UParticl
     SetLODLevel(0);
 
     SpawnFraction = 0.0f;
-    SecondsSinceCreation = 0.0f;
+    ParticleCounter = 0;
+    EmitterTime = 0.0f;
+    LoopCount = 0;
 }
 
 uint32 FParticleEmitterInstance::CalculateParticleStride() const
@@ -82,7 +87,7 @@ void FParticleEmitterInstance::ReallocateParticleData(uint32 NewStride, int32 Ne
     }
     else
     {
-		UE_LOG("ERROR: FParticleEmitterInstance::ReallocateParticleData called with invalid parameters.(ParticleStride: %d, MaxActiveParticles: %d", ParticleStride, MaxActiveParticles);
+		UE_LOG("ERROR: FParticleEmitterInstance::ReallocateParticleData called with invalid parameters. (ParticleStride: %d, MaxActiveParticles: %d)", ParticleStride, MaxActiveParticles);
     }
 }
 
@@ -93,12 +98,16 @@ void FParticleEmitterInstance::Tick(float DeltaTime)
         return;
     }
 
-    SpawnParticles(DeltaTime);
+    const bool bCanSpawn = CanSpawnThisFrame(DeltaTime);
+    if (bCanSpawn)
+    {
+        SpawnParticles(DeltaTime);
+    }
+
     RunUpdateModules(DeltaTime);
     RunFinalUpdateModules(DeltaTime);
     KillDeadParticles();
 
-    SecondsSinceCreation += DeltaTime;
 }
 
 void FParticleEmitterInstance::SpawnParticles(float DeltaTime)
@@ -156,12 +165,13 @@ void FParticleEmitterInstance::SpawnParticles(float DeltaTime)
         {
             if (Module && Module->bEnabled)
             {
-                Module->Spawn(this, NewActiveIndex, SecondsSinceCreation, Particle);
+                Module->Spawn(this, NewActiveIndex, EmitterTime, Particle);
             }
         }
 
         Particle->OldLocation = Particle->Location;
-        ActiveParticles++;
+        ++ActiveParticles;
+        ++ParticleCounter;
     }
 }
 
@@ -299,7 +309,9 @@ void FParticleEmitterInstance::Reset()
 {
     ActiveParticles = 0;
     SpawnFraction = 0.0f;
-    SecondsSinceCreation = 0.0f;
+    EmitterTime = 0.0f;
+    LoopCount = 0;
+    ParticleCounter = 0;
 }
 
 // @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것. 
@@ -311,6 +323,8 @@ void FParticleEmitterInstance::SetLODLevel(int32 LODIndex)
         {
             CurrentLODLevel = nullptr;
             CurrentLODLevelIndex = -1;
+            EmitterDuration = 0.0f;
+            EmitterTime = 0.0f;
             const uint32 BaseStride = AlignUp(sizeof(FBaseParticle), ParticleStrideAlignment);
             ReallocateParticleData(BaseStride, MaxActiveParticles);
         }
@@ -330,6 +344,23 @@ void FParticleEmitterInstance::SetLODLevel(int32 LODIndex)
 
     CurrentLODLevel = LOD;
     CurrentLODLevelIndex = LODIndex;
+    if (CurrentLODLevel && CurrentLODLevel->RequiredModule)
+    {
+        EmitterDuration = FMath::Max(CurrentLODLevel->RequiredModule->EmitterDuration, 0.0f);
+        if (EmitterDuration > 0.0f)
+        {
+            EmitterTime = FMath::Clamp(EmitterTime, 0.0f, EmitterDuration);
+        }
+        else
+        {
+            EmitterTime = 0.0f;
+        }
+    }
+    else
+    {
+        EmitterDuration = 0.0f;
+        EmitterTime = 0.0f;
+    }
 
     const uint32 NewStride = CalculateParticleStride();
     ReallocateParticleData(NewStride, MaxActiveParticles);
@@ -362,4 +393,36 @@ void FParticleEmitterInstance::ClearParticleData()
         ParticleIndices = nullptr;
     }
     ActiveParticles = 0;
+}
+
+bool FParticleEmitterInstance::CanSpawnThisFrame(float DeltaTime)
+{
+    if (!CurrentLODLevel || !CurrentLODLevel->RequiredModule)
+    {
+        return false;
+    }
+
+    EmitterTime += DeltaTime;
+
+    const int32 LoopLimit = CurrentLODLevel->RequiredModule->EmitterLoops;
+    const bool bHasFiniteLoops = (LoopLimit > 0);
+
+    if (EmitterDuration > 0.0f)
+    {
+        while (EmitterTime >= EmitterDuration)
+        {
+            EmitterTime -= EmitterDuration;
+            ++LoopCount;
+            if (bHasFiniteLoops && LoopCount >= LoopLimit)
+            {
+                return false;
+            }
+        }
+    }
+    else if (bHasFiniteLoops && LoopCount >= LoopLimit)
+    {
+        return false;
+    }
+
+    return true;
 }

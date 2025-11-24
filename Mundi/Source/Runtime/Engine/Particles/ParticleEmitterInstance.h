@@ -25,15 +25,18 @@ struct FParticleEmitterInstance
 	int32 CurrentLODLevelIndex;              // 현재 LOD 인덱스 (0 = highest quality)
 
     // 메모리 관리
-    uint8* ParticleData;                           // 연속된 파티클 메모리 블록
-    int32* ParticleIndices;                        // 활성 파티클 인덱스 배열 (논리 인덱스 -> 데이터 배열 실제 인덱스 매핑)
-    uint32 ParticleStride;                         // sizeof(FBaseParticle) + 추가 페이로드
-    int32 MaxActiveParticles;                      // 최대 파티클 수
-    int32 ActiveParticles;                         // 현재 활성 파티클 수
+    uint8* ParticleData;                     // 연속된 파티클 메모리 블록
+    int32* ParticleIndices;                  // 활성 파티클 인덱스 배열 (논리 인덱스 -> 데이터 배열 실제 인덱스 매핑)
+    uint32 ParticleStride;                   // sizeof(FBaseParticle) + 추가 페이로드
+    int32 MaxActiveParticles;                // 최대 파티클 수
+    int32 ActiveParticles;                   // 현재 활성 파티클 수
 
     // 스폰 제어
-    float SpawnFraction;                           // 누적 스폰 잔량
-    float SecondsSinceCreation;                    // 생성 후 경과 시간
+    float SpawnFraction;                     // 누적 스폰 잔량
+	int32 ParticleCounter;                   // 지금까지 생성한 파티클 총 수
+    float EmitterTime;                       // 현재 이미터 사이클에서 경과한 시간 (시뮬레이션 값)
+    float EmitterDuration;                   // 현재 LOD Level에서 이미터 총 지속 시간 설정값
+    int32 LoopCount;                         // 현재까지의 루프 반복 완료 횟수
 
     FParticleEmitterInstance();
     ~FParticleEmitterInstance();
@@ -102,4 +105,7 @@ private:
 
     /** @brief Stride/MaxActive를 변경하고 버퍼 재할당 (멤버 설정 포함) */
     void ReallocateParticleData(uint32 NewStride, int32 NewMaxActiveParticles);
+
+    /** @brief LOD 설정값 기반으로 이번 프레임에 스폰 가능한지 계산 */
+    bool CanSpawnThisFrame(float DeltaTime);
 };

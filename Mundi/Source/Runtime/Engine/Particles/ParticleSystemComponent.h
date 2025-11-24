@@ -91,4 +91,7 @@ private:
 
     // 파티클 제거 처리 *UpdateEmitterInstance에서 이미 처리 중. 강제 제거시에만 사용할 것)
     void KillDeadParticles(FParticleEmitterInstance* Instance);
+
+    float SystemTime;     // 현재 사이클에서 경과한 시간 (시뮬레이션 값)
+    int32 CompletedLoops; // 지금까지 끝낸 루프 수 (시뮬레이션 값)
 };
