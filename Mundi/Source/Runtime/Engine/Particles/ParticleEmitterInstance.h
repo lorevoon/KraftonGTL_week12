@@ -26,7 +26,7 @@ struct FParticleEmitterInstance
 
     // 메모리 관리
     uint8* ParticleData;                           // 연속된 파티클 메모리 블록
-    int32* ParticleIndices;                        // 활성 파티클 인덱스 배열
+    int32* ParticleIndices;                        // 활성 파티클 인덱스 배열 (논리 인덱스 -> 데이터 배열 실제 인덱스 매핑)
     uint32 ParticleStride;                         // sizeof(FBaseParticle) + 추가 페이로드
     int32 ActiveParticles;                         // 현재 활성 파티클 수
     int32 MaxActiveParticles;                      // 최대 파티클 수

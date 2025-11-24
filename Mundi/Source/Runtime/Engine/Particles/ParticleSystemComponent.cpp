@@ -102,6 +102,22 @@ void UParticleSystemComponent::UpdateParticles(float DeltaTime)
     }
 }
 
+void UParticleSystemComponent::TickComponent(float DeltaTime)
+{
+    if (!bIsActive || !Template)
+    {
+        return;
+    }
+
+    for (FParticleEmitterInstance* Instance : EmitterInstances)
+    {
+        if (Instance)
+        {
+            SpawnParticles(Instance, DeltaTime);
+        }
+    }
+}
+
 TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneView* View)
 {
     TArray<FDynamicEmitterDataBase*> RenderDataArray;
@@ -251,9 +267,12 @@ void UParticleSystemComponent::UpdateEmitterInstance(FParticleEmitterInstance* I
 
 void UParticleSystemComponent::SpawnParticles(FParticleEmitterInstance* Instance, float DeltaTime)
 {
-    // Day 2에서 구현 예정
-    // - SpawnRate 기반 스폰 계산
-    // - SpawnModules 실행
+    if (!Instance)
+    {
+        return;
+    }
+
+    Instance->SpawnParticles(DeltaTime);
 }
 
 void UParticleSystemComponent::KillDeadParticles(FParticleEmitterInstance* Instance)
