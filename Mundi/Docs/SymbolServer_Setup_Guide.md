@@ -27,6 +27,24 @@ SetupSymbolServer.bat
 
 ### Visual Studio 2022 Symbol Server 설정
 
+**권장 방법: 환경 변수 사용 (SetupSymbolServer.bat 자동 설정)**
+
+환경 변수 `_NT_SYMBOL_PATH`가 설정되면 Visual Studio가 자동으로 사용합니다:
+
+1. **Tools** → **Options** → **Debugging** → **Symbols**
+2. "Environment Variable: _NT_SYMBOL_PATH" 체크박스가 활성화되어 있는지 확인
+
+**⚠️ 중요: Symbol 로딩 모드 설정 (필수)**
+
+Symbol Server를 사용하려면 반드시 다음 설정을 변경해야 합니다:
+
+**Tools** → **Options** → **Debugging** → **Symbols**
+- 페이지 하단의 드롭다운 메뉴에서 **"Load all modules, unless excluded"** 선택
+- ❌ 기본값: "Load only specified modules" → Symbol Server가 작동하지 않음
+- ✅ **변경 필수**: "Load all modules, unless excluded"
+
+**수동 방법: 직접 경로 추가**
+
 1. Visual Studio 2022 실행
 2. **Tools** → **Options** → **Debugging** → **Symbols** 메뉴 진입
 3. "Symbol file (.pdb) locations" 섹션에서 폴더 아이콘 클릭
@@ -36,7 +54,8 @@ SetupSymbolServer.bat
    ```
 5. (선택사항) Microsoft Symbol Servers 체크박스 활성화
 6. (선택사항) "Cache symbols in this directory" 설정: `C:\SymbolCache`
-7. **OK** 클릭하여 저장
+7. **중요**: 페이지 하단의 드롭다운에서 **"Load all modules, unless excluded"** 선택
+8. **OK** 클릭하여 저장
 
 ### 네트워크 접근 권한 확인
 
@@ -124,13 +143,22 @@ Binaries\{Configuration}\Mundi_Crash_YYYY-MM-DD_HH-MM-SS.dmp
 **증상**: Visual Studio에서 "Symbols not loaded"
 
 **해결책**:
-1. Visual Studio 심볼 경로 재확인 (Tools → Options → Debugging → Symbols)
+1. **Symbol 로딩 모드 확인** (가장 흔한 원인):
+   - **Tools** → **Options** → **Debugging** → **Symbols**
+   - 페이지 하단 드롭다운이 **"Load all modules, unless excluded"**로 설정되어 있는지 확인
+   - "Load only specified modules"로 설정되어 있으면 Symbol Server가 작동하지 않음
+
 2. Symbol Cache 삭제 후 재시도
    ```cmd
    del /s /q "C:\SymbolCache\*.*"
    ```
+
 3. 해당 빌드가 Symbol Server에 게시되었는지 확인
-4. 빌드 버전과 덤프 버전이 일치하는지 확인
+
+4. **"No matching binary found" 오류**:
+   - 최신 빌드가 아닌 구버전 덤프의 경우 발생
+   - 원인: 실행 파일(Mundi.exe)이 최신 빌드로 교체되어 GUID 불일치
+   - 해결: 실행 파일도 Symbol Server에 보관 필요 (향후 개선 예정)
 
 ### 빌드 시 symstore.exe 오류
 
@@ -188,8 +216,33 @@ forfiles /p "C:\Users\NanSu\symbols" /s /d -90 /c "cmd /c del @path"
 4. Symbol Server에서 일치하는 GUID의 PDB를 자동 다운로드
 5. 로컬 Symbol Cache에 저장하여 재사용
 
+### Symbol Server 프로토콜 (srv*)
+
+Symbol Server는 특별한 프로토콜 형식을 사용합니다:
+
+```
+srv*[로컬 캐시]*[심볼 서버]
+```
+
+**예시:**
+```
+srv*C:\SymbolCache*\\172.21.11.115\symbols
+```
+
+**구성 요소:**
+- `srv*` - Symbol Server 프로토콜 지시자
+- `C:\SymbolCache` - 로컬 캐시 디렉토리 (다운로드한 PDB를 저장)
+- `\\172.21.11.115\symbols` - 네트워크 Symbol Server 경로
+
+**왜 srv* 프로토콜을 사용해야 하나?**
+- `symstore.exe`로 게시된 심볼은 GUID 기반 폴더 구조를 사용
+- 단순 UNC 경로(`\\172.21.11.115\symbols`)만 사용하면 디버거가 일반 디렉토리로 인식
+- `srv*` 프로토콜을 사용해야 Symbol Server 구조를 올바르게 인식하고 GUID 기반 조회 가능
+- 로컬 캐시를 통해 네트워크 트래픽 감소 및 오프라인 디버깅 지원
+
 ### 관련 문서
 
+- [Microsoft Symbol Path 문서](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/symbol-path)
 - [Microsoft Symbol Server 공식 문서](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/symbol-stores-and-symbol-servers)
 - [Visual Studio 디버깅 가이드](https://learn.microsoft.com/en-us/visualstudio/debugger/specify-symbol-dot-pdb-and-source-files-in-the-visual-studio-debugger)
 
@@ -197,6 +250,6 @@ forfiles /p "C:\Users\NanSu\symbols" /s /d -90 /c "cmd /c del @path"
 
 ## 연락처
 
-Symbol Server 관련 문제가 발생하면 팀 리더에게 문의하세요.
+Symbol Server 관련 문제가 발생하면 팀 NanSu에게 문의하세요.
 
 **서버 호스트**: NanSu (172.21.11.115)

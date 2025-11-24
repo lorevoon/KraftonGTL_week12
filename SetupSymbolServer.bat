@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 REM ========================================
 REM Mundi Engine Symbol Server Setup Script
 REM ========================================
@@ -15,7 +16,7 @@ echo ================================================
 echo.
 
 REM Test network connectivity to symbol server
-echo [1/3] Testing connection to symbol server...
+echo [1/4] Testing connection to symbol server...
 ping -n 1 172.21.11.115 >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Cannot reach symbol server at 172.21.11.115
@@ -28,7 +29,7 @@ echo SUCCESS: Symbol server is reachable
 echo.
 
 REM Test access to network share
-echo [2/3] Testing access to network share...
+echo [2/4] Testing access to network share...
 if exist "\\172.21.11.115\symbols\" (
     echo SUCCESS: Can access \\172.21.11.115\symbols
 ) else (
@@ -38,7 +39,7 @@ if exist "\\172.21.11.115\symbols\" (
 echo.
 
 REM Check if symstore.exe exists
-echo [3/3] Checking symstore.exe installation...
+echo [3/4] Checking symstore.exe installation...
 if exist "C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\symstore.exe" (
     echo SUCCESS: symstore.exe found
     echo Your builds will automatically publish symbols to the server
@@ -55,19 +56,47 @@ if exist "C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\symstore.exe" (
 )
 echo.
 
+REM Set _NT_SYMBOL_PATH environment variable with Symbol Server protocol
+echo [4/4] Setting up _NT_SYMBOL_PATH environment variable...
+setx _NT_SYMBOL_PATH "srv*C:\SymbolCache*\\172.21.11.115\symbols" >nul 2>&1
+if errorlevel 1 (
+    echo WARNING: Failed to set _NT_SYMBOL_PATH environment variable
+    echo You may need to run this script as Administrator.
+) else (
+    echo SUCCESS: _NT_SYMBOL_PATH set with Symbol Server protocol
+    echo   Format: srv*C:\SymbolCache*\\172.21.11.115\symbols
+    echo   - Local cache: C:\SymbolCache
+    echo   - Symbol server: \\172.21.11.115\symbols
+
+    REM Verify the environment variable was set correctly
+    echo.
+    echo Verifying environment variable...
+    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Environment" /v _NT_SYMBOL_PATH 2^>nul ^| findstr /i "_NT_SYMBOL_PATH"') do (
+        set VERIFIED_PATH=%%b
+    )
+
+    if defined VERIFIED_PATH (
+        echo VERIFIED: _NT_SYMBOL_PATH = !VERIFIED_PATH!
+        echo Visual Studio will use this path for symbol lookup after restart.
+    ) else (
+        echo WARNING: Could not verify environment variable in registry
+    )
+)
+echo.
+
 echo ================================================
 echo Visual Studio Configuration Instructions
 echo ================================================
 echo.
-echo To enable symbol server debugging in Visual Studio 2022:
+echo The _NT_SYMBOL_PATH environment variable has been set.
+echo Visual Studio will automatically use this path for symbol lookup.
 echo.
-echo 1. Open Visual Studio 2022
-echo 2. Go to: Tools ^> Options ^> Debugging ^> Symbols
-echo 3. Click the folder icon to add a new symbol location
-echo 4. Add: \\172.21.11.115\symbols
-echo 5. (Optional) Enable "Microsoft Symbol Servers" for Windows symbols
-echo 6. (Optional) Set cache directory: C:\SymbolCache
-echo 7. Click OK to save
+echo IMPORTANT: You must restart Visual Studio for changes to take effect.
+echo.
+echo Optional: You can also manually verify in Visual Studio:
+echo   Tools ^> Options ^> Debugging ^> Symbols
+echo   - Check "Environment Variable: _NT_SYMBOL_PATH" is enabled
+echo   - (Optional) Set cache directory: C:\SymbolCache
 echo.
 echo ================================================
 echo Setup Complete!
