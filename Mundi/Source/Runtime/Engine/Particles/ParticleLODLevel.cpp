@@ -247,10 +247,6 @@ void UParticleLODLevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
             RequiredModule->Serialize(bInIsLoading, ReqModuleJson);
             InOutHandle["RequiredModule"] = ReqModuleJson;
         }
-        else
-        {
-            InOutHandle["RequiredModule"] = nullptr;
-        }
 
         // Save TypeData module (optional)
         if (TypeDataModule)
@@ -258,10 +254,6 @@ void UParticleLODLevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
             JSON TypeDataJson = JSON::Make(JSON::Class::Object);
             TypeDataModule->Serialize(bInIsLoading, TypeDataJson);
             InOutHandle["TypeDataModule"] = TypeDataJson;
-        }
-        else
-        {
-            InOutHandle["TypeDataModule"] = nullptr;
         }
 
         // Save modules array
