@@ -285,7 +285,12 @@ void FParticleEmitterInstance::KillParticle(int32 ActiveIndex)
     const int32 LastActive = ActiveParticles - 1;
     if (ActiveIndex != LastActive)
     {
+        // Swap: LastActive의 DataIndex를 죽을 위치로
+        const int32 DataIndexToFree = ParticleIndices[ActiveIndex];
         ParticleIndices[ActiveIndex] = ParticleIndices[LastActive];
+
+        // Pop: 죽은 DataIndex를 맨 뒤로 (재사용을 위해)
+        ParticleIndices[LastActive] = DataIndexToFree;
     }
     ActiveParticles = LastActive;
 }
