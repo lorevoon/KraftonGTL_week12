@@ -42,6 +42,9 @@ public:
     void SetOwnerWindow(SViewportWindow* InOwner) { OwnerWindow = InOwner; }
     SViewportWindow* GetOwnerWindow() const { return OwnerWindow; }
 
+    void SetViewerState(class ViewerState* InViewerState) { ViewerState_Ptr = InViewerState; }
+    class ViewerState* GetViewerState() const { return ViewerState_Ptr; }
+
     // 카메라 매트릭스 계산
     FMatrix GetViewMatrix() const;
 
@@ -77,4 +80,7 @@ protected:
     FVector PerspectiveCameraPosition = FVector(-5.0f, 5.0f, 5.0f);
     FVector PerspectiveCameraRotation = FVector(0.0f, 22.5f, -45.0f);
     float PerspectiveCameraFov=60;
+
+    // ViewerState pointer (for editor viewports)
+    class ViewerState* ViewerState_Ptr = nullptr;
 };

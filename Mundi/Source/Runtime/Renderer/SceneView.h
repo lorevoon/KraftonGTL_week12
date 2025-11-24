@@ -75,4 +75,7 @@ public:
     float ZoomFactor = 0.0f;
 
     TArray<FPostProcessModifier> Modifiers;
+
+    // Background clear color
+    FLinearColor BackgroundColor = FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
 };

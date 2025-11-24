@@ -18,26 +18,17 @@ FParticleEmitterInstance::FParticleEmitterInstance()
     , MaxActiveParticles(0)
     , SpawnFraction(0.0f)
     , SecondsSinceCreation(0.0f)
+	, CurrentLODLevelIndex(-1)
 {
 }
 
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
-    if (ParticleData)
-    {
-        delete[] ParticleData;
-        ParticleData = nullptr;
-    }
-    if (ParticleIndices)
-    {
-        delete[] ParticleIndices;
-        ParticleIndices = nullptr;
-    }
+    ClearParticleData();
 }
 
-void FParticleEmitterInstance::InitParticles(int32 InMaxParticles)
+void FParticleEmitterInstance::InitParticles()
 {
-    MaxActiveParticles = InMaxParticles;
     ParticleData = new uint8[MaxActiveParticles * ParticleStride];
     ParticleIndices = new int32[MaxActiveParticles];
     for (int32 i = 0; i < MaxActiveParticles; ++i)
@@ -49,35 +40,18 @@ void FParticleEmitterInstance::InitParticles(int32 InMaxParticles)
 
 void FParticleEmitterInstance::Initialize(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, int32 InLODIndex, int32 InMaxActiveParticles)
 {
-    if (ParticleData)
-    {
-        delete[] ParticleData;
-        ParticleData = nullptr;
-    }
-    if (ParticleIndices)
-    {
-        delete[] ParticleIndices;
-        ParticleIndices = nullptr;
-    }
+    ClearParticleData();
 
     EmitterTemplate = InTemplate;
     Component = InComponent;
-    SetLODLevel(InLODIndex);
-    ParticleStride = CalculateParticleStride(); // 페이로드 요구량 + 정렬 반영
 
     // 파티클 최댓값: 지정값 우선, 없으면 이미터 템플릿 기준
-    const int32 RequestedMax = (InMaxActiveParticles > 0) ? InMaxActiveParticles :
+    MaxActiveParticles = (InMaxActiveParticles > 0) ? InMaxActiveParticles :
         (EmitterTemplate ? EmitterTemplate->MaxParticleCount : 0);
 
-    if (RequestedMax > 0)
-    {
-        InitParticles(RequestedMax);
-    }
-    else
-    {
-        MaxActiveParticles = 0;
-        ActiveParticles = 0;
-    }
+    // @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것. 
+    //SetLODLevel(InLODIndex);
+    SetLODLevel(0);
 
     SpawnFraction = 0.0f;
     SecondsSinceCreation = 0.0f;
@@ -93,6 +67,23 @@ uint32 FParticleEmitterInstance::CalculateParticleStride() const
     }
 
     return AlignUp(ParticleSize, ParticleStrideAlignment);
+}
+
+void FParticleEmitterInstance::ReallocateParticleData(uint32 NewStride, int32 NewMaxActiveParticles)
+{
+    ParticleStride = NewStride;
+    MaxActiveParticles = NewMaxActiveParticles;
+
+    ClearParticleData();
+
+    if (ParticleStride > 0 && MaxActiveParticles > 0)
+    {
+        InitParticles();
+    }
+    else
+    {
+		UE_LOG("ERROR: FParticleEmitterInstance::ReallocateParticleData called with invalid parameters.(ParticleStride: %d, MaxActiveParticles: %d", ParticleStride, MaxActiveParticles);
+    }
 }
 
 void FParticleEmitterInstance::Tick(float DeltaTime)
@@ -128,10 +119,12 @@ void FParticleEmitterInstance::SpawnParticles(float DeltaTime)
         return;
     }
 
-    const float Desired = SpawnFraction + SpawnRate * DeltaTime;
-    int32 SpawnCount = static_cast<int32>(std::floor(Desired));
-    SpawnFraction = Desired - SpawnCount;
+	// 이번 프레임에 스폰할 파티클 수 계산
+	const float Desired = SpawnFraction + SpawnRate * DeltaTime; // 이번 프레임에 스폰할 파티클 수 (이전 프레임 소수점 단위 이월받음 + 소수점 포함)
+	int32 SpawnCount = static_cast<int32>(std::floor(Desired)); // 정수 부분만 남겨 실제 스폰할 파티클 수
+	SpawnFraction = Desired - SpawnCount; // 실수 부분은 다음 프레임으로 이월
 
+    // Capacity 넘길 수 없도록 제한
     const int32 CapacityLeft = MaxActiveParticles - ActiveParticles;
     SpawnCount = FMath::Min(SpawnCount, CapacityLeft);
 
@@ -140,6 +133,7 @@ void FParticleEmitterInstance::SpawnParticles(float DeltaTime)
         return;
     }
 
+    // Spawn 단계에서 실행할 모듈 얻어오기
     const TArray<UParticleModule*> SpawnModules = CurrentLODLevel->GetSpawnModules();
 
     for (int32 i = 0; i < SpawnCount; ++i)
@@ -212,6 +206,17 @@ void FParticleEmitterInstance::RunFinalUpdateModules(float DeltaTime)
             Module->FinalUpdate(this, 0, DeltaTime);
         }
     }
+
+    // Velocity integration: Apply velocity to location
+    for (int32 i = 0; i < ActiveParticles; ++i)
+    {
+        FBaseParticle* Particle = GetParticle(i);
+        if (Particle)
+        {
+            Particle->OldLocation = Particle->Location;
+            Particle->Location = Particle->Location + (Particle->Velocity * DeltaTime);
+        }
+    }
 }
 
 void FParticleEmitterInstance::Sort(EParticleSortMode SortMode, const FVector* ViewLocation)
@@ -280,7 +285,12 @@ void FParticleEmitterInstance::KillParticle(int32 ActiveIndex)
     const int32 LastActive = ActiveParticles - 1;
     if (ActiveIndex != LastActive)
     {
+        // Swap: LastActive의 DataIndex를 죽을 위치로
+        const int32 DataIndexToFree = ParticleIndices[ActiveIndex];
         ParticleIndices[ActiveIndex] = ParticleIndices[LastActive];
+
+        // Pop: 죽은 DataIndex를 맨 뒤로 (재사용을 위해)
+        ParticleIndices[LastActive] = DataIndexToFree;
     }
     ActiveParticles = LastActive;
 }
@@ -292,16 +302,37 @@ void FParticleEmitterInstance::Reset()
     SecondsSinceCreation = 0.0f;
 }
 
+// @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것. 
 void FParticleEmitterInstance::SetLODLevel(int32 LODIndex)
 {
     if (!EmitterTemplate || LODIndex < 0)
     {
-        CurrentLODLevel = nullptr;
+        if (CurrentLODLevel)
+        {
+            CurrentLODLevel = nullptr;
+            CurrentLODLevelIndex = -1;
+            const uint32 BaseStride = AlignUp(sizeof(FBaseParticle), ParticleStrideAlignment);
+            ReallocateParticleData(BaseStride, MaxActiveParticles);
+        }
+        return;
+    }
+
+    if (CurrentLODLevelIndex == LODIndex && CurrentLODLevel != nullptr)
+    {
         return;
     }
 
     UParticleLODLevel* LOD = EmitterTemplate->GetLODLevel(LODIndex);
+    if (!LOD)
+    {
+        return;
+    }
+
     CurrentLODLevel = LOD;
+    CurrentLODLevelIndex = LODIndex;
+
+    const uint32 NewStride = CalculateParticleStride();
+    ReallocateParticleData(NewStride, MaxActiveParticles);
 }
 
 FBaseParticle* FParticleEmitterInstance::GetParticle(int32 ActiveIndex)
@@ -316,4 +347,19 @@ const FBaseParticle* FParticleEmitterInstance::GetParticle(int32 ActiveIndex) co
     if (ActiveIndex < 0 || ActiveIndex >= ActiveParticles)
         return nullptr;
     return reinterpret_cast<const FBaseParticle*>(ParticleData + ParticleIndices[ActiveIndex] * ParticleStride);
+}
+
+void FParticleEmitterInstance::ClearParticleData()
+{
+    if (ParticleData)
+    {
+        delete[] ParticleData;
+        ParticleData = nullptr;
+    }
+    if (ParticleIndices)
+    {
+        delete[] ParticleIndices;
+        ParticleIndices = nullptr;
+    }
+    ActiveParticles = 0;
 }

@@ -41,4 +41,7 @@ public:
     {
         return LODLevels.Num() > 0 ? LODLevels[0] : nullptr;
     }
+
+    // Serialization
+    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 };

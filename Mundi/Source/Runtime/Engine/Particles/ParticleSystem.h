@@ -1,8 +1,16 @@
-#pragma once
+﻿#pragma once
 
 #include "Object.h"
 #include "ParticleEmitter.h"
 #include "UParticleSystem.generated.h"
+
+/** @brief: 파티클의 LOD 계산 방식을 정의합니다.*/
+enum ParticleSystemLODMethod
+{
+    Automatic,        // 일정 주기마다(LODDistanceCheckTime) 거리 기반으로 LOD를 자동으로 갱신
+    DirectSet,        // 게임 코드에서 LODIndex를 직접 세팅
+    ActivateAutomatic // 처음 활성화될 때 한 번 거리 기반으로 LOD를 정하고, 그 이후에는 코드로 직접 바꾸지 않는 한 고정
+};
 
 // 파티클 시스템 에셋 (최상위)
 // - 여러 이미터를 포함하는 컨테이너
@@ -41,4 +49,7 @@ public:
     void AddEmitter(UParticleEmitter* Emitter);
     void RemoveEmitter(UParticleEmitter* Emitter);
     int32 GetEmitterCount() const { return Emitters.Num(); }
+
+    // Serialization
+    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 };

@@ -177,7 +177,7 @@ void FSceneRenderer::RenderLitPath()
         vp.Height   = (float)View->ViewRect.Height();
         vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
         RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
-        const float bg[4] = { 0.0f, 0.0f, 0.0f, 1.00f };
+        const float bg[4] = { View->BackgroundColor.R, View->BackgroundColor.G, View->BackgroundColor.B, View->BackgroundColor.A };
         RHIDevice->GetDeviceContext()->ClearRenderTargetView(RHIDevice->GetCurrentTargetRTV(), bg);
         RHIDevice->ClearDepthBuffer(1.0f, 0);
     }
@@ -213,7 +213,7 @@ void FSceneRenderer::RenderWireframePath()
         vp.Height   = (float)View->ViewRect.Height();
         vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
         RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
-        const float bg[4] = { 0.0f, 0.0f, 0.0f, 1.00f };
+        const float bg[4] = { View->BackgroundColor.R, View->BackgroundColor.G, View->BackgroundColor.B, View->BackgroundColor.A };
         RHIDevice->GetDeviceContext()->ClearRenderTargetView(RHIDevice->GetCurrentTargetRTV(), bg);
         RHIDevice->ClearDepthBuffer(1.0f, 0);
     }
@@ -1018,7 +1018,10 @@ void FSceneRenderer::RenderTranslucentPass()
 		for (auto DynamicData : DynamicDataArray)
 		{
 			UParticleModuleRequired* RequiredModule = DynamicData->Source->CurrentLODLevel->RequiredModule;
-			DynamicData->Render(RHIDevice, View, RequiredModule->Material);
+
+			// BufferPool 전달 (UResourceManager에서 관리)
+			DynamicData->Render(RHIDevice, View, RequiredModule->Material,
+				UResourceManager::GetInstance().GetParticleBuffers());
 			delete DynamicData;
 		}
 	}

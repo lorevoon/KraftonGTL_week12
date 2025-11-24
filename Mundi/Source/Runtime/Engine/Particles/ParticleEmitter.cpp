@@ -24,3 +24,58 @@ void UParticleEmitter::AddLODLevel(UParticleLODLevel* LODLevel)
         LODLevels.Add(LODLevel);
     }
 }
+
+void UParticleEmitter::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+    Super::Serialize(bInIsLoading, InOutHandle);
+
+    if (bInIsLoading)
+    {
+        // Load
+        FString EmitterNameValue;
+        int32 MaxParticleCountValue;
+        FJsonSerializer::ReadString(InOutHandle, "EmitterName", EmitterNameValue, "ParticleEmitter", false);
+        FJsonSerializer::ReadInt32(InOutHandle, "MaxParticleCount", MaxParticleCountValue, 100, false);
+        EmitterName = EmitterNameValue;
+        MaxParticleCount = MaxParticleCountValue;
+
+        // Load LOD levels array
+        if (InOutHandle.hasKey("LODLevels"))
+        {
+            const JSON& LODLevelsArray = InOutHandle.at("LODLevels");
+            if (LODLevelsArray.JSONType() == JSON::Class::Array)
+            {
+                LODLevels.Empty();
+                for (const JSON& LODJson : LODLevelsArray.ArrayRange())
+                {
+                    UParticleLODLevel* LOD = NewObject<UParticleLODLevel>();
+                    if (LOD)
+                    {
+                        JSON LODJsonCopy = LODJson;
+                        LOD->Serialize(bInIsLoading, LODJsonCopy);
+                        LODLevels.Add(LOD);
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // Save
+        InOutHandle["EmitterName"] = EmitterName.c_str();
+        InOutHandle["MaxParticleCount"] = static_cast<long>(MaxParticleCount);
+
+        // Save LOD levels array
+        JSON LODLevelsArray = JSON::Make(JSON::Class::Array);
+        for (UParticleLODLevel* LOD : LODLevels)
+        {
+            if (LOD)
+            {
+                JSON LODJson = JSON::Make(JSON::Class::Object);
+                LOD->Serialize(bInIsLoading, LODJson);
+                LODLevelsArray.append(LODJson);
+            }
+        }
+        InOutHandle["LODLevels"] = LODLevelsArray;
+    }
+}
