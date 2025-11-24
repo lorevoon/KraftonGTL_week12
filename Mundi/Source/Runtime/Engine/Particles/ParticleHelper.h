@@ -93,6 +93,7 @@ inline void KillParticle(FBaseParticle* Particle)
 class FSceneView;
 class UMaterialInterface;
 class D3D11RHI;
+class UParticleDynamicBuffers;
 struct ID3D11DeviceContext;
 
 // Sprite 파티클 인스턴스 데이터
@@ -102,12 +103,24 @@ struct FParticleSpriteInstance
     // 16바이트 단위로 정렬 (셰이더 상수 버퍼 규칙과 FVector4 alignas(16) 대응)
     float WorldPositionX, WorldPositionY, WorldPositionZ, Padding0;  // 16 bytes
     float SizeX, SizeY, Rotation, Padding1;                          // 16 bytes
-    float ColorR, ColorG, ColorB, ColorA;                            // 16 bytesㅉ
+    float ColorR, ColorG, ColorB, ColorA;                            // 16 bytes
 
     FParticleSpriteInstance()
         : WorldPositionX(0.0f), WorldPositionY(0.0f), WorldPositionZ(0.0f), Padding0(0.0f)
         , SizeX(1.0f), SizeY(1.0f), Rotation(0.0f), Padding1(0.0f)
         , ColorR(1.0f), ColorG(1.0f), ColorB(1.0f), ColorA(1.0f)
+    {
+    }
+};
+
+// Sprite 파티클 인스턴스 데이터
+struct FParticleMeshInstance
+{
+    FMatrix Transform;
+    FVector4 Color;
+
+    FParticleMeshInstance()
+        :Transform(FMatrix::Identity()), Color(1.f, 1.f,1.f,1.f)
     {
     }
 };
@@ -128,7 +141,7 @@ struct FDynamicEmitterDataBase
     virtual void UpdateRenderData(FSceneView* View) = 0;
 
     // 렌더링 (각 타입별 구현)
-    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material) = 0;
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool) = 0;
 };
 
 // Sprite 파티클 렌더링 데이터
@@ -142,7 +155,7 @@ struct FDynamicSpriteEmitterData : public FDynamicEmitterDataBase
     }
 
     virtual void UpdateRenderData(FSceneView* View) override;
-    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material) override;
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool) override;
 
 private:
     // 파티클 인스턴스 데이터 생성
@@ -152,8 +165,7 @@ private:
 // Mesh 파티클 렌더링 데이터
 struct FDynamicMeshEmitterData : public FDynamicEmitterDataBase
 {
-    TArray<FMatrix> InstanceTransforms;  // 각 파티클의 Transform
-    TArray<FVector4> InstanceColors;      // 각 파티클의 Color
+    TArray<FParticleMeshInstance> Instances;
 
     FDynamicMeshEmitterData(FParticleEmitterInstance* InSource)
         : FDynamicEmitterDataBase(InSource)
@@ -161,7 +173,7 @@ struct FDynamicMeshEmitterData : public FDynamicEmitterDataBase
     }
 
     virtual void UpdateRenderData(FSceneView* View) override;
-    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material) override;
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool) override;
 
 private:
     // 각 파티클의 인스턴스 데이터 생성

@@ -1018,7 +1018,10 @@ void FSceneRenderer::RenderTranslucentPass()
 		for (auto DynamicData : DynamicDataArray)
 		{
 			UParticleModuleRequired* RequiredModule = DynamicData->Source->CurrentLODLevel->RequiredModule;
-			DynamicData->Render(RHIDevice, View, RequiredModule->Material);
+
+			// BufferPool 전달 (UResourceManager에서 관리)
+			DynamicData->Render(RHIDevice, View, RequiredModule->Material,
+				UResourceManager::GetInstance().GetParticleBuffers());
 			delete DynamicData;
 		}
 	}
