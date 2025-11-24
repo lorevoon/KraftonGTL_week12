@@ -18,6 +18,7 @@ FParticleEmitterInstance::FParticleEmitterInstance()
     , MaxActiveParticles(0)
     , SpawnFraction(0.0f)
     , SecondsSinceCreation(0.0f)
+	, CurrentLODLevelIndex(-1)
 {
 }
 
@@ -62,7 +63,10 @@ void FParticleEmitterInstance::Initialize(UParticleEmitter* InTemplate, UParticl
 
     EmitterTemplate = InTemplate;
     Component = InComponent;
-    SetLODLevel(InLODIndex);
+
+    // @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것. 
+    //SetLODLevel(InLODIndex);
+    SetLODLevel(0);
     ParticleStride = CalculateParticleStride(); // 페이로드 요구량 + 정렬 반영
 
     // 파티클 최댓값: 지정값 우선, 없으면 이미터 템플릿 기준
@@ -93,6 +97,34 @@ uint32 FParticleEmitterInstance::CalculateParticleStride() const
     }
 
     return AlignUp(ParticleSize, ParticleStrideAlignment);
+}
+
+void FParticleEmitterInstance::ReallocateParticleData(uint32 NewStride)
+{
+    if (NewStride == ParticleStride)
+    {
+        return;
+    }
+
+    ParticleStride = NewStride;
+
+    if (ParticleData)
+    {
+        delete[] ParticleData;
+        ParticleData = nullptr;
+    }
+    if (ParticleIndices)
+    {
+        delete[] ParticleIndices;
+        ParticleIndices = nullptr;
+    }
+
+    ActiveParticles = 0;
+
+    if (MaxActiveParticles > 0)
+    {
+        InitParticles(MaxActiveParticles);
+    }
 }
 
 void FParticleEmitterInstance::Tick(float DeltaTime)
@@ -128,10 +160,12 @@ void FParticleEmitterInstance::SpawnParticles(float DeltaTime)
         return;
     }
 
-    const float Desired = SpawnFraction + SpawnRate * DeltaTime;
-    int32 SpawnCount = static_cast<int32>(std::floor(Desired));
-    SpawnFraction = Desired - SpawnCount;
+	// 이번 프레임에 스폰할 파티클 수 계산
+	const float Desired = SpawnFraction + SpawnRate * DeltaTime; // 이번 프레임에 스폰할 파티클 수 (이전 프레임 소수점 단위 이월받음 + 소수점 포함)
+	int32 SpawnCount = static_cast<int32>(std::floor(Desired)); // 정수 부분만 남겨 실제 스폰할 파티클 수
+	SpawnFraction = Desired - SpawnCount; // 실수 부분은 다음 프레임으로 이월
 
+    // Capacity 넘길 수 없도록 제한
     const int32 CapacityLeft = MaxActiveParticles - ActiveParticles;
     SpawnCount = FMath::Min(SpawnCount, CapacityLeft);
 
@@ -140,6 +174,7 @@ void FParticleEmitterInstance::SpawnParticles(float DeltaTime)
         return;
     }
 
+    // Spawn 단계에서 실행할 모듈 얻어오기
     const TArray<UParticleModule*> SpawnModules = CurrentLODLevel->GetSpawnModules();
 
     for (int32 i = 0; i < SpawnCount; ++i)
@@ -292,16 +327,37 @@ void FParticleEmitterInstance::Reset()
     SecondsSinceCreation = 0.0f;
 }
 
+// @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것. 
 void FParticleEmitterInstance::SetLODLevel(int32 LODIndex)
 {
     if (!EmitterTemplate || LODIndex < 0)
     {
-        CurrentLODLevel = nullptr;
+        if (CurrentLODLevel)
+        {
+            CurrentLODLevel = nullptr;
+            CurrentLODLevelIndex = -1;
+            const uint32 BaseStride = AlignUp(sizeof(FBaseParticle), ParticleStrideAlignment);
+            ReallocateParticleData(BaseStride);
+        }
+        return;
+    }
+
+    if (CurrentLODLevelIndex == LODIndex && CurrentLODLevel != nullptr)
+    {
         return;
     }
 
     UParticleLODLevel* LOD = EmitterTemplate->GetLODLevel(LODIndex);
+    if (!LOD)
+    {
+        return;
+    }
+
     CurrentLODLevel = LOD;
+    CurrentLODLevelIndex = LODIndex;
+
+    const uint32 NewStride = CalculateParticleStride();
+    ReallocateParticleData(NewStride);
 }
 
 FBaseParticle* FParticleEmitterInstance::GetParticle(int32 ActiveIndex)

@@ -20,6 +20,7 @@ class FMeshBVH;
 class UResourceBase;
 class UMaterial;
 class USound;
+class UParticleDynamicBuffers;
 
 //================================================================================================
 // UResourceManager
@@ -81,6 +82,9 @@ public:
 	void CreateTextBillboardMesh();
 	void CreateTextBillboardTexture();
 
+	// --- 파티클 동적 버퍼 ---
+	UParticleDynamicBuffers* GetParticleBuffers() const { return ParticleBuffers; }
+
 	// --- 캐시 관리 ---
 	FMeshBVH* GetMeshBVH(const FString& ObjPath);
 	FMeshBVH* GetOrBuildMeshBVH(const FString& ObjPath, const struct FStaticMesh* StaticMeshAsset);
@@ -136,6 +140,9 @@ private:
 	// Shader Hot Reload
 	float ShaderCheckTimer = 0.0f;
 	const float ShaderCheckInterval = 0.5f; // Check every 0.5 seconds
+
+	// Particle dynamic buffers (runtime resource)
+	UParticleDynamicBuffers* ParticleBuffers = nullptr;
 };
 
 //-----definition
