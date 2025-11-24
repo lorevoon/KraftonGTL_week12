@@ -64,4 +64,7 @@ public:
     // 모듈 추가/제거
     void AddModule(UParticleModule* Module);
     void RemoveModule(UParticleModule* Module);
+
+    // Serialization
+    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 };

@@ -6,7 +6,11 @@
 #include "ResourceManager.h"
 #include "SCascadeEmittersPanel.h"
 #include "Source/Runtime/Engine/Particles/ParticleModule.h"
+#include "Source/Runtime/Engine/Particles/ParticleSystem.h"
 #include "Source/Runtime/Core/Object/Property.h"
+#include "Source/Runtime/Core/Misc/JsonSerializer.h"
+#include <windows.h>
+#include <commdlg.h>
 
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
@@ -76,19 +80,94 @@ void SParticleSystemEditorWindow::OnRender()
         ImGui::SameLine();
         if (IconNew && IconNew->GetShaderResourceView())
         {
-            if (ImGui::ImageButton("##Cascade_NewBtn", (void*)IconNew->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::ImageButton("##Cascade_NewBtn", (void*)IconNew->GetShaderResourceView(), IconSizeVec))
+            {
+                // Create new particle system
+                if (EmittersPanel)
+                {
+                    UParticleSystem* NewSystem = NewObject<UParticleSystem>();
+                    NewSystem->SystemName = "NewParticleSystem";
+                    EmittersPanel->SetEditingSystem(NewSystem);
+                }
+            }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("New Particle System");
         }
         ImGui::SameLine();
         if (IconLoad && IconLoad->GetShaderResourceView())
         {
-            if (ImGui::ImageButton("##Cascade_LoadBtn", (void*)IconLoad->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::ImageButton("##Cascade_LoadBtn", (void*)IconLoad->GetShaderResourceView(), IconSizeVec))
+            {
+                // Open file dialog
+                OPENFILENAMEA ofn = {};
+                char szFile[260] = {};
+                ofn.lStructSize = sizeof(ofn);
+                ofn.hwndOwner = NULL;
+                ofn.lpstrFile = szFile;
+                ofn.nMaxFile = sizeof(szFile);
+                ofn.lpstrFilter = "Particle System Files\0*.particle\0All Files\0*.*\0";
+                ofn.nFilterIndex = 1;
+                ofn.lpstrFileTitle = NULL;
+                ofn.nMaxFileTitle = 0;
+                ofn.lpstrInitialDir = "Data\\ParticleSystems";
+                ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+                if (GetOpenFileNameA(&ofn) == TRUE)
+                {
+                    // Load particle system using new Serialize() pattern
+                    // Convert char* to wstring
+                    std::string narrowPath(szFile);
+                    std::wstring widePath(narrowPath.begin(), narrowPath.end());
+
+                    JSON ParticleJson;
+                    if (FJsonSerializer::LoadJsonFromFile(ParticleJson, widePath))
+                    {
+                        UParticleSystem* LoadedSystem = NewObject<UParticleSystem>();
+                        if (LoadedSystem)
+                        {
+                            LoadedSystem->Serialize(true, ParticleJson);
+                            if (EmittersPanel)
+                            {
+                                EmittersPanel->SetEditingSystem(LoadedSystem);
+                            }
+                        }
+                    }
+                }
+            }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Open Particle System");
         }
         ImGui::SameLine();
         if (IconSave && IconSave->GetShaderResourceView())
         {
-            if (ImGui::ImageButton("##Cascade_SaveBtn", (void*)IconSave->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::ImageButton("##Cascade_SaveBtn", (void*)IconSave->GetShaderResourceView(), IconSizeVec))
+            {
+                if (EmittersPanel && EmittersPanel->GetEditingSystem())
+                {
+                    // Open save file dialog
+                    OPENFILENAMEA ofn = {};
+                    char szFile[260] = {};
+                    ofn.lStructSize = sizeof(ofn);
+                    ofn.hwndOwner = NULL;
+                    ofn.lpstrFile = szFile;
+                    ofn.nMaxFile = sizeof(szFile);
+                    ofn.lpstrFilter = "Particle System Files\0*.particle\0All Files\0*.*\0";
+                    ofn.nFilterIndex = 1;
+                    ofn.lpstrFileTitle = NULL;
+                    ofn.nMaxFileTitle = 0;
+                    ofn.lpstrInitialDir = "Data\\ParticleSystems";
+                    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+                    ofn.lpstrDefExt = "particle";
+
+                    if (GetSaveFileNameA(&ofn) == TRUE)
+                    {
+                        std::string narrowPath(szFile);
+                        std::wstring widePath(narrowPath.begin(), narrowPath.end());
+
+                        JSON ParticleJson = JSON::Make(JSON::Class::Object);
+                        EmittersPanel->GetEditingSystem()->Serialize(false, ParticleJson);
+                        FJsonSerializer::SaveJsonToFile(ParticleJson, widePath);
+                    }
+                }
+            }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Save Particle System");
         }
 
