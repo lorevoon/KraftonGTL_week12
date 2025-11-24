@@ -314,7 +314,7 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     RHI->OMSetBlendState(true);
 
     // 6. Depth/Stencil 상태 설정
-    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqual);
 
     // 7. Material 바인딩
     if (Material)

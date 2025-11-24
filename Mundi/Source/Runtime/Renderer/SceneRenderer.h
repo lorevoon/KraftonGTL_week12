@@ -107,9 +107,8 @@ private:
 
 	void DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, bool bClearListAfterDraw);
 
-	//@TODO 모든 불투명 메시에 대해 렌더하게 수정 (현재는 단순 파티클 렌더)
-	/** @brief 반투명 객체를 렌더링하는 패스입니다. */
-	void RenderTranslucentPass();
+	/** @brief 파티클 객체를 렌더링하는 패스입니다. */
+	void RenderParticlePass();
 	
 	/** @brief 데칼(Decal)을 렌더링하는 패스입니다. */
 	void RenderDecalPass();

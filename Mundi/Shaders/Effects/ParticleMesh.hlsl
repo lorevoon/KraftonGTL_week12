@@ -34,12 +34,6 @@ struct PS_INPUT
     float4 Color : COLOR0;
 };
 
-struct PS_OUTPUT
-{
-    float4 Color : SV_Target0;
-    uint UUID : SV_Target1;
-};
-
 Texture2D ParticleTexture : register(t0);
 SamplerState LinearSampler : register(s0);
 
@@ -75,10 +69,8 @@ PS_INPUT mainVS(VS_INPUT input)
     return output;
 }
 
-PS_OUTPUT mainPS(PS_INPUT input)
+float4 mainPS(PS_INPUT input) : SV_Target0
 {
-    PS_OUTPUT output;
-
     // Sample texture
     float4 texColor = ParticleTexture.Sample(LinearSampler, input.UV);
 
@@ -95,14 +87,11 @@ PS_OUTPUT mainPS(PS_INPUT input)
     float lighting = ambient + (1.0f - ambient) * ndotl;
 
     // Multiply texture * instance color * lighting
-    output.Color = texColor * input.Color * float4(lighting, lighting, lighting, 1.0f);
+    float4 finalColor = texColor * input.Color * float4(lighting, lighting, lighting, 1.0f);
 
     // Alpha test
-    if (output.Color.a < 0.01f)
+    if (finalColor.a < 0.01f)
         discard;
 
-    // No UUID output for particles
-    output.UUID = 0;
-
-    return output;
+    return finalColor;
 }
