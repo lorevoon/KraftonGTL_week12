@@ -6,6 +6,10 @@
 #include "Source/Runtime/Core/Object/ObjectMacros.h"
 #include "Source/Runtime/Engine/Scripting/LuaBindHelpers.h"
 
+#include "ParticleModule.h"
+#include "ParticleModuleRequired.h"
+#include "ParticleModuleTypeDataBase.h"
+
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
 
 // IMPLEMENT_CLASS(UParticleLODLevel) expansion
@@ -36,6 +40,7 @@ const bool UParticleLODLevel::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UParticleLODLevel)
     MARK_AS_COMPONENT("파티클 LOD 레벨", "LOD 레벨별 파티클 모듈 리스트입니다")
     ADD_PROPERTY(UParticleModuleRequired*, RequiredModule, "Required", true)
+    ADD_PROPERTY(UParticleModuleTypeDataBase*, TypeDataModule, "TypeData", true)
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, Modules, "Modules", true)
     ADD_PROPERTY(int32, Level, "LOD", true)
     ADD_PROPERTY(float, DistanceThreshold, "LOD", true)
@@ -47,6 +52,8 @@ LUA_BIND_BEGIN(UParticleLODLevel)
 {
     AddPropertyPtr<UParticleLODLevel, UParticleModuleRequired>(
         T, "RequiredModule", &UParticleLODLevel::RequiredModule);
+    AddPropertyPtr<UParticleLODLevel, UParticleModuleTypeDataBase>(
+        T, "TypeDataModule", &UParticleLODLevel::TypeDataModule);
     AddPropertyArrayPtr<UParticleLODLevel, UParticleModule>(
         T, "Modules", &UParticleLODLevel::Modules);
     AddProperty<UParticleLODLevel, int32>(

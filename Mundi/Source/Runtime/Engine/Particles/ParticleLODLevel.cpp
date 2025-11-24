@@ -5,6 +5,7 @@
 
 UParticleLODLevel::UParticleLODLevel()
     : RequiredModule(nullptr)
+    , TypeDataModule(nullptr)
     , Level(0)
     , DistanceThreshold(0.0f)
 {
@@ -98,6 +99,26 @@ TArray<UParticleModule*> UParticleLODLevel::GetAllModules() const
     }
 
     return AllModules;
+}
+
+uint32 UParticleLODLevel::GetRequiredBytes() const
+{
+    uint32 TotalBytes = 0;
+
+    if (RequiredModule && RequiredModule->bEnabled)
+    {
+        TotalBytes += RequiredModule->RequiredBytes();
+    }
+
+    for (UParticleModule* Module : Modules)
+    {
+        if (Module && Module->bEnabled)
+        {
+            TotalBytes += Module->RequiredBytes();
+        }
+    }
+
+    return TotalBytes;
 }
 
 void UParticleLODLevel::AddModule(UParticleModule* Module)

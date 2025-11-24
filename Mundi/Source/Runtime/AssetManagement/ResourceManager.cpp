@@ -516,7 +516,35 @@ void UResourceManager::InitShaderILMap()
     ShaderToInputLayoutMap["Shaders/PostProcess/HeightFog_PS.hlsl"] = layout;
     ShaderToInputLayoutMap["Shaders/Utility/SceneDepth_PS.hlsl"] = layout;
     layout.clear();
-    
+
+    // ────────────────────────────────
+    // Particle Sprite (Instancing)
+    // Slot 0: Quad vertices (float2)
+    // Slot 1: Instance data - 48 bytes total (16 + 16 + 16 with padding for FVector4 alignment)
+    // ────────────────────────────────
+    layout.Add({ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });              // QuadPos (Slot 0)
+    layout.Add({ "TEXCOORD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 });      // WorldPosition + Padding (16 bytes)
+    layout.Add({ "TEXCOORD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 });     // Size + Rotation + Padding (16 bytes)
+    layout.Add({ "TEXCOORD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 });     // Color (16 bytes)
+    ShaderToInputLayoutMap["Shaders/Effects/ParticleSprite.hlsl"] = layout;
+    layout.clear();
+
+    // ────────────────────────────────
+    // Particle Mesh (Instancing)
+    // Slot 0: Mesh vertices (Position + Normal + UV)
+    // Slot 1: Instance data - 80 bytes total (64 bytes Transform + 16 bytes Color)
+    // ────────────────────────────────
+    layout.Add({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });           // Position (Slot 0, 12 bytes)
+    layout.Add({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 });            // Normal (Slot 0, 12 bytes)
+    layout.Add({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 });             // UV (Slot 0, 8 bytes)
+    layout.Add({ "TEXCOORD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 });      // Transform Row 0 (Slot 1, 16 bytes)
+    layout.Add({ "TEXCOORD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 });     // Transform Row 1 (Slot 1, 16 bytes)
+    layout.Add({ "TEXCOORD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 });     // Transform Row 2 (Slot 1, 16 bytes)
+    layout.Add({ "TEXCOORD", 4, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 });     // Transform Row 3 (Slot 1, 16 bytes)
+    layout.Add({ "TEXCOORD", 5, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 64, D3D11_INPUT_PER_INSTANCE_DATA, 1 });     // Color (Slot 1, 16 bytes)
+    ShaderToInputLayoutMap["Shaders/Effects/ParticleMesh.hlsl"] = layout;
+    layout.clear();
+
     ShaderToInputLayoutMap["Shaders/Utility/FullScreenTriangle_VS.hlsl"] = {};  // FullScreenTriangle 는 InputLayout을 사용하지 않는다
 }
 

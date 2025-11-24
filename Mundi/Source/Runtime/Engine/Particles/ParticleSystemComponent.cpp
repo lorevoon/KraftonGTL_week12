@@ -5,6 +5,9 @@
 #include "ParticleLODLevel.h"
 #include "ParticleModule.h"
 #include "ParticleHelper.h"
+#include "SceneView.h"
+#include "Modules/TypeData/ParticleModuleTypeDataBase.h"
+#include "Modules/TypeData/ParticleModuleTypeDataMesh.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -24,6 +27,7 @@ void UParticleSystemComponent::OnRegister(UWorld* InWorld)
 
     if (Template && bAutoActivate)
     {
+		CreateEmitterInstances();
         Activate();
     }
 }
@@ -36,12 +40,15 @@ void UParticleSystemComponent::OnUnregister()
 
 void UParticleSystemComponent::Activate()
 {
-    if (bIsActive)
-    {
+    if (!Template || bIsActive)
         return;
-    }
 
-    CreateEmitterInstances();
+	// 템플릿 설정만 되어 있고 인스턴스가 없으면 생성
+    if(Template && EmitterInstances.Num() == 0)
+    {
+        CreateEmitterInstances();
+	}
+
     bIsActive = true;
 }
 
@@ -52,13 +59,13 @@ void UParticleSystemComponent::Deactivate()
 
 void UParticleSystemComponent::Stop()
 {
-    DestroyEmitterInstances();
-    bIsActive = false;
+    Deactivate();
+    ResetInstances();
 }
 
 void UParticleSystemComponent::Restart()
 {
-    Stop();
+	Stop(); // Deactivate + ResetInstances
     Activate();
 }
 
@@ -69,7 +76,7 @@ void UParticleSystemComponent::SetTemplate(UParticleSystem* NewTemplate)
         DestroyEmitterInstances();
         Template = NewTemplate;
 
-        if (bIsActive && Template)
+        if (Template)
         {
             CreateEmitterInstances();
         }
@@ -95,6 +102,63 @@ void UParticleSystemComponent::UpdateParticles(float DeltaTime)
     }
 }
 
+TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneView* View)
+{
+    TArray<FDynamicEmitterDataBase*> RenderDataArray;
+
+    if (!bIsActive || !Template)
+    {
+        return RenderDataArray;
+    }
+
+    // 각 이미터 인스턴스의 렌더 데이터 수집
+    for (FParticleEmitterInstance* Instance : EmitterInstances)
+    {
+        if (!Instance || !Instance->CurrentLODLevel || !Instance->CurrentLODLevel->RequiredModule)
+            continue;
+
+        UParticleModuleRequired* RequiredModule = Instance->CurrentLODLevel->RequiredModule;
+
+        // Material이 없으면 렌더링 불가
+        if (!RequiredModule->Material)
+            continue;
+
+        // 파티클이 없으면 스킵
+        if (Instance->ActiveParticles == 0)
+            continue;
+
+        // 이미터 정렬 (필요한 경우)
+        Instance->Sort(RequiredModule->SortMode, &View->ViewLocation);
+
+        // 타입별 DynamicData 생성 (매 프레임 생성, 렌더러에서 삭제)
+        FDynamicEmitterDataBase* DynamicData = nullptr;
+        UParticleLODLevel* LODLevel = Instance->CurrentLODLevel;
+
+        if (LODLevel->TypeDataModule == nullptr)
+        {
+            // TypeData가 없으면 기본 Sprite
+            DynamicData = new FDynamicSpriteEmitterData(Instance);
+        }
+        else if (Cast<UParticleModuleTypeDataMesh>(LODLevel->TypeDataModule))
+        {
+            // Mesh TypeData
+            DynamicData = new FDynamicMeshEmitterData(Instance);
+        }
+        else
+        {
+            continue;
+        }
+
+        if (DynamicData)
+        {
+            DynamicData->UpdateRenderData(View);
+            RenderDataArray.Add(DynamicData);
+        }
+    }
+
+    return RenderDataArray;
+}
+
 void UParticleSystemComponent::CreateEmitterInstances()
 {
     if (!Template)
@@ -102,6 +166,7 @@ void UParticleSystemComponent::CreateEmitterInstances()
         return;
     }
 
+	// Ensure previous instances are cleared
     DestroyEmitterInstances();
 
     // Day 2에서 구현 예정
@@ -120,6 +185,17 @@ void UParticleSystemComponent::DestroyEmitterInstances()
         }
     }
     EmitterInstances.Empty();
+}
+
+void UParticleSystemComponent::ResetInstances()
+{
+    for (FParticleEmitterInstance* Instance : EmitterInstances)
+    {
+        if (Instance)
+        {
+            Instance->Reset();
+        }
+    }
 }
 
 void UParticleSystemComponent::UpdateEmitterInstance(FParticleEmitterInstance* Instance, float DeltaTime)

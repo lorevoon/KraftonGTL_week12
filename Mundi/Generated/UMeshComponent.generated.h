@@ -11,7 +11,7 @@
 #undef CURRENT_CLASS_GENERATED_BODY
 #endif
 
-// Define class-specific body macro
+// Define class-specific body macro (Abstract class)
 #define U_MESH_COMPONENT_BODY \
 public: \
     using Super = UPrimitiveComponent; \
@@ -24,13 +24,6 @@ public: \
     } \
     virtual UClass* GetClass() const override { return UMeshComponent::StaticClass(); } \
     UMeshComponent(const UMeshComponent&) = default; \
-    UMeshComponent* Duplicate() const override \
-    { \
-        UMeshComponent* NewObject = ObjectFactory::DuplicateObject<UMeshComponent>(this); \
-        NewObject->DuplicateSubObjects(); \
-        NewObject->PostDuplicate(); \
-        return NewObject; \
-    } \
 private: \
     static void StaticRegisterProperties(); \
     static const bool bPropertiesRegistered; \

@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 
+#include "ParticleHelper.h"
+#include "ParticleEmitterInstance.h"
 #include "PrimitiveComponent.h"
 #include "ParticleSystem.h"
-#include "ParticleTypes.h"
 #include "UParticleSystemComponent.generated.h"
 
 // 파티클 시스템 컴포넌트 (런타임)
@@ -52,10 +53,10 @@ public:
     // 파티클 시스템 비활성화
     void Deactivate();
 
-    // 즉시 정지 및 파티클 제거
+    // 즉시 정지 및 이미터 인스턴스 상태 초기화
     void Stop();
 
-    // 파티클 시스템 재시작
+    // 이미터 인스턴스 상태 초기화 및 다시 시작
     void Restart();
 
     // 파티클 시스템 에셋 설정
@@ -64,6 +65,9 @@ public:
     // 파티클 업데이트 (외부에서 호출)
     void UpdateParticles(float DeltaTime);
 
+    //@TODO Prepare과 Get 로직 분리
+    // 렌더링 데이터 가져오기 (렌더러에서 호출)
+    TArray<FDynamicEmitterDataBase*> GetRenderData(FSceneView* View);
 private:
     // 내부 함수
 
@@ -72,6 +76,9 @@ private:
 
     // 이미터 인스턴스 제거
     void DestroyEmitterInstances();
+    
+    // 전체 이미터 인스턴스 리셋
+    void ResetInstances();
 
     // 단일 이미터 업데이트
     void UpdateEmitterInstance(FParticleEmitterInstance* Instance, float DeltaTime);

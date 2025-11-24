@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "ParticleModule.h"
+#include "ParticleTypes.h"
 #include "UParticleModuleRequired.generated.h"
 
 // 전방 선언
@@ -31,6 +32,9 @@ public:
     // 렌더링 설정
     UPROPERTY(EditAnywhere, Category="Rendering")
     UMaterialInterface* Material;       // 파티클 렌더링 머티리얼
+
+    UPROPERTY(EditAnywhere, Category="Rendering")
+    EParticleSortMode SortMode;         // 파티클 정렬 모드
 
     UPROPERTY(EditAnywhere, Category="Rendering")
     FVector EmitterOrigin;              // 이미터 원점 오프셋

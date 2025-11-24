@@ -12,22 +12,22 @@
 #endif
 
 // Define class-specific body macro (Abstract class)
-#define U_PARTICLE_MODULE_BODY \
+#define U_PARTICLE_MODULE_TYPE_DATA_BASE_BODY \
 public: \
-    using Super = UObject; \
-    using ThisClass_t = UParticleModule; \
+    using Super = UParticleModule; \
+    using ThisClass_t = UParticleModuleTypeDataBase; \
     static UClass* StaticClass() \
     { \
-        static UClass Cls{ "UParticleModule", UObject::StaticClass(), sizeof(UParticleModule) }; \
+        static UClass Cls{ "UParticleModuleTypeDataBase", UParticleModule::StaticClass(), sizeof(UParticleModuleTypeDataBase) }; \
         static bool bRegistered = (UClass::SignUpClass(&Cls), true); \
         return &Cls; \
     } \
-    virtual UClass* GetClass() const override { return UParticleModule::StaticClass(); } \
-    UParticleModule(const UParticleModule&) = default; \
+    virtual UClass* GetClass() const override { return UParticleModuleTypeDataBase::StaticClass(); } \
+    UParticleModuleTypeDataBase(const UParticleModuleTypeDataBase&) = default; \
 private: \
     static void StaticRegisterProperties(); \
     static const bool bPropertiesRegistered; \
 public:
 
 // Redirect generic macro to class-specific one
-#define CURRENT_CLASS_GENERATED_BODY U_PARTICLE_MODULE_BODY
+#define CURRENT_CLASS_GENERATED_BODY U_PARTICLE_MODULE_TYPE_DATA_BASE_BODY
