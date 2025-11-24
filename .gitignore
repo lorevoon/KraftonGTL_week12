@@ -446,6 +446,10 @@ CLAUDE.md
 GEMINI.md
 .env
 
+# Symbol Server Credentials
+SetupSymbolServer.bat
+/Mundi/Docs/SymbolServer_Setup_Guide.md
+
 # Untracked Data Files
 /Mundi/Data/untracked/**
 /Mundi/DerivedDataCache/**
