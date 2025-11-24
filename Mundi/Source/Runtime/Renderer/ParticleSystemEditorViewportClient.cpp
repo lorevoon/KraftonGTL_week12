@@ -7,10 +7,11 @@ FParticleSystemEditorViewportClient::FParticleSystemEditorViewportClient()
     ViewportType = EViewportType::Perspective;
     ViewMode = EViewMode::VMI_Lit_Phong;
 
-    Camera->SetActorLocation(FVector(250.0f, -200.0f, 150.0f));
-    Camera->SetActorRotation(FVector(-15.0f, 0.0f, 45.0f));
-    Camera->SetCameraPitch(-15.0f);
-    Camera->SetCameraYaw(45.0f);
+    Camera->SetActorLocation(FVector(50.0f, 0.0f, 10.0f)); // Front view, slightly elevated
+    Camera->SetActorRotation(FVector(0.0f, 0.0f, 180.0f)); // Front view, slightly elevated
+
+    Camera->SetCameraPitch(0.0f);   // Pitch: 0 degrees (level)
+    Camera->SetCameraYaw(180.0f);   // Yaw: 180 degrees (facing +X direction from -X position)
 }
 
 void FParticleSystemEditorViewportClient::Draw(FViewport* Viewport)

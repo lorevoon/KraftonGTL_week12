@@ -191,8 +191,38 @@ void SParticleSystemEditorWindow::OnRender()
         // Viewport display options
         if (IconBackgroundColor && IconBackgroundColor->GetShaderResourceView())
         {
-            if (ImGui::ImageButton("##Cascade_BgColorBtn", (void*)IconBackgroundColor->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::ImageButton("##Cascade_BgColorBtn", (void*)IconBackgroundColor->GetShaderResourceView(), IconSizeVec))
+            {
+                ImGui::OpenPopup("BackgroundColorPicker");
+            }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Background Color");
+
+            // Color picker popup
+            if (ImGui::BeginPopup("BackgroundColorPicker"))
+            {
+                ImGui::TextUnformatted("Background Color");
+                ImGui::Separator();
+
+                if (ActiveState)
+                {
+                    float color[4] = {
+                        ActiveState->BackgroundColor.R,
+                        ActiveState->BackgroundColor.G,
+                        ActiveState->BackgroundColor.B,
+                        ActiveState->BackgroundColor.A
+                    };
+
+                    if (ImGui::ColorPicker4("##BgColorPicker", color, ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview))
+                    {
+                        ActiveState->BackgroundColor.R = color[0];
+                        ActiveState->BackgroundColor.G = color[1];
+                        ActiveState->BackgroundColor.B = color[2];
+                        ActiveState->BackgroundColor.A = color[3];
+                    }
+                }
+
+                ImGui::EndPopup();
+            }
         }
         ImGui::SameLine();
         if (IconBounds && IconBounds->GetShaderResourceView())

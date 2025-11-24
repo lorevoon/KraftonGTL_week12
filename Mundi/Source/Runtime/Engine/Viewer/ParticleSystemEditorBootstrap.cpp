@@ -27,6 +27,7 @@ ViewerState* ParticleSystemEditorBootstrap::CreateViewerState(const char* Name, 
     Client->SetWorld(State->World);
     Client->SetViewportType(EViewportType::Perspective);
     Client->SetViewMode(EViewMode::VMI_Lit_Phong);
+    Client->SetViewerState(State);
     State->Client = Client;
     State->Viewport->SetViewportClient(Client);
     State->World->SetEditorCameraActor(Client->GetCamera());
