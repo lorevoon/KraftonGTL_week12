@@ -12,6 +12,7 @@
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleLocation.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleVelocity.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleColor.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSize.h"
 
 void SCascadeEmittersPanel::EnsureEditingSystem()
 {
@@ -28,15 +29,6 @@ void SCascadeEmittersPanel::Render(float width, float height)
 
     // Header row with optional add button
     ImGui::TextUnformatted("Emitters");
-    ImGui::SameLine();
-    if (ImGui::SmallButton("+ New"))
-    {
-        if (UParticleEmitter* NewEmitter = CreateDefaultSpriteEmitter())
-        {
-            EditingSystem->AddEmitter(NewEmitter);
-            SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
-        }
-    }
     ImGui::Separator();
 
     // Horizontally scrollable canvas for vertical emitter stacks
@@ -141,6 +133,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (reqName)
                 {
                     RenderModuleCard(LOD0->RequiredModule,
+                                   LOD0,
                                    reqName,
                                    ImVec4(0.6f, 0.5f, 0.2f, 1.0f), // Yellow
                                    columnWidth, moduleHeight, false); // No checkbox
@@ -157,20 +150,78 @@ void SCascadeEmittersPanel::Render(float width, float height)
                     if (modName)
                     {
                         ImVec4 moduleColor = GetModuleColor(Mod->ModuleName);
-                        RenderModuleCard(Mod, modName, moduleColor, columnWidth, moduleHeight, true); // With checkbox
+                        RenderModuleCard(Mod, LOD0, modName, moduleColor, columnWidth, moduleHeight, true); // With checkbox
                     }
                 }
             }
         }
 
-        // Empty area popup
+        // Empty area popup - Add Module context menu
         if (ImGui::BeginPopupContextWindow("EmitterColumnEmpty", ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight))
         {
             ImGui::TextUnformatted("Add Module");
             ImGui::Separator();
-            ImGui::MenuItem("Initial Size", nullptr, false, false);
-            ImGui::MenuItem("Initial Velocity", nullptr, false, false);
-            ImGui::MenuItem("Color Over Life", nullptr, false, false);
+
+            if (ImGui::MenuItem("Spawn"))
+            {
+                UParticleModuleSpawn* NewModule = NewObject<UParticleModuleSpawn>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Spawn";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Lifetime"))
+            {
+                UParticleModuleLifetime* NewModule = NewObject<UParticleModuleLifetime>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Lifetime";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Initial Location"))
+            {
+                UParticleModuleLocation* NewModule = NewObject<UParticleModuleLocation>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Location";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Initial Velocity"))
+            {
+                UParticleModuleVelocity* NewModule = NewObject<UParticleModuleVelocity>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Velocity";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Initial Size"))
+            {
+                UParticleModuleSize* NewModule = NewObject<UParticleModuleSize>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Size";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Color Over Life"))
+            {
+                UParticleModuleColor* NewModule = NewObject<UParticleModuleColor>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Color";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
             ImGui::EndPopup();
         }
 
@@ -259,7 +310,7 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
     return Emitter;
 }
 
-void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox)
+void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleLODLevel* parentLOD, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox)
 {
     if (!module)
     {
@@ -314,9 +365,41 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, const char
         {
             ImGui::TextUnformatted(moduleName);
             ImGui::Separator();
-            ImGui::MenuItem("Enable/Disable", nullptr, false, false);
-            ImGui::MenuItem("Delete", nullptr, false, false);
-            ImGui::MenuItem("Duplicate", nullptr, false, false);
+
+            // Toggle enable/disable
+            bool isEnabled = module->bEnabled;
+            if (ImGui::MenuItem("Enable/Disable", nullptr, &isEnabled))
+            {
+                module->bEnabled = isEnabled;
+            }
+
+            if (ImGui::MenuItem("Delete"))
+            {
+                if (parentLOD)
+                {
+                    // Clear selection if we're deleting the selected module
+                    if (SelectedModule == module)
+                    {
+                        SelectedModule = nullptr;
+                    }
+                    parentLOD->RemoveModule(module);
+                }
+            }
+
+            if (ImGui::MenuItem("Duplicate"))
+            {
+                if (parentLOD && module)
+                {
+                    // Duplicate the module
+                    UParticleModule* ClonedModule = static_cast<UParticleModule*>(module->Duplicate());
+                    if (ClonedModule)
+                    {
+                        // Add it to the parent LOD level
+                        parentLOD->AddModule(ClonedModule);
+                    }
+                }
+            }
+
             ImGui::EndPopup();
         }
     }
@@ -332,13 +415,29 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, const char
         }
         ImGui::PopStyleVar();
 
-        // Context menu on the button
+        // Context menu on the button (Required module)
         if (ImGui::BeginPopupContextItem())
         {
             ImGui::TextUnformatted(moduleName);
             ImGui::Separator();
-            ImGui::MenuItem("Delete", nullptr, false, false);
-            ImGui::MenuItem("Duplicate", nullptr, false, false);
+
+            // Required module cannot be deleted
+            ImGui::TextDisabled("(Required modules cannot be deleted)");
+
+            if (ImGui::MenuItem("Duplicate"))
+            {
+                if (parentLOD && module)
+                {
+                    // Duplicate the required module and add it as a regular module
+                    UParticleModule* ClonedModule = static_cast<UParticleModule*>(module->Duplicate());
+                    if (ClonedModule)
+                    {
+                        // Add it to the parent LOD level as a regular module
+                        parentLOD->AddModule(ClonedModule);
+                    }
+                }
+            }
+
             ImGui::EndPopup();
         }
     }

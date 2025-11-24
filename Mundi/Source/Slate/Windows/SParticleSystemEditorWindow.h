@@ -43,6 +43,21 @@ private:
     UTexture* IconNew = nullptr;
     UTexture* IconSave = nullptr;
     UTexture* IconLoad = nullptr;
+
+    // Particle Editor specific icons
+    UTexture* IconRestart = nullptr;
+    UTexture* IconBackgroundColor = nullptr;
+    UTexture* IconBounds = nullptr;
+    UTexture* IconOriginAxis = nullptr;
+    UTexture* IconParticle = nullptr;
+    UTexture* IconLODFirst = nullptr;
+    UTexture* IconLODPrev = nullptr;
+    UTexture* IconLODNext = nullptr;
+    UTexture* IconLODLast = nullptr;
+    UTexture* IconLODInsertBefore = nullptr;
+    UTexture* IconLODInsertAfter = nullptr;
+    UTexture* IconLODDelete = nullptr;
+
     float IconSize = 24.0f;
 
     // Panels

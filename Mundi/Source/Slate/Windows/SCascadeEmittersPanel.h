@@ -29,7 +29,7 @@ private:
     UParticleEmitter* CreateDefaultSpriteEmitter();
 
     // UI Rendering helpers
-    void RenderModuleCard(UParticleModule* module, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox);
+    void RenderModuleCard(UParticleModule* module, UParticleLODLevel* parentLOD, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox);
     ImVec4 GetModuleColor(const FString& moduleName);
 
 private:

@@ -62,45 +62,134 @@ void SParticleSystemEditorWindow::OnRender()
 
         // Top toolbar area specific to the particle editor
         ImGui::BeginChild("Cascade_Toolbar", ImVec2(0, 36.0f), false, ImGuiWindowFlags_NoScrollbar);
-        // BEGIN Icon Toolbar Inject
-        if (!IconNew || !IconSave || !IconLoad) { LoadToolbarIcons(); }
+        LoadToolbarIcons();
+
         const ImVec2 IconSizeVec(IconSize, IconSize);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 4));
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(9, 0));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 0));
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.7f));
+
+        // File operations
         ImGui::SameLine();
         if (IconNew && IconNew->GetShaderResourceView())
         {
             if (ImGui::ImageButton("##Cascade_NewBtn", (void*)IconNew->GetShaderResourceView(), IconSizeVec)) { }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("New Particle System");
         }
-        else { ImGui::Button("New"); }
         ImGui::SameLine();
         if (IconLoad && IconLoad->GetShaderResourceView())
         {
             if (ImGui::ImageButton("##Cascade_LoadBtn", (void*)IconLoad->GetShaderResourceView(), IconSizeVec)) { }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Open Particle System");
         }
-        else { ImGui::Button("Open"); }
         ImGui::SameLine();
         if (IconSave && IconSave->GetShaderResourceView())
         {
             if (ImGui::ImageButton("##Cascade_SaveBtn", (void*)IconSave->GetShaderResourceView(), IconSizeVec)) { }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Save Particle System");
         }
-        else { ImGui::Button("Save"); }
+
+        // Separator
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::SameLine();
+
+        // Restart simulation
+        if (IconRestart && IconRestart->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_RestartBtn", (void*)IconRestart->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restart Simulation");
+        }
+
+        // Separator
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::SameLine();
+
+        // Viewport display options
+        if (IconBackgroundColor && IconBackgroundColor->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_BgColorBtn", (void*)IconBackgroundColor->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Background Color");
+        }
+        ImGui::SameLine();
+        if (IconBounds && IconBounds->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_BoundsBtn", (void*)IconBounds->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Bounds");
+        }
+        ImGui::SameLine();
+        if (IconOriginAxis && IconOriginAxis->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_OriginBtn", (void*)IconOriginAxis->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Origin Axis");
+        }
+        ImGui::SameLine();
+        if (IconParticle && IconParticle->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_ParticleBtn", (void*)IconParticle->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Particles");
+        }
+
+        // Separator
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::SameLine();
+
+        // LOD controls
+        if (IconLODFirst && IconLODFirst->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_LODFirstBtn", (void*)IconLODFirst->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to First LOD");
+        }
+        ImGui::SameLine();
+        if (IconLODPrev && IconLODPrev->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_LODPrevBtn", (void*)IconLODPrev->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Previous LOD");
+        }
+        ImGui::SameLine();
+        if (IconLODNext && IconLODNext->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_LODNextBtn", (void*)IconLODNext->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Next LOD");
+        }
+        ImGui::SameLine();
+        if (IconLODLast && IconLODLast->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_LODLastBtn", (void*)IconLODLast->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to Last LOD");
+        }
+
+        // Separator
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::SameLine();
+
+        // LOD editing
+        if (IconLODInsertBefore && IconLODInsertBefore->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_LODInsertBeforeBtn", (void*)IconLODInsertBefore->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD Before");
+        }
+        ImGui::SameLine();
+        if (IconLODInsertAfter && IconLODInsertAfter->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_LODInsertAfterBtn", (void*)IconLODInsertAfter->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD After");
+        }
+        ImGui::SameLine();
+        if (IconLODDelete && IconLODDelete->GetShaderResourceView())
+        {
+            if (ImGui::ImageButton("##Cascade_LODDeleteBtn", (void*)IconLODDelete->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delete LOD");
+        }
+
         ImGui::PopStyleColor(3);
         ImGui::PopStyleVar(3);
-        // END Icon Toolbar Inject
-        // Hide legacy placeholder controls below
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,0,0,0));
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0,0,0,0));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0,0,0,0));
-        ImGui::PopStyleColor(4);
         ImGui::EndChild();
 
         // Early out if just closed
@@ -297,12 +386,39 @@ void SParticleSystemEditorWindow::DestroyViewerState(ViewerState*& State)
 
 void SParticleSystemEditorWindow::LoadToolbarIcons()
 {
+    // File operations
     if (!IconNew)
         IconNew = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Toolbar_New.png");
     if (!IconSave)
         IconSave = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Toolbar_Save.png");
     if (!IconLoad)
         IconLoad = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Toolbar_Load.png");
+
+    // Particle Editor specific icons
+    if (!IconRestart)
+        IconRestart = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_Restart.png");
+    if (!IconBackgroundColor)
+        IconBackgroundColor = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_BackgroundColor.png");
+    if (!IconBounds)
+        IconBounds = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_Bounds.png");
+    if (!IconOriginAxis)
+        IconOriginAxis = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_OriginAxis.png");
+    if (!IconParticle)
+        IconParticle = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_Particle.png");
+    if (!IconLODFirst)
+        IconLODFirst = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODFirst.png");
+    if (!IconLODPrev)
+        IconLODPrev = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODPrev.png");
+    if (!IconLODNext)
+        IconLODNext = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODNext.png");
+    if (!IconLODLast)
+        IconLODLast = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODLast.png");
+    if (!IconLODInsertBefore)
+        IconLODInsertBefore = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODInsertBefore.png");
+    if (!IconLODInsertAfter)
+        IconLODInsertAfter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODInsertAfter.png");
+    if (!IconLODDelete)
+        IconLODDelete = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODDelete.png");
 }
 
 void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
