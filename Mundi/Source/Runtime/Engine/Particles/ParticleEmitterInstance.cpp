@@ -24,21 +24,11 @@ FParticleEmitterInstance::FParticleEmitterInstance()
 
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
-    if (ParticleData)
-    {
-        delete[] ParticleData;
-        ParticleData = nullptr;
-    }
-    if (ParticleIndices)
-    {
-        delete[] ParticleIndices;
-        ParticleIndices = nullptr;
-    }
+    ClearParticleData();
 }
 
-void FParticleEmitterInstance::InitParticles(int32 InMaxParticles)
+void FParticleEmitterInstance::InitParticles()
 {
-    MaxActiveParticles = InMaxParticles;
     ParticleData = new uint8[MaxActiveParticles * ParticleStride];
     ParticleIndices = new int32[MaxActiveParticles];
     for (int32 i = 0; i < MaxActiveParticles; ++i)
@@ -50,38 +40,18 @@ void FParticleEmitterInstance::InitParticles(int32 InMaxParticles)
 
 void FParticleEmitterInstance::Initialize(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, int32 InLODIndex, int32 InMaxActiveParticles)
 {
-    if (ParticleData)
-    {
-        delete[] ParticleData;
-        ParticleData = nullptr;
-    }
-    if (ParticleIndices)
-    {
-        delete[] ParticleIndices;
-        ParticleIndices = nullptr;
-    }
+    ClearParticleData();
 
     EmitterTemplate = InTemplate;
     Component = InComponent;
 
+    // 파티클 최댓값: 지정값 우선, 없으면 이미터 템플릿 기준
+    MaxActiveParticles = (InMaxActiveParticles > 0) ? InMaxActiveParticles :
+        (EmitterTemplate ? EmitterTemplate->MaxParticleCount : 0);
+
     // @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것. 
     //SetLODLevel(InLODIndex);
     SetLODLevel(0);
-    ParticleStride = CalculateParticleStride(); // 페이로드 요구량 + 정렬 반영
-
-    // 파티클 최댓값: 지정값 우선, 없으면 이미터 템플릿 기준
-    const int32 RequestedMax = (InMaxActiveParticles > 0) ? InMaxActiveParticles :
-        (EmitterTemplate ? EmitterTemplate->MaxParticleCount : 0);
-
-    if (RequestedMax > 0)
-    {
-        InitParticles(RequestedMax);
-    }
-    else
-    {
-        MaxActiveParticles = 0;
-        ActiveParticles = 0;
-    }
 
     SpawnFraction = 0.0f;
     SecondsSinceCreation = 0.0f;
@@ -99,31 +69,20 @@ uint32 FParticleEmitterInstance::CalculateParticleStride() const
     return AlignUp(ParticleSize, ParticleStrideAlignment);
 }
 
-void FParticleEmitterInstance::ReallocateParticleData(uint32 NewStride)
+void FParticleEmitterInstance::ReallocateParticleData(uint32 NewStride, int32 NewMaxActiveParticles)
 {
-    if (NewStride == ParticleStride)
-    {
-        return;
-    }
-
     ParticleStride = NewStride;
+    MaxActiveParticles = NewMaxActiveParticles;
 
-    if (ParticleData)
+    ClearParticleData();
+
+    if (ParticleStride > 0 && MaxActiveParticles > 0)
     {
-        delete[] ParticleData;
-        ParticleData = nullptr;
+        InitParticles();
     }
-    if (ParticleIndices)
+    else
     {
-        delete[] ParticleIndices;
-        ParticleIndices = nullptr;
-    }
-
-    ActiveParticles = 0;
-
-    if (MaxActiveParticles > 0)
-    {
-        InitParticles(MaxActiveParticles);
+		UE_LOG("ERROR: FParticleEmitterInstance::ReallocateParticleData called with invalid parameters.(ParticleStride: %d, MaxActiveParticles: %d", ParticleStride, MaxActiveParticles);
     }
 }
 
@@ -337,7 +296,7 @@ void FParticleEmitterInstance::SetLODLevel(int32 LODIndex)
             CurrentLODLevel = nullptr;
             CurrentLODLevelIndex = -1;
             const uint32 BaseStride = AlignUp(sizeof(FBaseParticle), ParticleStrideAlignment);
-            ReallocateParticleData(BaseStride);
+            ReallocateParticleData(BaseStride, MaxActiveParticles);
         }
         return;
     }
@@ -357,7 +316,7 @@ void FParticleEmitterInstance::SetLODLevel(int32 LODIndex)
     CurrentLODLevelIndex = LODIndex;
 
     const uint32 NewStride = CalculateParticleStride();
-    ReallocateParticleData(NewStride);
+    ReallocateParticleData(NewStride, MaxActiveParticles);
 }
 
 FBaseParticle* FParticleEmitterInstance::GetParticle(int32 ActiveIndex)
@@ -372,4 +331,19 @@ const FBaseParticle* FParticleEmitterInstance::GetParticle(int32 ActiveIndex) co
     if (ActiveIndex < 0 || ActiveIndex >= ActiveParticles)
         return nullptr;
     return reinterpret_cast<const FBaseParticle*>(ParticleData + ParticleIndices[ActiveIndex] * ParticleStride);
+}
+
+void FParticleEmitterInstance::ClearParticleData()
+{
+    if (ParticleData)
+    {
+        delete[] ParticleData;
+        ParticleData = nullptr;
+    }
+    if (ParticleIndices)
+    {
+        delete[] ParticleIndices;
+        ParticleIndices = nullptr;
+    }
+    ActiveParticles = 0;
 }

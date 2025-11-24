@@ -28,8 +28,8 @@ struct FParticleEmitterInstance
     uint8* ParticleData;                           // 연속된 파티클 메모리 블록
     int32* ParticleIndices;                        // 활성 파티클 인덱스 배열 (논리 인덱스 -> 데이터 배열 실제 인덱스 매핑)
     uint32 ParticleStride;                         // sizeof(FBaseParticle) + 추가 페이로드
-    int32 ActiveParticles;                         // 현재 활성 파티클 수
     int32 MaxActiveParticles;                      // 최대 파티클 수
+    int32 ActiveParticles;                         // 현재 활성 파티클 수
 
     // 스폰 제어
     float SpawnFraction;                           // 누적 스폰 잔량
@@ -39,19 +39,6 @@ struct FParticleEmitterInstance
     ~FParticleEmitterInstance();
 
     /**
-     * @brief 주어진 값과 정렬 단위에 맞춰 값을 올림 정렬합니다.
-     * @note Alignment는 2의 거듭제곱이어야 합니다.
-     */
-    static uint32 AlignUp(uint32 Value, uint32 Alignment)
-    {
-        const uint32 Mask = Alignment - 1u;
-        return (Value + Mask) & ~Mask;
-    }
-
-    // 메모리 할당
-    void InitParticles(int32 InMaxParticles);
-
-    /**
 	 * @brief 상위 초기화를 수행합니다. (템플릿/컴포넌트/LOD와 메모리 풀 준비)
 	 * @param InTemplate 이미터 템플릿
 	 * @param InComponent 소유 파티클 시스템 컴포넌트
@@ -59,12 +46,6 @@ struct FParticleEmitterInstance
 	 * @param InMaxActiveParticles 최대 활성 파티클 수 (0이하 값을 주면 템플릿 설정을 사용합니다)
      */
     void Initialize(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, int32 InLODIndex, int32 InMaxActiveParticles);
-
-    /** @brief: 모듈 요구 바이트를 합산해 정렬(align)까지 고려한 Stride를 계산합니다. */
-    uint32 CalculateParticleStride() const;
-
-    /** @brief: LOD 변경 등으로 Stride가 달라질 때 기존 파티클 메모리를 정리하고 새 Stride로 재할당 */
-    void ReallocateParticleData(uint32 NewStride);
 
     /** @brief 한 프레임 틱 업데이트를 수행합니다. (스폰 → 업데이트 → 파이널 업데이트 → Kill) */
     void Tick(float DeltaTime);
@@ -96,4 +77,29 @@ struct FParticleEmitterInstance
     // Stride 기반 파티클 접근
     FBaseParticle* GetParticle(int32 ActiveIndex);
     const FBaseParticle* GetParticle(int32 ActiveIndex) const;
+
+private:
+    // 내부 헬퍼 함수
+
+    /**
+     * @brief 주어진 값과 정렬 단위에 맞춰 값을 올림 정렬합니다.
+     * @note Alignment는 2의 거듭제곱이어야 합니다.
+     */
+    static uint32 AlignUp(uint32 Value, uint32 Alignment)
+    {
+        const uint32 Mask = Alignment - 1u;
+        return (Value + Mask) & ~Mask;
+    }
+
+    /** @brief 메모리를 할당합니다. ParticleStride, MaxActiveParticles 설정 후 수행해야 합니다. */
+    void InitParticles();
+
+    /** @brief 파티클 데이터/인덱스 버퍼 해제 및 ActiveParticles 초기화 */
+    void ClearParticleData();
+
+    /** @brief 모듈 요구 바이트를 합산해 정렬(align)까지 고려한 Stride를 계산합니다. */
+    uint32 CalculateParticleStride() const;
+
+    /** @brief Stride/MaxActive를 변경하고 버퍼 재할당 (멤버 설정 포함) */
+    void ReallocateParticleData(uint32 NewStride, int32 NewMaxActiveParticles);
 };
