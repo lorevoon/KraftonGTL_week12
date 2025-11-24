@@ -74,7 +74,7 @@ public:
 private:
     // 내부 함수
 
-    // 이미터 인스턴스 생성
+	// 이미터 인스턴스 생성. Template 변경하거나 OnRegister 시점에서 이미 템플릿 세팅 완료 + 자동 시작 설정시 호출
     void CreateEmitterInstances();
 
     // 이미터 인스턴스 제거

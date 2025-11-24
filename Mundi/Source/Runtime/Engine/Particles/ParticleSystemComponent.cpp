@@ -90,9 +90,6 @@ void UParticleSystemComponent::UpdateParticles(float DeltaTime)
         return;
     }
 
-    // Day 2에서 구현 예정
-    // - 각 이미터 인스턴스 업데이트
-    // - 파티클 스폰, 업데이트, 제거
     for (FParticleEmitterInstance* Instance : EmitterInstances)
     {
         if (Instance)
