@@ -6,6 +6,8 @@
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
 #include "ParticleModule.h"
+#include "Modules/ParticleModuleRequired.h"
+#include "ParticleSystemComponent.h"
 
 FParticleEmitterInstance::FParticleEmitterInstance()
     : EmitterTemplate(nullptr)
@@ -234,17 +236,20 @@ void FParticleEmitterInstance::Sort(EParticleSortMode SortMode, const FVector* V
     if (SortMode == EParticleSortMode::None || ActiveParticles <= 1)
         return;
 
+    // Local Space면 월드 좌표로 변환해서 비교
+    const FVector WorldOffset = UseLocalSpace() ? GetComponentWorldLocation() : FVector::Zero();
+
     switch (SortMode)
     {
     case EParticleSortMode::ViewDistanceDepth:
         if (ViewLocation)
         {
             std::sort(ParticleIndices, ParticleIndices + ActiveParticles,
-                [this, ViewLocation](int32 A, int32 B) {
+                [this, ViewLocation, WorldOffset](int32 A, int32 B) {
                     FBaseParticle* ParticleA = reinterpret_cast<FBaseParticle*>(ParticleData + A * ParticleStride);
                     FBaseParticle* ParticleB = reinterpret_cast<FBaseParticle*>(ParticleData + B * ParticleStride);
-                    float DistA = (ParticleA->Location - *ViewLocation).SizeSquared();
-                    float DistB = (ParticleB->Location - *ViewLocation).SizeSquared();
+                    float DistA = (ParticleA->Location + WorldOffset - *ViewLocation).SizeSquared();
+                    float DistB = (ParticleB->Location + WorldOffset - *ViewLocation).SizeSquared();
                     return DistA > DistB; // 먼 것부터 (뒤에서 앞으로)
                 });
         }
@@ -425,4 +430,22 @@ bool FParticleEmitterInstance::CanSpawnThisFrame(float DeltaTime)
     }
 
     return true;
+}
+
+bool FParticleEmitterInstance::UseLocalSpace() const
+{
+    if (CurrentLODLevel && CurrentLODLevel->RequiredModule)
+    {
+        return CurrentLODLevel->RequiredModule->bUseLocalSpace;
+    }
+    return true; // 기본값: 로컬 공간
+}
+
+FVector FParticleEmitterInstance::GetComponentWorldLocation() const
+{
+    if (Component)
+    {
+        return Component->GetWorldLocation();
+    }
+    return FVector::Zero();
 }

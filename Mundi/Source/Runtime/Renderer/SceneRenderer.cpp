@@ -113,6 +113,8 @@ void FSceneRenderer::Render()
 	}
 	else if (View->RenderSettings->GetViewMode() == EViewMode::VMI_Unlit)
 	{
+		RenderParticlePass();
+		RenderDecalPass();
 		RenderLitPath();	// Unlit 모드는 조명 없이 렌더링
 	}
 	else if (View->RenderSettings->GetViewMode() == EViewMode::VMI_WorldNormal)
@@ -127,13 +129,12 @@ void FSceneRenderer::Render()
 	{
 		RenderSceneDepthPath();
 	}
-	
+
 	if (!World->bPie)
 	{
+		RenderDebugPass();	//  그리드, 선택한 물체의 경계 출력 (상호작용, 피킹 X)
 		//그리드와 디버그용 Primitive는 Post Processing 적용하지 않음.
 		RenderEditorPrimitivesPass();	// 빌보드, 기타 화살표 출력 (상호작용, 피킹 O)
-		RenderDebugPass();	//  그리드, 선택한 물체의 경계 출력 (상호작용, 피킹 X)
-
 		// 오버레이(Overlay) Primitive 렌더링
 		RenderOverayEditorPrimitivesPass();	// 기즈모 출력
 	}
@@ -184,10 +185,10 @@ void FSceneRenderer::RenderLitPath()
 
 	// Base Pass (GPU 타이머는 DrawMeshBatches 내에서 스켈레탈 메시만 측정)
 	RenderOpaquePass(View->RenderSettings->GetViewMode());
-
-	RenderTranslucentPass();
 	
 	RenderDecalPass();
+
+	RenderParticlePass();
 }
 
 void FSceneRenderer::RenderWireframePath()
@@ -968,7 +969,7 @@ void FSceneRenderer::RenderOpaquePass(EViewMode InRenderViewMode)
 	DrawMeshBatches(MeshBatchElements, true);
 }
 
-void FSceneRenderer::RenderTranslucentPass()
+void FSceneRenderer::RenderParticlePass()
 {
 	if (!World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Particle))
 	{
@@ -976,6 +977,9 @@ void FSceneRenderer::RenderTranslucentPass()
 	}
 	if (Proxies.Paricles.empty())
 		return;
+
+	// 파티클은 ID 버퍼 필요 없으므로 SceneColorTarget만 바인딩
+	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTarget);
 
 	// 상수 버퍼 업데이트
 	FMatrix InvView = View->ViewMatrix.InverseAffine();

@@ -44,6 +44,7 @@ BEGIN_PROPERTIES(UParticleModuleRequired)
     ADD_PROPERTY(EParticleSortMode, SortMode, "Rendering", true)
     ADD_PROPERTY(FVector, EmitterOrigin, "Rendering", true)
     ADD_PROPERTY(float, EmitterRotation, "Rendering", true)
+    ADD_PROPERTY(bool, bUseLocalSpace, "Emitter", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -64,5 +65,7 @@ LUA_BIND_BEGIN(UParticleModuleRequired)
         T, "EmitterOrigin", &UParticleModuleRequired::EmitterOrigin);
     AddProperty<UParticleModuleRequired, float>(
         T, "EmitterRotation", &UParticleModuleRequired::EmitterRotation);
+    AddProperty<UParticleModuleRequired, bool>(
+        T, "bUseLocalSpace", &UParticleModuleRequired::bUseLocalSpace);
 }
 LUA_BIND_END()

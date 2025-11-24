@@ -81,6 +81,10 @@ struct FParticleEmitterInstance
     FBaseParticle* GetParticle(int32 ActiveIndex);
     const FBaseParticle* GetParticle(int32 ActiveIndex) const;
 
+    // 좌표계 헬퍼
+    bool UseLocalSpace() const;
+    FVector GetComponentWorldLocation() const;
+
 private:
     // 내부 헬퍼 함수
 

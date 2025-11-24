@@ -50,6 +50,12 @@ void UParticleModuleSpawn::Spawn(FParticleEmitterInstance* Owner, int32 Offset, 
 		break;
 	}
 
+	// World Space면 컴포넌트 월드 위치를 더함
+	if (!Owner->UseLocalSpace())
+	{
+		SpawnLocation = SpawnLocation + Owner->GetComponentWorldLocation();
+	}
+
 	// 파티클 위치 설정
 	Particle->Location = SpawnLocation;
 	Particle->OldLocation = SpawnLocation;

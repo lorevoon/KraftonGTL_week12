@@ -46,12 +46,9 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
         bLoggedParticles = true;
     }
 
-    // 컴포넌트의 월드 위치 가져오기
-    FVector ComponentWorldLocation = FVector::Zero();
-    if (Source->Component)
-    {
-        ComponentWorldLocation = Source->Component->GetWorldLocation();
-    }
+    // bUseLocalSpace일 때만 컴포넌트 월드 위치를 더함
+    const bool bUseLocalSpace = Source->UseLocalSpace();
+    const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
 
     // 각 파티클의 인스턴스 데이터 생성
     for (int32 i = 0; i < ParticleCount; ++i)
@@ -60,7 +57,7 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
         if (!Particle)
             continue;
 
-        // 로컬 좌표를 월드 좌표로 변환
+        // Local Space면 월드로 변환, World Space면 그대로 사용
         FVector WorldPosition = Particle->Location + ComponentWorldLocation;
 
         // 인스턴스 데이터 설정 (명시적 float 필드로 변경)
@@ -224,12 +221,9 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
     int32 ParticleCount = Source->ActiveParticles;
     Instances.SetNum(ParticleCount);
 
-    // 컴포넌트의 월드 위치 가져오기
-    FVector ComponentWorldLocation = FVector::Zero();
-    if (Source->Component)
-    {
-        ComponentWorldLocation = Source->Component->GetWorldLocation();
-    }
+    // bUseLocalSpace일 때만 컴포넌트 월드 위치를 더함
+    const bool bUseLocalSpace = Source->UseLocalSpace();
+    const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
 
     for (int32 i = 0; i < ParticleCount; ++i)
     {
@@ -237,7 +231,7 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
         if (!Particle)
             continue;
 
-        // 로컬 좌표를 월드 좌표로 변환
+        // Local Space면 월드로 변환, World Space면 그대로 사용
         FVector WorldPosition = Particle->Location + ComponentWorldLocation;
 
         // Transform 행렬 생성 (Scale, Rotation, Translation)
@@ -250,8 +244,8 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
             float CosRot = cosf(Particle->Rotation);
             float SinRot = sinf(Particle->Rotation);
             RotationMatrix.M[0][0] = CosRot;
-            RotationMatrix.M[0][1] = SinRot;
-            RotationMatrix.M[1][0] = -SinRot;
+            RotationMatrix.M[0][1] = -SinRot;
+            RotationMatrix.M[1][0] = SinRot;
             RotationMatrix.M[1][1] = CosRot;
         }
 
@@ -308,13 +302,13 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     Context->Unmap(InstanceBuffer, 0);
 
     // 4. Rasterizer 상태 설정
-    RHI->RSSetState(ERasterizerMode::Solid_NoCull);
+    RHI->RSSetState(ERasterizerMode::Solid);
 
     // 5. 블렌딩 상태 설정
     RHI->OMSetBlendState(true);
 
     // 6. Depth/Stencil 상태 설정
-    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqual);
 
     // 7. Material 바인딩
     if (Material)
