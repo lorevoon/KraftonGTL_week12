@@ -31,14 +31,6 @@ void UParticleEmitter::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
     if (bInIsLoading)
     {
-        // Load
-        FString EmitterNameValue;
-        int32 MaxParticleCountValue;
-        FJsonSerializer::ReadString(InOutHandle, "EmitterName", EmitterNameValue, "ParticleEmitter", false);
-        FJsonSerializer::ReadInt32(InOutHandle, "MaxParticleCount", MaxParticleCountValue, 100, false);
-        EmitterName = EmitterNameValue;
-        MaxParticleCount = MaxParticleCountValue;
-
         // Load LOD levels array
         if (InOutHandle.hasKey("LODLevels"))
         {
@@ -61,10 +53,6 @@ void UParticleEmitter::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     }
     else
     {
-        // Save
-        InOutHandle["EmitterName"] = EmitterName.c_str();
-        InOutHandle["MaxParticleCount"] = static_cast<long>(MaxParticleCount);
-
         // Save LOD levels array
         JSON LODLevelsArray = JSON::Make(JSON::Class::Array);
         for (UParticleLODLevel* LOD : LODLevels)

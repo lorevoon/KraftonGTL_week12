@@ -112,23 +112,12 @@ void SParticleSystemEditorWindow::OnRender()
 
                 if (GetOpenFileNameA(&ofn) == TRUE)
                 {
-                    // Load particle system using new Serialize() pattern
-                    // Convert char* to wstring
+                    // Load via ResourceManager as a resource for caching/path identity
                     std::string narrowPath(szFile);
-                    std::wstring widePath(narrowPath.begin(), narrowPath.end());
-
-                    JSON ParticleJson;
-                    if (FJsonSerializer::LoadJsonFromFile(ParticleJson, widePath))
+                    UParticleSystem* LoadedSystem = UResourceManager::GetInstance().Load<UParticleSystem>(narrowPath);
+                    if (LoadedSystem && EmittersPanel)
                     {
-                        UParticleSystem* LoadedSystem = NewObject<UParticleSystem>();
-                        if (LoadedSystem)
-                        {
-                            LoadedSystem->Serialize(true, ParticleJson);
-                            if (EmittersPanel)
-                            {
-                                EmittersPanel->SetEditingSystem(LoadedSystem);
-                            }
-                        }
+                        EmittersPanel->SetEditingSystem(LoadedSystem);
                     }
                 }
             }
