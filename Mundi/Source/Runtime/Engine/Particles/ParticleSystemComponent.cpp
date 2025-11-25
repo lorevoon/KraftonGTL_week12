@@ -301,8 +301,11 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
 
         UParticleModuleRequired* RequiredModule = Instance->CurrentLODLevel->RequiredModule;
 
-        // Material이 없으면 렌더링 불가
-        if (!RequiredModule->Material)
+        // Material이 없으면 렌더링 불가 (단, 메시 파티클이 bUseMeshMaterials 사용 시 예외)
+        UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(Instance->CurrentLODLevel->TypeDataModule);
+        bool bMeshUsesMeshMaterials = MeshTypeData && MeshTypeData->bUseMeshMaterials && MeshTypeData->Mesh;
+
+        if (!RequiredModule->Material && !bMeshUsesMeshMaterials)
             continue;
 
         // 파티클이 없으면 스킵

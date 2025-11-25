@@ -15,6 +15,8 @@
 #include "Source/Runtime/Renderer/ParticleSystemEditorViewportClient.h"
 #include "Source/Runtime/Engine/Particles/ParticleSystemComponent.h"
 #include "Widgets/PropertyRenderer.h"
+#include "Source/Editor/PlatformProcess.h"
+#include "ObjectFactory.h"
 
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
@@ -80,19 +82,13 @@ void SParticleSystemEditorWindow::OnRender()
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.7f));
 
-        // File operations
+        // File operations - use deferred command pattern
         ImGui::SameLine();
         if (IconNew && IconNew->GetShaderResourceView())
         {
             if (ImGui::ImageButton("##Cascade_NewBtn", (void*)IconNew->GetShaderResourceView(), IconSizeVec))
             {
-                // Create new particle system
-                if (EmittersPanel)
-                {
-                    UParticleSystem* NewSystem = NewObject<UParticleSystem>();
-                    NewSystem->SystemName = "NewParticleSystem";
-                    EmittersPanel->SetEditingSystem(NewSystem);
-                }
+                PendingCommand = EParticleEditorCommand::New;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("New Particle System");
         }
@@ -101,30 +97,7 @@ void SParticleSystemEditorWindow::OnRender()
         {
             if (ImGui::ImageButton("##Cascade_LoadBtn", (void*)IconLoad->GetShaderResourceView(), IconSizeVec))
             {
-                // Open file dialog
-                OPENFILENAMEA ofn = {};
-                char szFile[260] = {};
-                ofn.lStructSize = sizeof(ofn);
-                ofn.hwndOwner = NULL;
-                ofn.lpstrFile = szFile;
-                ofn.nMaxFile = sizeof(szFile);
-                ofn.lpstrFilter = "Particle System Files\0*.particle\0All Files\0*.*\0";
-                ofn.nFilterIndex = 1;
-                ofn.lpstrFileTitle = NULL;
-                ofn.nMaxFileTitle = 0;
-                ofn.lpstrInitialDir = "Data\\ParticleSystems";
-                ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-                if (GetOpenFileNameA(&ofn) == TRUE)
-                {
-                    // Load via ResourceManager as a resource for caching/path identity
-                    std::string narrowPath(szFile);
-                    UParticleSystem* LoadedSystem = UResourceManager::GetInstance().Load<UParticleSystem>(narrowPath);
-                    if (LoadedSystem && EmittersPanel)
-                    {
-                        EmittersPanel->SetEditingSystem(LoadedSystem);
-                    }
-                }
+                PendingCommand = EParticleEditorCommand::Load;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Open Particle System");
         }
@@ -133,33 +106,7 @@ void SParticleSystemEditorWindow::OnRender()
         {
             if (ImGui::ImageButton("##Cascade_SaveBtn", (void*)IconSave->GetShaderResourceView(), IconSizeVec))
             {
-                if (EmittersPanel && EmittersPanel->GetEditingSystem())
-                {
-                    // Open save file dialog
-                    OPENFILENAMEA ofn = {};
-                    char szFile[260] = {};
-                    ofn.lStructSize = sizeof(ofn);
-                    ofn.hwndOwner = NULL;
-                    ofn.lpstrFile = szFile;
-                    ofn.nMaxFile = sizeof(szFile);
-                    ofn.lpstrFilter = "Particle System Files\0*.particle\0All Files\0*.*\0";
-                    ofn.nFilterIndex = 1;
-                    ofn.lpstrFileTitle = NULL;
-                    ofn.nMaxFileTitle = 0;
-                    ofn.lpstrInitialDir = "Data\\ParticleSystems";
-                    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
-                    ofn.lpstrDefExt = "particle";
-
-                    if (GetSaveFileNameA(&ofn) == TRUE)
-                    {
-                        std::string narrowPath(szFile);
-                        std::wstring widePath(narrowPath.begin(), narrowPath.end());
-
-                        JSON ParticleJson = JSON::Make(JSON::Class::Object);
-                        EmittersPanel->GetEditingSystem()->Serialize(false, ParticleJson);
-                        FJsonSerializer::SaveJsonToFile(ParticleJson, widePath);
-                    }
-                }
+                PendingCommand = EParticleEditorCommand::Save;
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Save Particle System");
         }
@@ -367,6 +314,9 @@ void SParticleSystemEditorWindow::OnRender()
         ImGui::PopStyleVar();
     }
     ImGui::End();
+
+    // Process deferred file operations after ImGui::End()
+    ProcessPendingCommands();
 
     // If collapsed or not visible, clear the viewport rect
     if (!bVisible)
@@ -1087,4 +1037,152 @@ void SParticleSystemEditorWindow::SyncEmitterEditorStates(UParticleSystemCompone
         // Sync render mode
         Instance->EditorRenderMode = static_cast<EEmitterRenderMode>(EditorState.RenderMode);
     }
+}
+
+void SParticleSystemEditorWindow::ProcessPendingCommands()
+{
+    if (PendingCommand == EParticleEditorCommand::None)
+        return;
+
+    EParticleEditorCommand Command = PendingCommand;
+    PendingCommand = EParticleEditorCommand::None;
+
+    switch (Command)
+    {
+    case EParticleEditorCommand::New:
+        OnNewParticleSystem();
+        break;
+    case EParticleEditorCommand::Load:
+        OnLoadParticleSystem();
+        break;
+    case EParticleEditorCommand::Save:
+        OnSaveParticleSystem();
+        break;
+    default:
+        break;
+    }
+}
+
+void SParticleSystemEditorWindow::OnNewParticleSystem()
+{
+    // Create a new particle system
+    UParticleSystem* NewSystem = ObjectFactory::NewObject<UParticleSystem>();
+    if (NewSystem && EmittersPanel)
+    {
+        EmittersPanel->SetEditingSystem(NewSystem);
+        NewSystem->bIsDirty = true;
+    }
+}
+
+void SParticleSystemEditorWindow::OnLoadParticleSystem()
+{
+    std::filesystem::path FilePath = FPlatformProcess::OpenLoadFileDialog(
+        L"Data/ParticleSystems",
+        L"*.json",
+        L"Particle System (*.json)"
+    );
+
+    if (FilePath.empty())
+        return;
+
+    FString FilePathStr = FilePath.string();
+
+    // Load JSON from file
+    std::ifstream File(FilePath);
+    if (!File.is_open())
+    {
+        UE_LOG("[ParticleEditor] Failed to open file: %s", FilePathStr.c_str());
+        return;
+    }
+
+    std::stringstream Buffer;
+    Buffer << File.rdbuf();
+    File.close();
+
+    JSON LoadedJson = JSON::Load(Buffer.str());
+    if (LoadedJson.IsNull())
+    {
+        UE_LOG("[ParticleEditor] Failed to parse JSON from file: %s", FilePathStr.c_str());
+        return;
+    }
+
+    // Create new particle system and deserialize
+    UParticleSystem* LoadedSystem = ObjectFactory::NewObject<UParticleSystem>();
+    if (!LoadedSystem)
+    {
+        UE_LOG("[ParticleEditor] Failed to create UParticleSystem");
+        return;
+    }
+
+    LoadedSystem->Serialize(true, LoadedJson);
+
+    // Set file path for future saves
+    LoadedSystem->SetFilePath(FilePathStr);
+
+    if (EmittersPanel)
+    {
+        EmittersPanel->SetEditingSystem(LoadedSystem);
+    }
+
+    UE_LOG("[ParticleEditor] Loaded particle system from: %s", FilePathStr.c_str());
+}
+
+void SParticleSystemEditorWindow::OnSaveParticleSystem()
+{
+    if (!EmittersPanel)
+        return;
+
+    UParticleSystem* EditingSystem = EmittersPanel->GetEditingSystem();
+    if (!EditingSystem)
+    {
+        UE_LOG("[ParticleEditor] No particle system to save");
+        return;
+    }
+
+    // Get default filename from existing path or generate one
+    FWideString DefaultFileName = L"NewParticleSystem";
+    FString ExistingPath = EditingSystem->GetFilePath();
+    if (!ExistingPath.empty())
+    {
+        std::filesystem::path ExistingFsPath(ExistingPath.c_str());
+        DefaultFileName = ExistingFsPath.stem().wstring();
+    }
+
+    std::filesystem::path FilePath = FPlatformProcess::OpenSaveFileDialog(
+        L"Data/ParticleSystems",
+        L"*.json",
+        L"Particle System (*.json)",
+        DefaultFileName
+    );
+
+    if (FilePath.empty())
+        return;
+
+    // Ensure .json extension
+    if (FilePath.extension() != ".json")
+    {
+        FilePath += ".json";
+    }
+
+    FString FilePathStr = FilePath.string();
+
+    // Serialize to JSON
+    JSON SaveJson = JSON::Make(JSON::Class::Object);
+    EditingSystem->Serialize(false, SaveJson);
+
+    // Write to file
+    std::ofstream File(FilePath);
+    if (!File.is_open())
+    {
+        UE_LOG("[ParticleEditor] Failed to create file: %s", FilePathStr.c_str());
+        return;
+    }
+
+    File << SaveJson.dump(2);
+    File.close();
+
+    // Update the system's file path
+    EditingSystem->SetFilePath(FilePathStr);
+
+    UE_LOG("[ParticleEditor] Saved particle system to: %s", FilePathStr.c_str());
 }
