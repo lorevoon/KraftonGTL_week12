@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Object.h"
+#include "ResourceBase.h"
 #include "ParticleEmitter.h"
 #include "UParticleSystem.generated.h"
 
@@ -16,12 +16,15 @@ enum ParticleSystemLODMethod
 // - 여러 이미터를 포함하는 컨테이너
 // - 에디터에서 편집 가능, 런타임에 여러 인스턴스 공유
 UCLASS(DisplayName="파티클 시스템", Description="파티클 이미터들을 포함하는 에셋입니다")
-class UParticleSystem : public UObject
+class UParticleSystem : public UResourceBase
 {
 public:
     GENERATED_REFLECTION_BODY()
 
     UParticleSystem();
+
+    // Load from disk via ResourceManager
+    void Load(const FString& InFilePath, ID3D11Device* InDevice);
 
     // 이미터 배열
     // - 각 이미터는 독립적인 파티클 그룹 (예: 불꽃, 연기, 불똥)
@@ -48,6 +51,7 @@ public:
     UParticleEmitter* GetEmitter(int32 Index) const;
     void AddEmitter(UParticleEmitter* Emitter);
     void RemoveEmitter(UParticleEmitter* Emitter);
+    void SwapEmitters(int32 IndexA, int32 IndexB);
     int32 GetEmitterCount() const { return Emitters.Num(); }
 
     // Serialization

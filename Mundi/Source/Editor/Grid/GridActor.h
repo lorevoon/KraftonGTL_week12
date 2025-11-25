@@ -23,15 +23,17 @@ public:
     void SetLineSize(float NewLineSize) { LineSize = NewLineSize; SetActorScale({ NewLineSize, NewLineSize, NewLineSize }); }
     
     // Component access
-    ULineComponent* GetLineComponent() const { return LineComponent; }
+    ULineComponent* GetGridLineComponent() const { return GridLineComponent; }
+    ULineComponent* GetAxisLineComponent() const { return AxisLineComponent; }
 
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(AGridActor)
 private:
     void RegenerateGrid();
-    
-    ULineComponent* LineComponent;
+
+    ULineComponent* GridLineComponent;
+    ULineComponent* AxisLineComponent;
     
     // Grid settings
     int32 GridSize = 100;

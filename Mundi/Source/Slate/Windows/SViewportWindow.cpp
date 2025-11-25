@@ -1537,11 +1537,12 @@ void SViewportWindow::RenderShowFlagDropdownMenu()
 			ImGui::SetTooltip("BVH(Bounding Volume Hierarchy) 디버그 시각화를 표시합니다.");
 		}
 
-		// Grid
+		// Grid (toggles both grid and axis)
 		bool bGrid = RenderSettings.IsShowFlagEnabled(EEngineShowFlags::SF_Grid);
 		if (ImGui::Checkbox("##Grid", &bGrid))
 		{
 			RenderSettings.ToggleShowFlag(EEngineShowFlags::SF_Grid);
+			RenderSettings.ToggleShowFlag(EEngineShowFlags::SF_Axis);
 		}
 		ImGui::SameLine();
 		if (IconGrid && IconGrid->GetShaderResourceView())

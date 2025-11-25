@@ -118,10 +118,38 @@ void SCascadeEmittersPanel::Render(float width, float height)
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
 
+        // Check if this item (the header child) is being interacted with
+        bool isItemActive = ImGui::IsItemActive();
+        bool isItemHovered = ImGui::IsItemHovered();
+
         // Click on header to select
         if (ImGui::IsItemClicked())
         {
             SelectedEmitterIndex = i;
+        }
+
+        // Drag source for emitter reordering (only if item is active)
+        if (isItemActive && ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+        {
+            ImGui::SetDragDropPayload("EMITTER_REORDER", &i, sizeof(int32));
+            ImGui::Text("Emitter: %s", Name.c_str());
+            ImGui::EndDragDropSource();
+        }
+
+        // Drop target for emitter reordering
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("EMITTER_REORDER"))
+            {
+                int32 sourceIndex = *(const int32*)payload->Data;
+                EditingSystem->SwapEmitters(sourceIndex, i);
+                // Update selected index if necessary
+                if (SelectedEmitterIndex == sourceIndex)
+                    SelectedEmitterIndex = i;
+                else if (SelectedEmitterIndex == i)
+                    SelectedEmitterIndex = sourceIndex;
+            }
+            ImGui::EndDragDropTarget();
         }
 
         // Popup on header
@@ -149,7 +177,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
         UParticleLODLevel* LOD0 = Emitter ? Emitter->GetDefaultLODLevel() : nullptr;
         if (LOD0)
         {
-            // Required module - YELLOW, NO CHECKBOX
+            // Required module - YELLOW, NO CHECKBOX (not draggable)
             if (LOD0->RequiredModule)
             {
                 const char* reqName = LOD0->RequiredModule->ModuleName.c_str();
@@ -157,6 +185,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     RenderModuleCard(LOD0->RequiredModule,
                                    LOD0,
+                                   -1, // -1 indicates not draggable (required module)
                                    reqName,
                                    ImVec4(0.6f, 0.5f, 0.2f, 1.0f), // Yellow
                                    columnWidth, moduleHeight, false); // No checkbox
@@ -173,7 +202,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                     if (modName)
                     {
                         ImVec4 moduleColor = GetModuleColor(Mod->ModuleName);
-                        RenderModuleCard(Mod, LOD0, modName, moduleColor, columnWidth, moduleHeight, true); // With checkbox
+                        RenderModuleCard(Mod, LOD0, m, modName, moduleColor, columnWidth, moduleHeight, true); // With checkbox
                     }
                 }
             }
@@ -270,6 +299,23 @@ void SCascadeEmittersPanel::Render(float width, float height)
     }
 
     ImGui::EndChild();
+
+    // Keyboard navigation for reordering emitters (like Unreal Engine)
+    if (SelectedEmitterIndex >= 0 && SelectedEmitterIndex < EditingSystem->GetEmitterCount())
+    {
+        // Left arrow key - move emitter to the left
+        if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow) && SelectedEmitterIndex > 0)
+        {
+            EditingSystem->SwapEmitters(SelectedEmitterIndex, SelectedEmitterIndex - 1);
+            SelectedEmitterIndex--;
+        }
+        // Right arrow key - move emitter to the right
+        else if (ImGui::IsKeyPressed(ImGuiKey_RightArrow) && SelectedEmitterIndex < EditingSystem->GetEmitterCount() - 1)
+        {
+            EditingSystem->SwapEmitters(SelectedEmitterIndex, SelectedEmitterIndex + 1);
+            SelectedEmitterIndex++;
+        }
+    }
 }
 
 UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
@@ -333,7 +379,7 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
     return Emitter;
 }
 
-void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleLODLevel* parentLOD, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox)
+void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleLODLevel* parentLOD, int32 moduleIndex, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox)
 {
     if (!module)
     {
@@ -467,8 +513,40 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
 
     ImGui::EndGroup();
 
+    // Check if the group item is being interacted with
+    bool isItemActive = ImGui::IsItemActive();
+
     ImGui::PopStyleVar(2);
     ImGui::PopStyleColor(3);
+
+    // Drag-and-drop for module reordering (only for non-required modules)
+    if (moduleIndex >= 0 && showCheckbox && isItemActive)
+    {
+        // Drag source
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+        {
+            ImGui::SetDragDropPayload("MODULE_REORDER", &moduleIndex, sizeof(int32));
+            ImGui::Text("Module: %s", moduleName);
+            ImGui::EndDragDropSource();
+        }
+    }
+
+    // Drop target (can accept drops even when not active)
+    if (moduleIndex >= 0 && showCheckbox)
+    {
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MODULE_REORDER"))
+            {
+                int32 sourceIndex = *(const int32*)payload->Data;
+                if (parentLOD)
+                {
+                    parentLOD->SwapModules(sourceIndex, moduleIndex);
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+    }
 
     ImGui::PopID(); // Pop the unique ID
 }
