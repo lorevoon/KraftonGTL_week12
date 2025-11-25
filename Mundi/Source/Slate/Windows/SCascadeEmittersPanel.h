@@ -6,13 +6,30 @@ class UParticleSystem;
 class UParticleEmitter;
 class UParticleLODLevel;
 
+// Emitter editor render mode (how particles are displayed in the editor viewport)
+enum class EEmitterEditorRenderMode : uint8
+{
+    Normal = 0,    // Normal rendering
+    Points,        // Render as points
+    Cross,         // Render as crosses
+    None           // Don't render (but still simulate)
+};
+
+// Per-emitter editor state (not saved with asset, only used in editor)
+struct FEmitterEditorState
+{
+    bool bIsVisible = true;                                    // V toggle - visibility in viewport
+    EEmitterEditorRenderMode RenderMode = EEmitterEditorRenderMode::Normal;  // R toggle - render mode
+    bool bIsSolo = false;                                      // S toggle - solo mode
+};
+
 class SCascadeEmittersPanel
 {
 public:
     SCascadeEmittersPanel() = default;
     ~SCascadeEmittersPanel() = default;
 
-    void SetEditingSystem(UParticleSystem* InSystem) { EditingSystem = InSystem; }
+    void SetEditingSystem(UParticleSystem* InSystem);
     UParticleSystem* GetEditingSystem() const { return EditingSystem; }
 
     // Draw the panel content inside an allocated region
@@ -24,8 +41,14 @@ public:
     UParticleModule* GetSelectedModule() const { return SelectedModule; }
     void SetSelectedModule(UParticleModule* Module) { SelectedModule = Module; }
 
+    // Editor state accessors
+    FEmitterEditorState& GetEmitterEditorState(int32 EmitterIndex);
+    bool IsEmitterVisibleInEditor(int32 EmitterIndex) const;
+    bool HasAnySoloEmitter() const;
+
 private:
     void EnsureEditingSystem();
+    void EnsureEditorStates();  // Ensure editor states array matches emitter count
     UParticleEmitter* CreateDefaultSpriteEmitter();
     UParticleEmitter* CreateDefaultMeshEmitter();
     UParticleEmitter* CreateDefaultBeamEmitter();
@@ -39,8 +62,14 @@ private:
     int32 SelectedEmitterIndex = -1;
     UParticleModule* SelectedModule = nullptr; // Currently selected module for details panel
 
+    // Per-emitter editor state (visibility, render mode, solo)
+    TArray<FEmitterEditorState> EmitterEditorStates;
+
     // Drag-and-drop state
     int32 DraggedEmitterIndex = -1;
     UParticleModule* DraggedModule = nullptr;
+
+    // Frame-local click tracking (reset each frame in Render)
+    bool bClickedOnItemThisFrame = false;
 };
 

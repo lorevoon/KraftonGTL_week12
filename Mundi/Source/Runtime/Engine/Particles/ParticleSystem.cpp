@@ -162,6 +162,7 @@ void UParticleSystem::AddEmitter(UParticleEmitter* Emitter)
         Emitters.Add(Emitter);
         // 새 이미터도 현재 LOD 개수에 맞춰 LODLevels를 정렬
         EnsureEmitterLODCount(Emitter, LODDistances.Num(), LODDistances);
+        bIsDirty = true;
     }
 }
 
@@ -170,6 +171,7 @@ void UParticleSystem::RemoveEmitter(UParticleEmitter* Emitter)
     if (Emitter)
     {
         Emitters.Remove(Emitter);
+        bIsDirty = true;
     }
 }
 
@@ -180,6 +182,7 @@ void UParticleSystem::SwapEmitters(int32 IndexA, int32 IndexB)
         UParticleEmitter* Temp = Emitters[IndexA];
         Emitters[IndexA] = Emitters[IndexB];
         Emitters[IndexB] = Temp;
+        bIsDirty = true;
     }
 }
 

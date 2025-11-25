@@ -12,6 +12,15 @@ class UParticleSystemComponent;
 class FSceneView;
 class UParticleModule;
 
+// Editor render mode for emitter instances
+enum class EEmitterRenderMode : uint8
+{
+    Normal = 0,    // Normal rendering
+    Points,        // Render as points
+    Cross,         // Render as crosses
+    None           // Don't render (but still simulate)
+};
+
 // 파티클 이미터 인스턴스 (런타임)
 // - 실제 파티클 시뮬레이션을 담당하는 비-UObject 구조체
 // - 메모리 풀 관리 및 파티클 생명주기 제어
@@ -42,6 +51,10 @@ struct FParticleEmitterInstance
     // - EventGenerator 등 인스턴스 레벨 데이터가 필요한 모듈용
     uint8* ModuleInstanceData;
     uint32 ModuleInstanceDataStride;
+
+    // Editor visibility state (set by editor, used during rendering)
+    bool bEditorVisible;                     // Is this emitter visible in editor viewport
+    EEmitterRenderMode EditorRenderMode;     // How to render in editor (Normal, Points, Cross, None)
 
     FParticleEmitterInstance();
     ~FParticleEmitterInstance();

@@ -27,6 +27,8 @@ FParticleEmitterInstance::FParticleEmitterInstance()
     , CurrentLODLevelIndex(-1)
     , ModuleInstanceData(nullptr)
     , ModuleInstanceDataStride(0)
+    , bEditorVisible(true)
+    , EditorRenderMode(EEmitterRenderMode::Normal)
 {
 }
 

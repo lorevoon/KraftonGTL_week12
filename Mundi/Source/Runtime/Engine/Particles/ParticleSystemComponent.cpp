@@ -291,6 +291,14 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
         if (!Instance || !Instance->CurrentLODLevel || !Instance->CurrentLODLevel->RequiredModule)
             continue;
 
+        // Editor visibility check - skip if not visible
+        if (!Instance->bEditorVisible)
+            continue;
+
+        // Editor render mode - skip if set to None
+        if (Instance->EditorRenderMode == EEmitterRenderMode::None)
+            continue;
+
         UParticleModuleRequired* RequiredModule = Instance->CurrentLODLevel->RequiredModule;
 
         // Material이 없으면 렌더링 불가
@@ -330,12 +338,31 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
 
         if (DynamicData)
         {
+            // Store editor render mode in dynamic data for the renderer to use
+            DynamicData->EditorRenderMode = Instance->EditorRenderMode;
             DynamicData->UpdateRenderData(View);
             RenderDataArray.Add(DynamicData);
         }
     }
 
     return RenderDataArray;
+}
+
+void UParticleSystemComponent::RebuildInstances()
+{
+    const bool bWasActive = bIsActive;
+    // Fully rebuild instances from current Template definition
+    DestroyEmitterInstances();
+    if (Template)
+    {
+        CreateEmitterInstances();
+    }
+    SystemTime = 0.0f;
+    CompletedLoops = 0;
+    if (bWasActive)
+    {
+        Activate();
+    }
 }
 
 void UParticleSystemComponent::CreateEmitterInstances()
