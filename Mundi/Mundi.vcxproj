@@ -299,6 +299,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\GameFramework\GameStateBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\CollisionParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Pawn.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PlayerController.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.cpp" />
@@ -607,6 +608,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Generated\UParticleModuleTypeDataBeam.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleEventGenerator.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleAcceleration.generated.cpp" />
+    <ClCompile Include="Generated\ACollisionParticleActor.generated.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
@@ -822,6 +824,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\GameFramework\GameStateBase.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\CollisionParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Pawn.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PlayerCameraManager.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\DirectionalLightActor.h" />
@@ -1093,6 +1096,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Generated\UParticleModuleTypeDataBeam.generated.h" />
     <ClInclude Include="Generated\UParticleModuleEventGenerator.generated.h" />
     <ClInclude Include="Generated\UParticleModuleAcceleration.generated.h" />
+    <ClInclude Include="Generated\ACollisionParticleActor.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
