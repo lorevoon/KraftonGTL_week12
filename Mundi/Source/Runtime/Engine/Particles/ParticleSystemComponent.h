@@ -35,6 +35,10 @@ public:
     UPROPERTY()
     bool bIsActive;
 
+    // 파티클 재생 속도 (DeltaTime 배율)
+    UPROPERTY(EditAnywhere, Category="ParticleSystem")
+    float CustomPlaybackRate;
+
 public:
     // 생명주기 함수
 
@@ -58,6 +62,9 @@ public:
 
     // 이미터 인스턴스 상태 초기화 및 다시 시작
     void Restart();
+
+    // 사용자 정의 상태 초기화 (재생 속도 포함)
+    void ResetToDefaultState();
 
     // 파티클 시스템 에셋 설정
     void SetTemplate(UParticleSystem* NewTemplate);
