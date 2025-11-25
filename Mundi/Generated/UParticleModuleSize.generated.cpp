@@ -36,7 +36,6 @@ const bool UParticleModuleSize::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleSize)
-    MARK_AS_COMPONENT("크기 모듈", "파티클 크기를 제어합니다")
     ADD_PROPERTY(FVector, StartSizeMin, "Size", true)
     ADD_PROPERTY(FVector, StartSizeMax, "Size", true)
 END_PROPERTIES()

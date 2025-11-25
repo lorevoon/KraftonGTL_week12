@@ -36,7 +36,6 @@ const bool UParticleModuleVelocity::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleVelocity)
-    MARK_AS_COMPONENT("속도 모듈", "파티클 초기 속도를 설정합니다")
     ADD_PROPERTY(FVector, StartVelocityMin, "Velocity", true)
     ADD_PROPERTY(FVector, StartVelocityMax, "Velocity", true)
 END_PROPERTIES()

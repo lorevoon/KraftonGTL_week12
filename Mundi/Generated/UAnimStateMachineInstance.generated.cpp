@@ -34,7 +34,7 @@ const bool UAnimStateMachineInstance::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UAnimStateMachineInstance)
-    MARK_AS_COMPONENT("애님 상태 머신 인스턴스", "그래프 노드 기반 상태 머신")
+
 END_PROPERTIES()
 
 

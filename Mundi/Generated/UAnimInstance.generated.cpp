@@ -34,7 +34,7 @@ const bool UAnimInstance::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UAnimInstance)
-    MARK_AS_COMPONENT("애니메이션 인스턴스", "Auto-generated UAnimInstance")
+
 END_PROPERTIES()
 
 

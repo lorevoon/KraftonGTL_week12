@@ -36,7 +36,6 @@ const bool UParticleSystem::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleSystem)
-    MARK_AS_COMPONENT("파티클 시스템", "파티클 이미터들을 포함하는 에셋입니다")
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, Emitters, "Emitters", true)
     ADD_PROPERTY(FString, SystemName, "System", true)
     ADD_PROPERTY(float, SystemDuration, "System", true)

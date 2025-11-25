@@ -36,7 +36,6 @@ const bool UParticleEmitter::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleEmitter)
-    MARK_AS_COMPONENT("파티클 이미터", "LOD 레벨을 포함하는 이미터 에셋입니다")
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, LODLevels, "LOD", true)
     ADD_PROPERTY(FString, EmitterName, "Emitter", true)
     ADD_PROPERTY(int32, MaxParticleCount, "Emitter", true)

@@ -34,7 +34,6 @@ const bool UParticleModuleColor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleColor)
-    MARK_AS_COMPONENT("색상 모듈", "파티클 색상을 제어합니다")
     ADD_PROPERTY(FLinearColor, StartColor, "Color", true)
     ADD_PROPERTY(FLinearColor, EndColor, "Color", true)
 END_PROPERTIES()

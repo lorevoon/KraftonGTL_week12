@@ -36,7 +36,6 @@ const bool UParticleModuleLocation::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleLocation)
-    MARK_AS_COMPONENT("위치 모듈", "파티클 초기 위치를 설정합니다")
     ADD_PROPERTY(FVector, StartLocation, "Location", true)
 END_PROPERTIES()
 

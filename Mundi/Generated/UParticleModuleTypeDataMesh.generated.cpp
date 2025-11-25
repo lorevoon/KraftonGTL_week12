@@ -36,7 +36,6 @@ const bool UParticleModuleTypeDataMesh::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleTypeDataMesh)
-    MARK_AS_COMPONENT("메시 타입 데이터", "메시 파티클에 사용할 스태틱 메시를 지정합니다")
     ADD_PROPERTY_STATICMESH(UStaticMesh*, Mesh, "Mesh", true)
     ADD_PROPERTY(bool, bUseMeshMaterials, "Mesh", true)
 END_PROPERTIES()
