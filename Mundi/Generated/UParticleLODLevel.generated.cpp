@@ -38,6 +38,7 @@ const bool UParticleLODLevel::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleLODLevel)
     ADD_PROPERTY(UParticleModuleRequired*, RequiredModule, "Required", true)
     ADD_PROPERTY(UParticleModuleTypeDataBase*, TypeDataModule, "TypeData", true)

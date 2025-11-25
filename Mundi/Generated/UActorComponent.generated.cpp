@@ -35,6 +35,7 @@ const bool UActorComponent::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UActorComponent)
     MARK_AS_COMPONENT("UActorComponent", "UActorComponent 컴포넌트")
     ADD_PROPERTY(FName, ObjectName, "[컴포넌트]", true, "컴포넌트의 이름입니다")

@@ -35,10 +35,13 @@ const bool UParticleModuleSpawn::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+// Enum values for EDistributionType
+static const char* DistributionType_EnumNames[] = { "Constant", "Uniform", "ConstantCurve", "Particle", nullptr };
+
 BEGIN_PROPERTIES(UParticleModuleSpawn)
     ADD_PROPERTY(FVector, LocationMin, "Location", true)
     ADD_PROPERTY(FVector, LocationMax, "Location", true)
-    ADD_PROPERTY(EDistributionType, DistributionType, "Location", true)
+    ADD_PROPERTY_ENUM(EDistributionType, DistributionType, "Location", DistributionType_EnumNames, 4, true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====

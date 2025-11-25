@@ -23,6 +23,7 @@ const bool UMeshComponent::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UMeshComponent)
     MARK_AS_COMPONENT("UMeshComponent", "Auto-generated UMeshComponent")
     ADD_PROPERTY_ARRAY(EPropertyType::Material, MaterialSlots, "Materials", true, "Material slots for the mesh")

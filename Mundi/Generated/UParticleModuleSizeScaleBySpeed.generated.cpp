@@ -35,6 +35,7 @@ const bool UParticleModuleSizeScaleBySpeed::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleSizeScaleBySpeed)
     ADD_PROPERTY(FVector, SpeedScale, "Size", true)
     ADD_PROPERTY(FVector, MaxScale, "Size", true)

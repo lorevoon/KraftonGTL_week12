@@ -35,6 +35,7 @@ const bool URotatingMovementComponent::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(URotatingMovementComponent)
     MARK_AS_COMPONENT("회전 이동 컴포넌트", "자동 회전 컴포넌트입니다")
     ADD_PROPERTY(FVector, RotationRate, "회전 컴포넌트", true, "회전 속도입니다")

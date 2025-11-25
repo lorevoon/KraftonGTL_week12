@@ -35,6 +35,8 @@ struct TPropertyTypeTraits
 			return EPropertyType::StaticMesh;
 		//else if constexpr (std::is_same_v<T, USound>)
 		//	return EPropertyType::Sound;
+		else if constexpr (std::is_enum_v<T>)
+			return EPropertyType::Enum;
 		else
 			return EPropertyType::Struct;
 	}
@@ -288,8 +290,27 @@ struct TPropertyTypeTraits
 		Class->AddProperty(Prop); \
 	}
 
+// Enum 프로퍼티 추가 (ComboBox UI로 렌더링)
+// EnumNamesArray: Enum 값 이름들의 배열 (nullptr로 종료)
+// EnumCountVal: Enum 값 개수
+#define ADD_PROPERTY_ENUM(VarType, VarName, CategoryName, EnumNamesArray, EnumCountVal, bEditAnywhere, ...) \
+	{ \
+		static_assert(std::is_array_v<std::remove_reference_t<decltype(CategoryName)>>, \
+					  "CategoryName must be a string literal!"); \
+		static_assert(std::is_enum_v<VarType>, \
+					  "VarType must be an enum type!"); \
+		FProperty Prop; \
+		Prop.Name = #VarName; \
+		Prop.Type = EPropertyType::Enum; \
+		Prop.Offset = offsetof(ThisClass_t, VarName); \
+		Prop.Category = CategoryName; \
+		Prop.EnumNames = EnumNamesArray; \
+		Prop.EnumCount = EnumCountVal; \
+		Prop.bIsEditAnywhere = bEditAnywhere; \
+		Prop.Tooltip = "" __VA_ARGS__; \
+		Class->AddProperty(Prop); \
+	}
 
-  
 // 클래스 메타데이터 설정 매크로
 // StaticRegisterProperties() 함수 내에서 사용
 

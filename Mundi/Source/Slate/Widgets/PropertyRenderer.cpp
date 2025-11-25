@@ -200,6 +200,10 @@ bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectIn
 		bChanged = RenderObjectPtrProperty(Property, ObjectInstance);
 		break;
 
+	case EPropertyType::Enum:
+		bChanged = RenderEnumProperty(Property, ObjectInstance);
+		break;
+
 	case EPropertyType::Struct:
 		bChanged = RenderStructProperty(Property, ObjectInstance);
 		break;
@@ -715,6 +719,38 @@ bool UPropertyRenderer::RenderStructProperty(const FProperty& Prop, void* Instan
 	// Struct는 읽기 전용으로 표시
 	// FVector, FLinearColor 등 주요 타입은 이미 별도로 처리됨
 	ImGui::Text("%s: [Struct]", Prop.Name);
+	return false;
+}
+
+bool UPropertyRenderer::RenderEnumProperty(const FProperty& Prop, void* Instance)
+{
+	// EnumNames와 EnumCount가 설정되어 있어야 함
+	if (!Prop.EnumNames || Prop.EnumCount <= 0)
+	{
+		ImGui::Text("%s: [Enum - No Data]", Prop.Name);
+		return false;
+	}
+
+	// uint8 기반 enum class 가정
+	uint8* EnumPtr = Prop.GetValuePtr<uint8>(Instance);
+	if (!EnumPtr)
+	{
+		ImGui::Text("%s: [Enum - Invalid Ptr]", Prop.Name);
+		return false;
+	}
+
+	int CurrentValue = static_cast<int>(*EnumPtr);
+
+	// 유효 범위 체크
+	CurrentValue = FMath::Clamp(CurrentValue, 0, Prop.EnumCount - 1);
+
+	ImGui::SetNextItemWidth(180);
+	if (ImGui::Combo(Prop.Name, &CurrentValue, Prop.EnumNames, Prop.EnumCount))
+	{
+		*EnumPtr = static_cast<uint8>(CurrentValue);
+		return true;
+	}
+
 	return false;
 }
 

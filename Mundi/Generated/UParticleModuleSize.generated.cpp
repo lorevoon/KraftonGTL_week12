@@ -35,6 +35,7 @@ const bool UParticleModuleSize::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleSize)
     ADD_PROPERTY(FVector, StartSizeMin, "Size", true)
     ADD_PROPERTY(FVector, StartSizeMax, "Size", true)

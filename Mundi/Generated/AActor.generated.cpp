@@ -35,6 +35,7 @@ const bool AActor::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(AActor)
     ADD_PROPERTY(FName, ObjectName, "[액터]", true, "액터의 이름입니다")
     ADD_PROPERTY(bool, bActorHiddenInGame, "[액터]", true)

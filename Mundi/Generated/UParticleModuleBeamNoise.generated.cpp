@@ -35,6 +35,7 @@ const bool UParticleModuleBeamNoise::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleBeamNoise)
     ADD_PROPERTY(FVector, NoiseRange, "Noise", true)
     ADD_PROPERTY(float, NoiseLockTime, "Noise", true)

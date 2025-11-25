@@ -35,6 +35,7 @@ const bool UParticleEmitter::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleEmitter)
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, LODLevels, "LOD", true)
     ADD_PROPERTY(FString, EmitterName, "Emitter", true)

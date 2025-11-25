@@ -12,6 +12,7 @@ enum class EPropertyType : uint8
 	FString,
 	FName,
 	ObjectPtr,      // UObject* 및 파생 타입
+	Enum,           // enum class 타입 (ComboBox UI)
 	Struct,
 	Texture,        // UTexture* 타입 (리소스 선택 UI)
 	SkeletalMesh,
@@ -38,7 +39,11 @@ struct FProperty
 	float MaxValue = 0.0f;                   // 범위 최대값
 	bool bIsEditAnywhere = false;            // UI에 노출 여부
 	const char* Tooltip = nullptr;           // 툴팁 설명
-	
+
+	// Enum 전용 필드
+	const char** EnumNames = nullptr;        // Enum 값 이름 배열 (nullptr로 종료)
+	int32 EnumCount = 0;                     // Enum 값 개수
+
 	TMap<FName, FString> Metadata;			 // 모든 부가 정보를 key-value 문자열로 저장합니다.
 
 	// 객체 인스턴스에서 프로퍼티 값의 포인터를 가져옴

@@ -23,6 +23,7 @@ const bool UParticleModule::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModule)
     ADD_PROPERTY(bool, bSpawnModule, "", false)
     ADD_PROPERTY(bool, bUpdateModule, "", false)

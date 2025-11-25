@@ -35,12 +35,15 @@ const bool UParticleModuleRequired::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+// Enum values for EParticleSortMode
+static const char* SortMode_EnumNames[] = { "None", "ViewDistanceDepth", "AgeOldestFirst", "AgeNewestFirst", nullptr };
+
 BEGIN_PROPERTIES(UParticleModuleRequired)
     ADD_PROPERTY(float, SpawnRate, "Spawn", true)
     ADD_PROPERTY(float, EmitterDuration, "Duration", true)
     ADD_PROPERTY(int32, EmitterLoops, "Duration", true)
     ADD_PROPERTY_MATERIAL(UMaterialInterface*, Material, "Rendering", true)
-    ADD_PROPERTY(EParticleSortMode, SortMode, "Rendering", true)
+    ADD_PROPERTY_ENUM(EParticleSortMode, SortMode, "Rendering", SortMode_EnumNames, 4, true)
     ADD_PROPERTY(FVector, EmitterOrigin, "Rendering", true)
     ADD_PROPERTY(float, EmitterRotation, "Rendering", true)
     ADD_PROPERTY(bool, bUseLocalSpace, "Emitter", true)

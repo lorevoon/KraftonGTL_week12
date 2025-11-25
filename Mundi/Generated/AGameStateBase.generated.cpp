@@ -33,6 +33,7 @@ const bool AGameStateBase::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(AGameStateBase)
     MARK_AS_SPAWNABLE("게임 스테이트", "게임 전역 상태를 관리하는 클래스입니다.")
     ADD_PROPERTY_RANGE(int32, Score, "GameState", 0.0f, 999999.0f, true, "현재 게임 스코어입니다.")

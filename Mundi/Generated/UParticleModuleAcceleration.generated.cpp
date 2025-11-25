@@ -35,6 +35,7 @@ const bool UParticleModuleAcceleration::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleAcceleration)
     ADD_PROPERTY(FVector, Acceleration, "Acceleration", true)
 END_PROPERTIES()

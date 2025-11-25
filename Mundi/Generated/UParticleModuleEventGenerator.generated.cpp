@@ -33,6 +33,7 @@ const bool UParticleModuleEventGenerator::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleEventGenerator)
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, Events, "Events", true)
 END_PROPERTIES()

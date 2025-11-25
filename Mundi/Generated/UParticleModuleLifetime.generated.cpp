@@ -33,6 +33,7 @@ const bool UParticleModuleLifetime::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleLifetime)
     ADD_PROPERTY(float, LifetimeMin, "Lifetime", true)
     ADD_PROPERTY(float, LifetimeMax, "Lifetime", true)

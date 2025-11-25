@@ -35,6 +35,7 @@ const bool USkinnedMeshComponent::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(USkinnedMeshComponent)
     MARK_AS_COMPONENT("스킨드 메시 컴포넌트", "스켈레탈 메시를 렌더링하는 컴포넌트입니다")
     ADD_PROPERTY_SKELETALMESH(USkeletalMesh*, SkeletalMesh, "Skeletal Mesh", true, "Skeletal mesh asset to render")

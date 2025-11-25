@@ -33,6 +33,7 @@ const bool UCharacterMovementComponent::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UCharacterMovementComponent)
     MARK_AS_COMPONENT("CharacterMovementComponent", "Character의 이동을 처리하는 컴포넌트입니다.")
     ADD_PROPERTY(float, MaxWalkSpeed, "Movement", true, "최대 걷기 속도 (cm/s)")

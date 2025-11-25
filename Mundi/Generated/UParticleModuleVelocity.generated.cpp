@@ -35,6 +35,7 @@ const bool UParticleModuleVelocity::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleVelocity)
     ADD_PROPERTY(FVector, StartVelocityMin, "Velocity", true)
     ADD_PROPERTY(FVector, StartVelocityMax, "Velocity", true)
