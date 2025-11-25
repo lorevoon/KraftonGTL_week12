@@ -137,6 +137,9 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 
     const float ScaledDeltaTime = DeltaTime * EffectiveRate;
 
+    // 프레임 시작 - 이벤트 배열 클리어
+    CollisionEvents.Empty();
+
     if (Template->SystemDuration > 0.0f)
     {
         SystemTime += ScaledDeltaTime;
@@ -158,6 +161,21 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
         {
             UpdateEmitterInstance(Instance, ScaledDeltaTime);
         }
+    }
+
+    // 프레임 종료 - 축적된 이벤트 브로드캐스트
+    for (const FParticleEventCollideData& Event : CollisionEvents)
+    {
+        OnParticleCollide.Broadcast(
+            Event.EventName,
+            Event.EmitterTime,
+            Event.ParticleTime,
+            Event.Location,
+            Event.Velocity,
+            Event.Direction,
+            Event.Normal,
+            Event.BoneName
+        );
     }
 }
 
@@ -340,4 +358,30 @@ void UParticleSystemComponent::KillDeadParticles(FParticleEmitterInstance* Insta
     }
 
     Instance->KillDeadParticles();
+}
+
+void UParticleSystemComponent::ReportEventCollision(
+    const FString& EventName,
+    float EmitterTime,
+    float ParticleTime,
+    const FVector& Location,
+    const FVector& Velocity,
+    const FVector& Direction,
+    const FVector& Normal,
+    const FString& BoneName)
+{
+    // 새 이벤트 데이터 생성
+    FParticleEventCollideData Event;
+    Event.Type = EParticleEventType::Collision;
+    Event.EventName = EventName;
+    Event.EmitterTime = EmitterTime;
+    Event.ParticleTime = ParticleTime;
+    Event.Location = Location;
+    Event.Velocity = Velocity;
+    Event.Direction = Direction;
+    Event.Normal = Normal;
+    Event.BoneName = BoneName;
+
+    // 배열에 추가
+    CollisionEvents.Add(Event);
 }

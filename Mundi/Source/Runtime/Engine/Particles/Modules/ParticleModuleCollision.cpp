@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "ParticleModuleCollision.h"
 #include "ParticleEmitterInstance.h"
 #include "ParticleSystemComponent.h"
@@ -88,6 +88,24 @@ bool UParticleModuleCollision::PerformCollisionCheck(FParticleEmitterInstance* O
 
 		// 충돌 반응 적용
 		ApplyCollisionResponse(Particle, HitResult, Payload->CollisionCount);
+
+		// ========== 이벤트 report ==========
+		FVector Direction = (WorldLocation - WorldOldLocation);
+		if (Direction.SizeSquared() > KINDA_SMALL_NUMBER)
+		{
+			Direction.Normalize();
+		}
+
+		Owner->Component->ReportEventCollision(
+			"Collision",              // 기본 이벤트 이름
+			Owner->EmitterTime,       // 이미터 시간
+			Particle->RelativeTime,   // 파티클 생명 시간
+			HitResult.ImpactPoint,    // 충돌 위치
+			Particle->Velocity,       // 속도
+			Direction,                // 이동 방향
+			HitResult.ImpactNormal,   // 충돌 노말
+			""                        // 본 이름 (현재 미사용)
+		);
 
 		// 최대 충돌 횟수 체크
 		if (MaxCollisions > 0 && Payload->CollisionCount >= MaxCollisions)

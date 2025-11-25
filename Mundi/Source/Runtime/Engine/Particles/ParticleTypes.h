@@ -40,7 +40,7 @@ enum class EParticleCollisionResponse : uint8
     Stop            // 충돌 시 정지
 };
 
-// 파티클 플래그 비트마스크ㄴ
+// 파티클 플래그 비트마스크
 // - FBaseParticle::Flags에 사용
 namespace EParticleFlags
 {

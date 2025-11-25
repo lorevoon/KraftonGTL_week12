@@ -988,6 +988,9 @@
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleTypes.h">
       <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEventData.h">
+      <Filter>Source\Runtime\Engine\Particles</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleHelper.h">
       <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClInclude>

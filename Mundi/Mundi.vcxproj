@@ -964,6 +964,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\Components\StaticMeshComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\TextRenderComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleTypes.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEventData.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleHelper.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleModule.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleRequired.h" />
