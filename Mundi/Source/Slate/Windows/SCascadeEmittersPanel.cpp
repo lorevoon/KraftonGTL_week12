@@ -17,6 +17,7 @@
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataBeam.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleCollision.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleAcceleration.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleEventGenerator.h"
 #include "Material.h"
 #include "ResourceManager.h"
@@ -327,6 +328,16 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Collision";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Acceleration"))
+            {
+                UParticleModuleAcceleration* NewModule = NewObject<UParticleModuleAcceleration>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Acceleration";
                     LOD0->AddModule(NewModule);
                 }
             }
