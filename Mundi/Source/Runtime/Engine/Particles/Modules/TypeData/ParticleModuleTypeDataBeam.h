@@ -28,6 +28,7 @@ public:
         , Segments(1)
         , Width(10.0f)
         , Length(100.0f)
+        , TaperFactor(0.0f)
         , NoiseStrength(0.0f)
         , NoiseFrequency(1.0f)
     {}
@@ -47,6 +48,10 @@ public:
     // 빔 길이 (Distance 모드에서 사용)
     UPROPERTY(EditAnywhere, Category="Beam")
     float Length;
+
+    // 테이퍼 (0 = 균일, 1 = 끝점에서 완전히 가늘어짐)
+    UPROPERTY(EditAnywhere, Category="Beam")
+    float TaperFactor;
 
     // 노이즈 강도 (0 = 직선)
     UPROPERTY(EditAnywhere, Category="Noise")

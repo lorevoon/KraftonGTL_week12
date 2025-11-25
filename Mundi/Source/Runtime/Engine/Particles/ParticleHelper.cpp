@@ -428,6 +428,7 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
     int32 Segments = FMath::Max(1, TypeDataBeam->Segments);
     float Width = TypeDataBeam->Width;
     float Length = TypeDataBeam->Length;
+    float TaperFactor = TypeDataBeam->TaperFactor;
     float NoiseStrength = TypeDataBeam->NoiseStrength;
 
     // 각 파티클당 (Segments + 1) * 2 버텍스
@@ -486,8 +487,11 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
             FVector ToCamera = (CameraPos - SegPos).GetSafeNormal();
             FVector Right = FVector::Cross(BeamDir, ToCamera).GetSafeNormal();
 
+            // 테이퍼 적용 (T가 1에 가까울수록 가늘어짐)
+            float TaperScale = 1.0f - (TaperFactor * T);
+
             // 폭 적용 (파티클 사이즈로 스케일)
-            float HalfWidth = Width * 0.5f * Particle->Size.X;
+            float HalfWidth = Width * 0.5f * Particle->Size.X * TaperScale;
 
             // 버텍스 인덱스
             int32 BaseVertex = p * VerticesPerBeam + s * 2;
