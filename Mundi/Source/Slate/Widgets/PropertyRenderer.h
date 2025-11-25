@@ -30,6 +30,7 @@ private:
 	static bool RenderStringProperty(const FProperty& Prop, void* Instance);
 	static bool RenderNameProperty(const FProperty& Prop, void* Instance);
 	static bool RenderObjectPtrProperty(const FProperty& Prop, void* Instance);
+	static bool RenderEnumProperty(const FProperty& Prop, void* Instance);
 	static bool RenderStructProperty(const FProperty& Prop, void* Instance);
 	static bool RenderTextureProperty(const FProperty& Prop, void* Instance);
 	static bool RenderSoundProperty(const FProperty& Prop, void* Instance);

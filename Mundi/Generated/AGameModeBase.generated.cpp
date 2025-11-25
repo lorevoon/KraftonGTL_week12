@@ -35,6 +35,7 @@ const bool AGameModeBase::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(AGameModeBase)
     MARK_AS_SPAWNABLE("게임 모드", "게임 규칙, 플레이어 스폰, 게임 상태 전환 등을 담당하는 클래스입니다.")
     ADD_PROPERTY(FVector, PlayerSpawnLocation, "GameMode", true, "플레이어 스폰 위치입니다.")

@@ -33,6 +33,7 @@ const bool UParticleModuleColor::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleColor)
     ADD_PROPERTY(FLinearColor, StartColor, "Color", true)
     ADD_PROPERTY(FLinearColor, EndColor, "Color", true)

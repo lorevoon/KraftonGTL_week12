@@ -33,8 +33,11 @@ const bool UParticleModuleCollision::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+// Enum values for EParticleCollisionResponse
+static const char* CollisionResponse_EnumNames[] = { "Kill", "Bounce", "Stop", nullptr };
+
 BEGIN_PROPERTIES(UParticleModuleCollision)
-    ADD_PROPERTY(EParticleCollisionResponse, CollisionResponse, "Collision", true)
+    ADD_PROPERTY_ENUM(EParticleCollisionResponse, CollisionResponse, "Collision", CollisionResponse_EnumNames, 3, true)
     ADD_PROPERTY(float, Resilience, "Collision", true)
     ADD_PROPERTY(float, Friction, "Collision", true)
     ADD_PROPERTY(bool, bCollisionEnabled, "Collision", true)

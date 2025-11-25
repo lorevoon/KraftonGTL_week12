@@ -35,6 +35,7 @@ const bool UProjectileMovementComponent::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UProjectileMovementComponent)
     MARK_AS_COMPONENT("발사체 이동 컴포넌트", "발사체 물리 이동 컴포넌트입니다")
     ADD_PROPERTY(float, Gravity, "발사체", true, "발사체 중력 가속도입니다")

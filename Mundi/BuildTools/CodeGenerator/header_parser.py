@@ -10,15 +10,30 @@ from typing import List, Dict, Optional, Tuple
 from macro_parser import MacroParser, create_macro_parser
 
 
+@dataclass
+class EnumInfo:
+    """Enum 정보"""
+    name: str          # "EParticleCollisionResponse"
+    values: List[str]  # ["Kill", "Bounce", "Stop"]
+    base_type: str     # "uint8"
+
+
 class Property:
     """프로퍼티 정보"""
     # MacroParser 인스턴스 (클래스 변수 - dataclass 밖에서 선언)
     _macro_parser: Optional['MacroParser'] = None
+    # Enum 레지스트리 (클래스 변수)
+    _enum_registry: Dict[str, 'EnumInfo'] = {}
 
     @classmethod
     def set_macro_parser(cls, parser: 'MacroParser'):
         """MacroParser 인스턴스 설정 (전역)"""
         cls._macro_parser = parser
+
+    @classmethod
+    def set_enum_registry(cls, registry: Dict[str, 'EnumInfo']):
+        """Enum 레지스트리 설정 (전역)"""
+        cls._enum_registry = registry
 
     def __init__(
         self,
@@ -41,9 +56,16 @@ class Property:
         self.max_value = max_value
         self.has_range = has_range
         self.metadata = metadata or {}
+        # Enum 관련 필드
+        self.is_enum = False
+        self.enum_values: List[str] = []
 
     def get_property_type_macro(self) -> str:
         """타입에 맞는 ADD_PROPERTY 매크로 결정 (동적 감지)"""
+        # Enum 타입 체크 (맨 먼저)
+        if self.is_enum:
+            return 'ADD_PROPERTY_ENUM'
+
         type_lower = self.type.lower()
 
         # TArray 타입 체크 (포인터 체크보다 먼저)
@@ -174,6 +196,12 @@ class HeaderParser:
     # UPROPERTY 시작 패턴 (괄호는 별도 파싱)
     UPROPERTY_START = re.compile(r'UPROPERTY\s*\(')
 
+    # enum class 패턴 (예: enum class EParticleCollisionResponse : uint8 { ... })
+    ENUM_PATTERN = re.compile(
+        r'enum\s+class\s+(\w+)\s*:\s*(\w+)\s*\{([^}]+)\}',
+        re.DOTALL
+    )
+
     def __init__(self, project_root: Optional[Path] = None):
         """
         HeaderParser 초기화
@@ -191,6 +219,9 @@ class HeaderParser:
 
         # Property 클래스에 MacroParser 설정 (전역)
         Property.set_macro_parser(self.macro_parser)
+
+        # Enum 레지스트리 (전역)
+        self.enum_registry: Dict[str, EnumInfo] = {}
 
         print(f"[HeaderParser] Initialized with {len(self.macro_parser.macros)} macros from ObjectMacros.h")
 
@@ -385,6 +416,13 @@ class HeaderParser:
         """프로퍼티 메타데이터 파싱"""
         prop = Property(name=name, type=type_str)
 
+        # Enum 타입 체크 (enum 레지스트리에서 확인)
+        if type_str in self.enum_registry:
+            enum_info = self.enum_registry[type_str]
+            prop.is_enum = True
+            prop.enum_values = enum_info.values
+            print(f"  [Enum] {name}: {type_str} -> {enum_info.values}")
+
         # Category 추출
         category_match = re.search(r'Category\s*=\s*"([^"]+)"', metadata)
         if category_match:
@@ -446,8 +484,56 @@ class HeaderParser:
 
         return func
 
+    def parse_enums_from_content(self, content: str) -> Dict[str, EnumInfo]:
+        """파일 내용에서 enum class 정의 파싱"""
+        enums = {}
+        # 주석 제거
+        content_no_comments = self._remove_comments(content)
+
+        for match in self.ENUM_PATTERN.finditer(content_no_comments):
+            name = match.group(1)
+            base_type = match.group(2)
+            body = match.group(3)
+
+            # enum 값 파싱 (= 뒤의 명시적 값 제거)
+            values = []
+            for v in body.split(','):
+                v = v.strip()
+                if v and not v.startswith('//'):
+                    # 주석 제거 및 값 추출
+                    v = v.split('//')[0].strip()  # 인라인 주석 제거
+                    v = v.split('=')[0].strip()   # = 뒤의 값 제거
+                    if v:
+                        values.append(v)
+
+            if values:
+                enums[name] = EnumInfo(name=name, values=values, base_type=base_type)
+
+        return enums
+
+    def collect_all_enums(self, source_dir: Path):
+        """소스 디렉토리에서 모든 enum class 수집"""
+        print("[HeaderParser] Collecting enums from source directory...")
+        for header in source_dir.rglob("*.h"):
+            try:
+                content = header.read_text(encoding='utf-8')
+                enums = self.parse_enums_from_content(content)
+                for name, enum_info in enums.items():
+                    if name not in self.enum_registry:
+                        self.enum_registry[name] = enum_info
+                        print(f"  [Enum] Found: {name} = {enum_info.values}")
+            except Exception as e:
+                pass  # enum 파싱 실패는 무시
+
+        print(f"[HeaderParser] Collected {len(self.enum_registry)} enums")
+        # Property 클래스에 enum 레지스트리 설정
+        Property.set_enum_registry(self.enum_registry)
+
     def find_reflection_classes(self, source_dir: Path) -> List[ClassInfo]:
         """소스 디렉토리에서 GENERATED_REFLECTION_BODY가 있는 모든 클래스 찾기"""
+        # 먼저 모든 enum 수집
+        self.collect_all_enums(source_dir)
+
         classes = []
 
         for header in source_dir.rglob("*.h"):

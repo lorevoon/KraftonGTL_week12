@@ -33,6 +33,7 @@ const bool UShapeComponent::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UShapeComponent)
     MARK_AS_COMPONENT("셰이프 컴포넌트", "충돌 모양 기본 컴포넌트입니다")
     ADD_PROPERTY(bool, bShapeIsVisible, "Shape", true)

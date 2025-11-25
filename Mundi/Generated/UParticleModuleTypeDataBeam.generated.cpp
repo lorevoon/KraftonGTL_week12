@@ -33,8 +33,11 @@ const bool UParticleModuleTypeDataBeam::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+// Enum values for EBeamMethod
+static const char* BeamMethod_EnumNames[] = { "Emitter", "Target", "Distance", nullptr };
+
 BEGIN_PROPERTIES(UParticleModuleTypeDataBeam)
-    ADD_PROPERTY(EBeamMethod, BeamMethod, "Beam", true)
+    ADD_PROPERTY_ENUM(EBeamMethod, BeamMethod, "Beam", BeamMethod_EnumNames, 3, true)
     ADD_PROPERTY(int32, Segments, "Beam", true)
     ADD_PROPERTY(float, Width, "Beam", true)
     ADD_PROPERTY(float, Length, "Beam", true)

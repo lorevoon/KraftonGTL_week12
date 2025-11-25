@@ -35,6 +35,7 @@ const bool UParticleModuleTypeDataMesh::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleTypeDataMesh)
     ADD_PROPERTY_STATICMESH(UStaticMesh*, Mesh, "Mesh", true)
     ADD_PROPERTY(bool, bUseMeshMaterials, "Mesh", true)

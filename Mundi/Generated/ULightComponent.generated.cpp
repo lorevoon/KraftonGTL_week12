@@ -33,6 +33,7 @@ const bool ULightComponent::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(ULightComponent)
     MARK_AS_COMPONENT("라이트 컴포넌트", "기본 조명 컴포넌트입니다")
     ADD_PROPERTY_RANGE(float, Temperature, "Light", 1000.0f, 15000.0f, true, "조명의 색온도를 켈빈(K) 단위로 설정합니다\n(1000K: 주황색, 6500K: 주광색, 15000K: 푸른색)")

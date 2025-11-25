@@ -35,6 +35,7 @@ const bool UParticleModuleLocation::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(UParticleModuleLocation)
     ADD_PROPERTY(FVector, StartLocation, "Location", true)
 END_PROPERTIES()

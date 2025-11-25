@@ -8,6 +8,13 @@ from header_parser import ClassInfo, Property
 
 
 PROPERTY_TEMPLATE = """
+{%- for prop in properties %}
+{%- if prop.is_enum %}
+// Enum values for {{ prop.type }}
+static const char* {{ prop.name }}_EnumNames[] = { {% for val in prop.enum_values %}"{{ val }}", {% endfor %}nullptr };
+{%- endif %}
+{%- endfor %}
+
 BEGIN_PROPERTIES({{ class_name }})
 {%- if mark_type == 'SPAWNABLE' %}
     MARK_AS_SPAWNABLE("{{ display_name }}", "{{ description }}")
@@ -15,7 +22,9 @@ BEGIN_PROPERTIES({{ class_name }})
     MARK_AS_COMPONENT("{{ display_name }}", "{{ description }}")
 {%- endif %}
 {%- for prop in properties %}
-    {%- if prop.get_property_type_macro() == 'ADD_PROPERTY_RANGE' %}
+    {%- if prop.get_property_type_macro() == 'ADD_PROPERTY_ENUM' %}
+    ADD_PROPERTY_ENUM({{ prop.type }}, {{ prop.name }}, "{{ prop.category }}", {{ prop.name }}_EnumNames, {{ prop.enum_values|length }}, {{ 'true' if prop.editable else 'false' }}{% if prop.tooltip %}, "{{ prop.tooltip }}"{% endif %})
+    {%- elif prop.get_property_type_macro() == 'ADD_PROPERTY_RANGE' %}
     ADD_PROPERTY_RANGE({{ prop.type }}, {{ prop.name }}, "{{ prop.category }}", {{ prop.min_value }}f, {{ prop.max_value }}f, {{ 'true' if prop.editable else 'false' }}{% if prop.tooltip %}, "{{ prop.tooltip }}"{% endif %})
     {%- elif prop.get_property_type_macro() == 'ADD_PROPERTY_ARRAY' %}
     ADD_PROPERTY_ARRAY({{ prop.metadata.get('inner_type', 'EPropertyType::ObjectPtr') }}, {{ prop.name }}, "{{ prop.category }}", {{ 'true' if prop.editable else 'false' }}{% if prop.tooltip %}, "{{ prop.tooltip }}"{% endif %})

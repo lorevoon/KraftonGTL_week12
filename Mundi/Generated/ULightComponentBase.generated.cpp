@@ -33,6 +33,7 @@ const bool ULightComponentBase::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+
 BEGIN_PROPERTIES(ULightComponentBase)
     MARK_AS_COMPONENT("라이트 베이스 컴포넌트", "모든 조명의 기본 컴포넌트입니다")
     ADD_PROPERTY_RANGE(float, Intensity, "Light", 0.0f, 100.0f, true)
