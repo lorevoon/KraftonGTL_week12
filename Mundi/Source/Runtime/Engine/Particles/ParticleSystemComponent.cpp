@@ -39,9 +39,6 @@ void UParticleSystemComponent::OnRegister(UWorld* InWorld)
 
     if (Template && bAutoActivate)
     {
-        // 템플릿 기본값으로 동기화
-        LODDistanceCheckTime = Template->LODDistanceCheckTime;
-        LODMethod = Template->LODMethod;
         AccumLODDistanceCheckTime = 0.0f;
         bLODUpdatePending = (LODMethod == ParticleSystemLODMethod::ActivateAutomatic);
 
