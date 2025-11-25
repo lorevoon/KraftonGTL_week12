@@ -145,12 +145,12 @@ void FDynamicSpriteEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMateria
     // 5. Material 바인딩 (셰이더, 텍스처, 샘플러)
     if (Material)
     {
-        // 셰이더 바인딩
-        UShader* Shader = Material->GetShader();
-        if (Shader)
+        // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
+        static UShader* SpriteShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleSprite.hlsl");
+        if (SpriteShader)
         {
-            RHI->PrepareShader(Shader);
-            UE_LOG("[debug] Shader bound: %s", Shader ? "Valid" : "Null");
+            RHI->PrepareShader(SpriteShader);
+            UE_LOG("[debug] Shader bound: %s", SpriteShader ? "Valid" : "Null");
         }
         else
         {
@@ -326,6 +326,9 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     UINT InstanceCount = Instances.Num();
     ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
 
+    // 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
+    static UShader* MeshShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleMesh.hlsl");
+
     if (TypeDataMesh->bUseMeshMaterials)
     {
         // 메시 머티리얼 사용 (SubMesh별 렌더링)
@@ -333,13 +336,9 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
         const TArray<FGroupInfo>& GroupInfos = ParticleMesh->GetMeshGroupInfo();
 
         // 파티클 셰이더 바인딩 (인스턴싱 + 단일 RT 출력 지원)
-        if (Material)
+        if (MeshShader)
         {
-            UShader* ParticleShader = Material->GetShader();
-            if (ParticleShader)
-            {
-                RHI->PrepareShader(ParticleShader);
-            }
+            RHI->PrepareShader(MeshShader);
         }
 
         for (uint32 i = 0; i < GroupInfos.size(); ++i)
@@ -367,14 +366,14 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     else
     {
         // 파티클 머티리얼 사용 (기존 방식 - 전체 메시 한번에)
+        // 쉐이더는 파티클 전용 쉐이더 강제 사용
+        if (MeshShader)
+        {
+            RHI->PrepareShader(MeshShader);
+        }
+
         if (Material)
         {
-            UShader* Shader = Material->GetShader();
-            if (Shader)
-            {
-                RHI->PrepareShader(Shader);
-            }
-
             ID3D11ShaderResourceView* DiffuseSRV = nullptr;
             if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
             {
@@ -560,15 +559,15 @@ void FDynamicBeamEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     RHI->OMSetBlendState(true);
     RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
 
-    // 셰이더 바인딩 (스프라이트와 동일한 셰이더 사용 가능)
+    // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
+    static UShader* BeamShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleBeam.hlsl");
+    if (BeamShader)
+    {
+        RHI->PrepareShader(BeamShader);
+    }
+
     if (Material)
     {
-        UShader* Shader = Material->GetShader();
-        if (Shader)
-        {
-            RHI->PrepareShader(Shader);
-        }
-
         // 텍스처 바인딩
         ID3D11ShaderResourceView* DiffuseSRV = nullptr;
         if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
