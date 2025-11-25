@@ -13,6 +13,7 @@
 // Particle preview wiring
 #include "Source/Runtime/Renderer/ParticleSystemEditorViewportClient.h"
 #include "Source/Runtime/Engine/Particles/ParticleSystemComponent.h"
+#include "Widgets/PropertyRenderer.h"
 
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
@@ -842,57 +843,6 @@ void SParticleSystemEditorWindow::RenderProperty(UParticleModule* Module, const 
         return;
 
     ImGui::PushID(Prop->Name);
-
-    // Property label
-    ImGui::Text("%s:", Prop->Name);
-
-    switch (Prop->Type)
-    {
-    case EPropertyType::Bool:
-    {
-        bool* Value = Prop->GetValuePtr<bool>(Module);
-        ImGui::Checkbox("##value", Value);
-        break;
-    }
-    case EPropertyType::Int32:
-    {
-        int32* Value = Prop->GetValuePtr<int32>(Module);
-        ImGui::DragInt("##value", Value, 1.0f, (int)Prop->MinValue, (int)Prop->MaxValue);
-        break;
-    }
-    case EPropertyType::Float:
-    {
-        float* Value = Prop->GetValuePtr<float>(Module);
-        ImGui::DragFloat("##value", Value, 0.01f, Prop->MinValue, Prop->MaxValue);
-        break;
-    }
-    case EPropertyType::FVector:
-    {
-        FVector* Value = Prop->GetValuePtr<FVector>(Module);
-        ImGui::DragFloat3("##value", &Value->X, 0.1f);
-        break;
-    }
-    case EPropertyType::FLinearColor:
-    {
-        FLinearColor* Value = Prop->GetValuePtr<FLinearColor>(Module);
-        ImGui::ColorEdit4("##value", &Value->R);
-        break;
-    }
-    case EPropertyType::FString:
-    {
-        FString* Value = Prop->GetValuePtr<FString>(Module);
-        char buffer[256];
-        strncpy_s(buffer, Value->c_str(), sizeof(buffer) - 1);
-        if (ImGui::InputText("##value", buffer, sizeof(buffer)))
-        {
-            *Value = FString(buffer);
-        }
-        break;
-    }
-    default:
-        ImGui::TextUnformatted("(Unsupported type)");
-        break;
-    }
-
+    UPropertyRenderer::RenderProperty(*Prop, Module);
     ImGui::PopID();
 }
