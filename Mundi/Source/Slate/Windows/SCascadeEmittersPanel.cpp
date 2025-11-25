@@ -19,6 +19,14 @@
 #include "Material.h"
 #include "ResourceManager.h"
 
+void SCascadeEmittersPanel::SetEditingSystem(UParticleSystem* InSystem)
+{
+    EditingSystem = InSystem;
+    // Reset editor states when changing systems
+    EmitterEditorStates.Empty();
+    EnsureEditorStates();
+}
+
 void SCascadeEmittersPanel::EnsureEditingSystem()
 {
     if (!EditingSystem)
@@ -26,6 +34,68 @@ void SCascadeEmittersPanel::EnsureEditingSystem()
         EditingSystem = NewObject<UParticleSystem>();
         EditingSystem->SystemName = "NewParticleSystem";
     }
+    EnsureEditorStates();
+}
+
+void SCascadeEmittersPanel::EnsureEditorStates()
+{
+    if (!EditingSystem)
+        return;
+
+    int32 EmitterCount = EditingSystem->GetEmitterCount();
+    // Grow the array if needed
+    while (EmitterEditorStates.Num() < EmitterCount)
+    {
+        EmitterEditorStates.Add(FEmitterEditorState());
+    }
+    // Shrink if emitters were removed
+    if (EmitterEditorStates.Num() > EmitterCount)
+    {
+        EmitterEditorStates.resize(EmitterCount);
+    }
+}
+
+FEmitterEditorState& SCascadeEmittersPanel::GetEmitterEditorState(int32 EmitterIndex)
+{
+    EnsureEditorStates();
+    static FEmitterEditorState DefaultState;
+    if (EmitterIndex >= 0 && EmitterIndex < EmitterEditorStates.Num())
+    {
+        return EmitterEditorStates[EmitterIndex];
+    }
+    return DefaultState;
+}
+
+bool SCascadeEmittersPanel::IsEmitterVisibleInEditor(int32 EmitterIndex) const
+{
+    if (EmitterIndex < 0 || EmitterIndex >= EmitterEditorStates.Num())
+        return true;
+
+    const FEmitterEditorState& State = EmitterEditorStates[EmitterIndex];
+
+    // Check if any emitter has solo enabled
+    bool bAnySolo = HasAnySoloEmitter();
+
+    if (bAnySolo)
+    {
+        // If any emitter is solo'd, only show solo'd emitters
+        return State.bIsSolo && State.bIsVisible;
+    }
+    else
+    {
+        // Normal visibility check
+        return State.bIsVisible;
+    }
+}
+
+bool SCascadeEmittersPanel::HasAnySoloEmitter() const
+{
+    for (const FEmitterEditorState& State : EmitterEditorStates)
+    {
+        if (State.bIsSolo)
+            return true;
+    }
+    return false;
 }
 
 void SCascadeEmittersPanel::Render(float width, float height)
@@ -74,26 +144,68 @@ void SCascadeEmittersPanel::Render(float width, float height)
         ImGui::TextUnformatted(Name.c_str());
 
         // Second row: Control icons (horizontal layout)
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 2));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 1));  // Wider padding, minimal vertical
 
-        const float iconButtonSize = 16.0f;
-        if (ImGui::Button("V##vis", ImVec2(iconButtonSize, iconButtonSize))) {} // Visibility
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle Visibility");
+        const float iconButtonWidth = 20.0f;
+        const float iconButtonHeight = 20.0f;
+        FEmitterEditorState& EditorState = GetEmitterEditorState(i);
 
-        ImGui::SameLine();
-
-        if (ImGui::Button("R##render", ImVec2(iconButtonSize, iconButtonSize))) {} // Render mode
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Render Mode");
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("S##solo", ImVec2(iconButtonSize, iconButtonSize))) {} // Solo mode
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Solo Mode");
-
+        // Visibility toggle (V)
+        ImVec4 visButtonColor = EditorState.bIsVisible ? ImVec4(0.2f, 0.5f, 0.2f, 1.0f) : ImVec4(0.5f, 0.2f, 0.2f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, visButtonColor);
+        if (ImGui::Button("V##vis", ImVec2(iconButtonWidth, iconButtonHeight)))
+        {
+            EditorState.bIsVisible = !EditorState.bIsVisible;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
+        }
         ImGui::PopStyleColor();
-        ImGui::PopStyleVar(2);
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Toggle Visibility (%s)", EditorState.bIsVisible ? "Visible" : "Hidden");
+        }
+
+        ImGui::SameLine();
+
+        // Render mode toggle (R) - cycles through modes
+        const char* renderModeLabels[] = { "N", "P", "X", "-" }; // Normal, Points, Cross, None
+        const char* renderModeNames[] = { "Normal", "Points", "Cross", "None" };
+        int renderModeIndex = static_cast<int>(EditorState.RenderMode);
+        ImVec4 renderButtonColor = (EditorState.RenderMode == EEmitterEditorRenderMode::Normal)
+            ? ImVec4(0.3f, 0.3f, 0.3f, 1.0f)
+            : ImVec4(0.4f, 0.3f, 0.2f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, renderButtonColor);
+        if (ImGui::Button(renderModeLabels[renderModeIndex], ImVec2(iconButtonWidth, iconButtonHeight)))
+        {
+            // Cycle to next render mode
+            renderModeIndex = (renderModeIndex + 1) % 4;
+            EditorState.RenderMode = static_cast<EEmitterEditorRenderMode>(renderModeIndex);
+            if (EditingSystem) EditingSystem->bIsDirty = true;
+        }
+        ImGui::PopStyleColor();
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Render Mode: %s (click to cycle)", renderModeNames[static_cast<int>(EditorState.RenderMode)]);
+        }
+
+        ImGui::SameLine();
+
+        // Solo toggle (S)
+        ImVec4 soloButtonColor = EditorState.bIsSolo ? ImVec4(0.6f, 0.5f, 0.1f, 1.0f) : ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, soloButtonColor);
+        if (ImGui::Button("S##solo", ImVec2(iconButtonWidth, iconButtonHeight)))
+        {
+            EditorState.bIsSolo = !EditorState.bIsSolo;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
+        }
+        ImGui::PopStyleColor();
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Solo Mode (%s)", EditorState.bIsSolo ? "Solo" : "Off");
+        }
+
+        ImGui::PopStyleVar(3);
 
         ImGui::EndGroup();
 

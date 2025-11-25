@@ -12,6 +12,15 @@ class UParticleSystemComponent;
 class FSceneView;
 class UParticleModule;
 
+// Editor render mode for emitter instances
+enum class EEmitterRenderMode : uint8
+{
+    Normal = 0,    // Normal rendering
+    Points,        // Render as points
+    Cross,         // Render as crosses
+    None           // Don't render (but still simulate)
+};
+
 // 파티클 이미터 인스턴스 (런타임)
 // - 실제 파티클 시뮬레이션을 담당하는 비-UObject 구조체
 // - 메모리 풀 관리 및 파티클 생명주기 제어
@@ -37,6 +46,10 @@ struct FParticleEmitterInstance
     float EmitterTime;                       // 현재 이미터 사이클에서 경과한 시간 (시뮬레이션 값)
     float EmitterDuration;                   // 현재 LOD Level에서 이미터 총 지속 시간 설정값
     int32 LoopCount;                         // 현재까지의 루프 반복 완료 횟수
+
+    // Editor visibility state (set by editor, used during rendering)
+    bool bEditorVisible;                     // Is this emitter visible in editor viewport
+    EEmitterRenderMode EditorRenderMode;     // How to render in editor (Normal, Points, Cross, None)
 
     FParticleEmitterInstance();
     ~FParticleEmitterInstance();

@@ -24,6 +24,8 @@ FParticleEmitterInstance::FParticleEmitterInstance()
     , EmitterDuration(0.0f)
     , LoopCount(0)
     , CurrentLODLevelIndex(-1)
+    , bEditorVisible(true)
+    , EditorRenderMode(EEmitterRenderMode::Normal)
 {
 }
 

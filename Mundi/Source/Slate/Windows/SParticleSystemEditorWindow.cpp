@@ -171,7 +171,14 @@ void SParticleSystemEditorWindow::OnRender()
         // Restart simulation
         if (IconRestart && IconRestart->GetShaderResourceView())
         {
-            if (ImGui::ImageButton("##Cascade_RestartBtn", (void*)IconRestart->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::ImageButton("##Cascade_RestartBtn", (void*)IconRestart->GetShaderResourceView(), IconSizeVec))
+            {
+                UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+                if (PreviewComp)
+                {
+                    PreviewComp->Restart();
+                }
+            }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restart Simulation");
         }
 
@@ -602,7 +609,7 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
             if (ImGui::MenuItem("Pause"))
             {
                 bIsPlaying = false;
-                // TODO: Pause particle simulation
+                ApplyTimeSettings();
             }
         }
         else
@@ -610,24 +617,10 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
             if (ImGui::MenuItem("Play"))
             {
                 bIsPlaying = true;
-                // TODO: Play particle simulation
+                ApplyTimeSettings();
             }
         }
-
-        ImGui::Separator();
-
-        // Realtime toggle
-        if (ImGui::MenuItem("Realtime", nullptr, &bRealtime))
-        {
-            // TODO: Toggle realtime simulation
-        }
-
-        // Loop toggle
-        if (ImGui::MenuItem("Loop", nullptr, &bLoopSimulation))
-        {
-            // TODO: Toggle loop simulation
-        }
-
+        
         ImGui::Separator();
 
         // AnimSpeed submenu
@@ -636,22 +629,22 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
             if (ImGui::MenuItem("100%", nullptr, AnimSpeed == 1.0f))
             {
                 AnimSpeed = 1.0f;
-                // TODO: Set animation speed to 100%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("50%", nullptr, AnimSpeed == 0.5f))
             {
                 AnimSpeed = 0.5f;
-                // TODO: Set animation speed to 50%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("25%", nullptr, AnimSpeed == 0.25f))
             {
                 AnimSpeed = 0.25f;
-                // TODO: Set animation speed to 25%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("10%", nullptr, AnimSpeed == 0.1f))
             {
                 AnimSpeed = 0.1f;
-                // TODO: Set animation speed to 10%
+                ApplyTimeSettings();
             }
 
             ImGui::Separator();
@@ -659,17 +652,17 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
             if (ImGui::MenuItem("200%", nullptr, AnimSpeed == 2.0f))
             {
                 AnimSpeed = 2.0f;
-                // TODO: Set animation speed to 200%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("500%", nullptr, AnimSpeed == 5.0f))
             {
                 AnimSpeed = 5.0f;
-                // TODO: Set animation speed to 500%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("1000%", nullptr, AnimSpeed == 10.0f))
             {
                 AnimSpeed = 10.0f;
-                // TODO: Set animation speed to 1000%
+                ApplyTimeSettings();
             }
 
             ImGui::EndMenu();
@@ -740,6 +733,8 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
             PreviewComp->Restart();
             // Clear dirty state once bound
             EditingSystem->bIsDirty = false;
+            // Apply time settings to newly bound component
+            ApplyTimeSettings();
         }
         else if (EditingSystem->bIsDirty)
         {
@@ -749,6 +744,9 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
             EditingSystem->bIsDirty = false;
         }
     }
+
+    // Sync editor visibility/render mode state to emitter instances
+    SyncEmitterEditorStates(PreviewComp);
 }
 
 void SParticleSystemEditorWindow::LoadToolbarIcons()
@@ -872,4 +870,69 @@ void SParticleSystemEditorWindow::RenderProperty(UParticleModule* Module, const 
         EmittersPanel->GetEditingSystem()->bIsDirty = true;
     }
     ImGui::PopID();
+}
+
+UParticleSystemComponent* SParticleSystemEditorWindow::GetPreviewComponent() const
+{
+    if (!ActiveState || !ActiveState->Client)
+        return nullptr;
+
+    FParticleSystemEditorViewportClient* PSClient = dynamic_cast<FParticleSystemEditorViewportClient*>(ActiveState->Client);
+    if (!PSClient)
+        return nullptr;
+
+    return PSClient->GetPreviewComponent();
+}
+
+void SParticleSystemEditorWindow::ApplyTimeSettings()
+{
+    UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+    if (!PreviewComp)
+        return;
+
+    // Calculate effective playback rate
+    // If paused, set to 0. If playing, use AnimSpeed.
+    // If not realtime, we could potentially step manually, but for now just pause.
+    float EffectiveRate = 0.0f;
+    if (bIsPlaying && bRealtime)
+    {
+        EffectiveRate = AnimSpeed;
+    }
+
+    PreviewComp->CustomPlaybackRate = EffectiveRate;
+}
+
+void SParticleSystemEditorWindow::SyncEmitterEditorStates(UParticleSystemComponent* PreviewComp)
+{
+    if (!PreviewComp || !EmittersPanel)
+        return;
+
+    // Check if any emitter has solo enabled
+    bool bAnySolo = EmittersPanel->HasAnySoloEmitter();
+
+    // Sync visibility and render mode from editor states to emitter instances
+    int32 NumInstances = PreviewComp->EmitterInstances.Num();
+    for (int32 i = 0; i < NumInstances; ++i)
+    {
+        FParticleEmitterInstance* Instance = PreviewComp->EmitterInstances[i];
+        if (!Instance)
+            continue;
+
+        FEmitterEditorState& EditorState = EmittersPanel->GetEmitterEditorState(i);
+
+        // Determine visibility based on solo mode
+        if (bAnySolo)
+        {
+            // If any emitter is solo'd, only show solo'd emitters that are also visible
+            Instance->bEditorVisible = EditorState.bIsSolo && EditorState.bIsVisible;
+        }
+        else
+        {
+            // Normal visibility check
+            Instance->bEditorVisible = EditorState.bIsVisible;
+        }
+
+        // Sync render mode
+        Instance->EditorRenderMode = static_cast<EEmitterRenderMode>(EditorState.RenderMode);
+    }
 }

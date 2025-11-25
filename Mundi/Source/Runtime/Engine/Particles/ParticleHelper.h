@@ -125,13 +125,18 @@ struct FParticleMeshInstance
     }
 };
 
+// Forward declare for EditorRenderMode (defined in ParticleEmitterInstance.h)
+enum class EEmitterRenderMode : uint8;
+
 // 추상 베이스 클래스
 struct FDynamicEmitterDataBase
 {
     FParticleEmitterInstance* Source;  // 원본 파티클 데이터
+    EEmitterRenderMode EditorRenderMode;  // Editor render mode (set from emitter instance)
 
     FDynamicEmitterDataBase(FParticleEmitterInstance* InSource)
         : Source(InSource)
+        , EditorRenderMode(static_cast<EEmitterRenderMode>(0))  // EEmitterRenderMode::Normal
     {
     }
 
