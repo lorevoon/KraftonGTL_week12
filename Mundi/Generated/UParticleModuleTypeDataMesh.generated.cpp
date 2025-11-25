@@ -38,6 +38,7 @@ const bool UParticleModuleTypeDataMesh::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UParticleModuleTypeDataMesh)
     MARK_AS_COMPONENT("메시 타입 데이터", "메시 파티클에 사용할 스태틱 메시를 지정합니다")
     ADD_PROPERTY_STATICMESH(UStaticMesh*, Mesh, "Mesh", true)
+    ADD_PROPERTY(bool, bUseMeshMaterials, "Mesh", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -46,5 +47,7 @@ LUA_BIND_BEGIN(UParticleModuleTypeDataMesh)
 {
     AddPropertyPtr<UParticleModuleTypeDataMesh, UStaticMesh>(
         T, "Mesh", &UParticleModuleTypeDataMesh::Mesh);
+    AddProperty<UParticleModuleTypeDataMesh, bool>(
+        T, "bUseMeshMaterials", &UParticleModuleTypeDataMesh::bUseMeshMaterials);
 }
 LUA_BIND_END()

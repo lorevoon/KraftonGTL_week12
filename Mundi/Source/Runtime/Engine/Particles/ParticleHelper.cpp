@@ -10,6 +10,7 @@
 #include "StaticMesh.h"
 #include "ParticleDynamicBuffers.h"
 #include "ParticleSystemComponent.h"
+#include "ResourceManager.h"
 
 // ============================================================
 // 헬퍼 함수들
@@ -284,7 +285,7 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
         return;
 
     UStaticMesh* ParticleMesh = TypeDataMesh->Mesh;
-    
+
     uint32 MaxInstances = 0;
     uint32 RequiredInstances = Instances.Num();
     ID3D11Buffer* InstanceBuffer = BufferPool->GetOrCreateMeshInstanceBuffer(RequiredInstances, MaxInstances);
@@ -310,27 +311,7 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     // 6. Depth/Stencil 상태 설정
     RHI->OMSetDepthStencilState(EComparisonFunc::LessEqual);
 
-    // 7. Material 바인딩
-    if (Material)
-    {
-        UShader* Shader = Material->GetShader();
-        if (Shader)
-        {
-            RHI->PrepareShader(Shader);
-        }
-
-        ID3D11ShaderResourceView* DiffuseSRV = nullptr;
-        if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
-        {
-            DiffuseSRV = DiffuseTexture->GetShaderResourceView();
-        }
-        Context->PSSetShaderResources(0, 1, &DiffuseSRV);
-
-        ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
-        Context->PSSetSamplers(0, 1, &DefaultSampler);
-    }
-
-    // 8. 버퍼 바인딩 (Mesh vertex buffer + Instance buffer)
+    // 7. 버퍼 바인딩 (Mesh vertex buffer + Instance buffer)
     UINT VertexStride = ParticleMesh->GetVertexStride();
     UINT InstanceStride = sizeof(FParticleMeshInstance);
     UINT Offsets[2] = { 0, 0 };
@@ -341,10 +322,70 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     Context->IASetIndexBuffer(ParticleMesh->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
     Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // 9. DrawIndexedInstanced
-    UINT IndexCount = ParticleMesh->GetIndexCount();
     UINT InstanceCount = Instances.Num();
-    Context->DrawIndexedInstanced(IndexCount, InstanceCount, 0, 0, 0);
+    ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
+
+    if (TypeDataMesh->bUseMeshMaterials)
+    {
+        // 메시 머티리얼 사용 (SubMesh별 렌더링)
+        // 셰이더는 파티클 머티리얼(ParticleMesh.hlsl) 고정, 텍스처만 메시 머티리얼에서 가져옴
+        const TArray<FGroupInfo>& GroupInfos = ParticleMesh->GetMeshGroupInfo();
+
+        // 파티클 셰이더 바인딩 (인스턴싱 + 단일 RT 출력 지원)
+        if (Material)
+        {
+            UShader* ParticleShader = Material->GetShader();
+            if (ParticleShader)
+            {
+                RHI->PrepareShader(ParticleShader);
+            }
+        }
+
+        for (uint32 i = 0; i < GroupInfos.size(); ++i)
+        {
+            const FGroupInfo& Group = GroupInfos[i];
+
+            // 해당 SubMesh의 머티리얼에서 텍스처만 가져옴
+            UMaterialInterface* MeshMaterial = UResourceManager::GetInstance().Load<UMaterial>(Group.InitialMaterialName);
+
+            ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+            if (MeshMaterial)
+            {
+                if (UTexture* DiffuseTexture = MeshMaterial->GetTexture(EMaterialTextureSlot::Diffuse))
+                {
+                    DiffuseSRV = DiffuseTexture->GetShaderResourceView();
+                }
+            }
+            Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+            Context->PSSetSamplers(0, 1, &DefaultSampler);
+
+            // SubMesh별 Draw
+            Context->DrawIndexedInstanced(Group.IndexCount, InstanceCount, Group.StartIndex, 0, 0);
+        }
+    }
+    else
+    {
+        // 파티클 머티리얼 사용 (기존 방식 - 전체 메시 한번에)
+        if (Material)
+        {
+            UShader* Shader = Material->GetShader();
+            if (Shader)
+            {
+                RHI->PrepareShader(Shader);
+            }
+
+            ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+            if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
+            {
+                DiffuseSRV = DiffuseTexture->GetShaderResourceView();
+            }
+            Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+            Context->PSSetSamplers(0, 1, &DefaultSampler);
+        }
+
+        UINT IndexCount = ParticleMesh->GetIndexCount();
+        Context->DrawIndexedInstanced(IndexCount, InstanceCount, 0, 0, 0);
+    }
 
     // 10. 렌더 상태 복원
     RHI->RSSetState(ERasterizerMode::Solid);
