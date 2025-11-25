@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "ParticleSystemComponent.h"
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
@@ -9,6 +9,10 @@
 #include "Modules/TypeData/ParticleModuleTypeDataBase.h"
 #include "Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Modules/TypeData/ParticleModuleTypeDataBeam.h"
+#include "World.h"
+#include "PlayerCameraManager.h"
+#include "CameraActor.h"
+#include "CameraComponent.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -17,6 +21,10 @@ UParticleSystemComponent::UParticleSystemComponent()
     , SystemTime(0.0f)
     , CompletedLoops(0)
     , CustomPlaybackRate(1.0f)
+    , LODDistanceCheckTime(0.25f)
+    , LODMethod(ParticleSystemLODMethod::Automatic)
+	, AccumLODDistanceCheckTime(0.0f)
+	, bLODUpdatePending(false)
 {
 }
 
@@ -31,6 +39,9 @@ void UParticleSystemComponent::OnRegister(UWorld* InWorld)
 
     if (Template && bAutoActivate)
     {
+        AccumLODDistanceCheckTime = 0.0f;
+        bLODUpdatePending = (LODMethod == ParticleSystemLODMethod::ActivateAutomatic);
+
 		CreateEmitterInstances();
         Activate();
     }
@@ -55,6 +66,12 @@ void UParticleSystemComponent::Activate()
 
     SystemTime = 0.0f;
     CompletedLoops = 0;
+    AccumLODDistanceCheckTime = 0.0f;
+
+    if (LODMethod == ParticleSystemLODMethod::ActivateAutomatic)
+    {
+        bLODUpdatePending = true;
+	}
 
     bIsActive = true;
 }
@@ -90,11 +107,59 @@ void UParticleSystemComponent::SetTemplate(UParticleSystem* NewTemplate)
         Template = NewTemplate;
         SystemTime = 0.0f;
         CompletedLoops = 0;
+        AccumLODDistanceCheckTime = 0.0f;
+        bLODUpdatePending = false;
 
         if (Template)
         {
+			LODDistanceCheckTime = Template->LODDistanceCheckTime;
+			LODMethod = Template->LODMethod;
             CreateEmitterInstances();
         }
+    }
+}
+
+void UParticleSystemComponent::SetLODIndex(int32 LODIndex)
+{
+    if (LODMethod != ParticleSystemLODMethod::DirectSet)
+    {
+        UE_LOG("WARNING: SetLODIndex called but LODMethod is not DirectSet.");
+        return;
+    }
+    if(!Template)
+    {
+        UE_LOG("WARNING: SetLODIndex called but Template is null.");
+        return;
+	}
+
+    if (LODIndex < 0 || LODIndex >= Template->GetLODLevelCount())
+    {
+        UE_LOG("WARNING: SetLODIndex called with invalid LODIndex %d.", LODIndex);
+        return;
+	}
+
+    for (FParticleEmitterInstance* Instance : EmitterInstances)
+    {
+        if (Instance)
+        {
+			Instance->SetLODLevel(LODIndex);
+        }
+    }
+}
+
+void UParticleSystemComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+    Super::Serialize(bInIsLoading, InOutHandle);
+
+    if (bInIsLoading)
+    {
+        int32 LODMethodValue = static_cast<int32>(ParticleSystemLODMethod::Automatic);
+        FJsonSerializer::ReadInt32(InOutHandle, "LODMethod", LODMethodValue, static_cast<int32>(ParticleSystemLODMethod::Automatic), false);
+        LODMethod = static_cast<ParticleSystemLODMethod>(LODMethodValue);
+    }
+    else
+    {
+        InOutHandle["LODMethod"] = static_cast<long>(LODMethod);
     }
 }
 
@@ -152,13 +217,44 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
         }
     }
 
+    if (LODMethod == ParticleSystemLODMethod::Automatic)
+    {
+        if (LODDistanceCheckTime > 0.0f)
+        {
+            AccumLODDistanceCheckTime += DeltaTime; // 재생시간 영향 없이 실제 시간 기준 
+
+            while (AccumLODDistanceCheckTime >= LODDistanceCheckTime)
+            {
+                bLODUpdatePending = true;
+                AccumLODDistanceCheckTime -= LODDistanceCheckTime;
+            }
+        }
+        else
+        {
+            bLODUpdatePending = true; // 0 또는 음수면 매 프레임 체크로 간주
+        }
+    }
+
+    int32 NewLOD = 0;
+    if (bLODUpdatePending)
+    {
+        const FVector EffectLocation = GetWorldLocation();
+		NewLOD = DetermineLODLevelForLocation(EffectLocation);
+    }
+    
+
     for (FParticleEmitterInstance* Instance : EmitterInstances)
     {
         if (Instance)
         {
+            if (bLODUpdatePending)
+            {
+				Instance->SetLODLevel(NewLOD);
+            }
             UpdateEmitterInstance(Instance, ScaledDeltaTime);
         }
     }
+    bLODUpdatePending = false;
 }
 
 TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneView* View)
@@ -301,6 +397,8 @@ void UParticleSystemComponent::ResetInstances()
 {
     SystemTime = 0.0f;
     CompletedLoops = 0;
+    AccumLODDistanceCheckTime = 0.0f;
+    bLODUpdatePending = false;
 
     for (FParticleEmitterInstance* Instance : EmitterInstances)
     {
@@ -340,4 +438,52 @@ void UParticleSystemComponent::KillDeadParticles(FParticleEmitterInstance* Insta
     }
 
     Instance->KillDeadParticles();
+}
+
+int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& EffectLocation) const
+{
+    if (!Template || Template->LODDistances.IsEmpty())
+    {
+        return 0;
+    }
+
+    // 뷰 위치 획득: 우선 PlayerCameraManager → EditorCamera → 기본값(효과 위치)
+    FVector ViewLocation = EffectLocation;
+    // USceneComponent::GetWorld는 const가 아니므로 const_cast로 접근
+    if (UWorld* World = const_cast<UParticleSystemComponent*>(this)->GetWorld())
+    {
+        if (APlayerCameraManager* PCM = World->GetPlayerCameraManager())
+        {
+            if (FMinimalViewInfo* ViewInfo = PCM->GetCurrentViewInfo())
+            {
+                ViewLocation = ViewInfo->ViewLocation;
+            }
+        }
+        else if (ACameraActor* EditorCam = World->GetEditorCameraActor())
+        {
+            if (UCameraComponent* CamComp = EditorCam->GetCameraComponent())
+            {
+                ViewLocation = CamComp->GetWorldLocation();
+            }
+        }
+    }
+
+    const float Distance = (EffectLocation - ViewLocation).Size();
+
+    // 거리 기준으로 가장 큰 인덱스를 선택 (LODDistances는 오름차순, 0번은 0)
+    int32 SelectedLOD = 0;
+    const int32 LODCount = Template->LODDistances.Num();
+    for (int32 Index = 1; Index < LODCount; ++Index)
+    {
+        if (Distance >= Template->LODDistances[Index])
+        {
+            SelectedLOD = Index;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    return SelectedLOD;
 }
