@@ -1,5 +1,23 @@
 # Mundi Engine Particle Collision 구현 계획
 
+> **버전**: 1.1 (수정본)
+> **최종 수정**: 2025-01-25
+> **변경 사유**: 기존 Mundi 인프라 분석 결과 반영
+
+## 변경 사항 요약 (v1.1)
+
+기존 Mundi Engine 인프라 분석 결과, 계획을 다음과 같이 수정합니다:
+
+| Phase | 기존 계획 | 수정된 계획 | 이유 |
+|-------|----------|-----------|-----|
+| Phase 1 | LineTraceSingle 새로 구현 | 기존 `WorldPartitionManager::RayQueryClosest()` 활용 | 이미 존재함 |
+| Phase 2-3 | DECLARE_MULTICAST_DELEGATE 매크로 | 기존 `TDelegate<>` + `DECLARE_DELEGATE_TYPE` 활용 | 이미 존재함 |
+| Phase 5 | 완전 자동 Lua 바인딩 | 반자동 (Properties/Methods 자동 + Delegate 수동) | 자동 바인딩 미지원 |
+
+**예상 시간 단축**: 24-34h → **17-25h** (약 30% 단축)
+
+---
+
 ## 목차
 1. [프로젝트 개요](#프로젝트-개요)
 2. [현재 시스템 분석](#현재-시스템-분석)
@@ -12,6 +30,7 @@
 9. [Phase 6: 성능 최적화](#phase-6-성능-최적화)
 10. [추가 기능 (선택)](#추가-기능-선택)
 11. [타임라인 및 리스크](#타임라인-및-리스크)
+12. [설계 결정 사항](#설계-결정-사항)
 
 ---
 
@@ -118,20 +137,32 @@ struct FBaseParticle {
 
 **상태:** ✅ 완성, 충돌에 필요한 모든 데이터 존재
 
-#### 4. Collision 시스템 (부분적) ⚠️
+#### 4. Collision 시스템 ✅ (수정됨)
 
-**파일:** [Collision.h](../Source/Runtime/Engine/Collision/Collision.h)
+**파일들:**
+- [Picking.h](../Source/Runtime/Engine/Collision/Picking.h) - `FRay` 구조체
+- [AABB.h](../Source/Runtime/Engine/Collision/AABB.h) - `IntersectsRay()`
+- [OBB.h](../Source/Runtime/Engine/Collision/OBB.h) - `IntersectsRay()`
+- [BoundingSphere.h](../Source/Runtime/Engine/Collision/BoundingSphere.h) - `IntersectsRay()`
+- [WorldPartitionManager.h](../Source/Runtime/Engine/Spatial/WorldPartitionManager.h) - `RayQueryClosest()`
 
 **존재하는 기능:**
 ```cpp
-namespace Collision {
-    bool Intersects(const FAABB& Aabb, const FBoundingSphere& Sphere);
-    bool Intersects(const FOBB& Obb, const FBoundingSphere& Sphere);
-    bool CheckOverlap(const UShapeComponent* A, const UShapeComponent* B);
-}
+// FRay 구조체
+struct alignas(16) FRay
+{
+    FVector Origin;
+    FVector Direction; // Normalized
+};
+
+// FAABB에서 Ray 교차 검사
+bool FAABB::IntersectsRay(const FRay& InRay, float& OutEnterDistance, float& OutExitDistance);
+
+// WorldPartitionManager에서 BVH 기반 Ray Query
+void UWorldPartitionManager::RayQueryClosest(FRay InRay, OUT AActor*& OutActor, OUT float& OutBestT);
 ```
 
-**상태:** ⚠️ Shape-vs-Shape 충돌은 있지만, **Line Trace API 없음**
+**상태:** ✅ Ray casting 인프라 존재, 래핑 헬퍼만 추가하면 됨
 
 #### 5. World/Actor 시스템 ✅
 
@@ -147,30 +178,37 @@ const TArray<AActor*>& UWorld::GetActors();
 
 **상태:** ✅ 완성, Scene query API만 추가하면 됨
 
-### 구현 필요 항목
+### 구현 필요 항목 (수정됨)
 
-#### 1. Scene Query API ❌ (Phase 1 필수)
+#### 1. Particle Collision Query 헬퍼 ⚠️ (Phase 1 필수)
 
-**추가 필요:**
+**추가 필요 (기존 인프라 래핑):**
 ```cpp
-// UWorld에 추가
-struct FHitResult {
-    FVector Location;     // 충돌 위치
-    FVector Normal;       // 충돌 노말
-    float Time;           // Ray 상의 충돌 지점 (0-1)
-    AActor* HitActor;
-    UPrimitiveComponent* Component;
-    FName BoneName;
-    int32 Item;
+// Source/Runtime/Engine/Collision/ParticleCollisionQuery.h (새 파일)
+
+struct FParticleHitResult
+{
+    AActor* HitActor = nullptr;
+    UPrimitiveComponent* HitComponent = nullptr;
+    FVector ImpactPoint = FVector::Zero();
+    FVector ImpactNormal = FVector::Zero();  // 충돌 노말 (바운스 계산용)
+    float Distance = -1.0f;
+    bool bHit = false;
 };
 
-bool LineTraceSingle(
-    FHitResult& OutHit,
-    const FVector& Start,
-    const FVector& End,
-    ECollisionChannel TraceChannel
-);
+namespace ParticleCollision
+{
+    // 기존 WorldPartitionManager 래핑
+    bool LineTraceSingle(
+        UWorld* World,
+        const FVector& Start,
+        const FVector& End,
+        FParticleHitResult& OutHit
+    );
+}
 ```
+
+**참고:** 노말 계산이 필요하므로 Shape별 `IntersectsRay()` 직접 호출
 
 #### 2. Event 데이터 구조 ❌ (Phase 2 필수)
 
@@ -183,27 +221,43 @@ struct FParticleEventData { ... };
 struct FParticleEventCollideData : public FParticleEventData { ... };
 ```
 
-#### 3. Delegate 시스템 ❌ (Phase 3 필수)
+#### 3. Delegate 시스템 ✅ (기존 활용)
 
-**추가 필요:**
+**기존 파일:** [Delegates.h](../Source/Runtime/Core/Misc/Delegates.h)
+
 ```cpp
-// ParticleSystemComponent.h
-DECLARE_MULTICAST_DELEGATE_EightParams(FOnParticleCollision, ...);
-
-class UParticleSystemComponent {
-    FOnParticleCollision OnParticleCollide;
+// 기존 TDelegate 템플릿 활용
+template<typename... Args>
+class TDelegate
+{
+public:
+    FDelegateHandle Add(const HandlerType& Handler);
+    void Broadcast(Args... args);
+    void Remove(FDelegateHandle Handle);
 };
+
+// DECLARE_DELEGATE_TYPE 매크로 사용
+DECLARE_DELEGATE_TYPE(
+    FOnParticleCollision,
+    FName,              // EventName
+    float,              // EmitterTime
+    float,              // ParticleTime
+    const FVector&,     // Location
+    const FVector&,     // Velocity
+    const FVector&,     // Direction
+    const FVector&,     // Normal
+    FName               // BoneName
+);
 ```
 
-#### 4. Event Manager ❌ (Phase 3 필수)
+#### 4. Event Manager ❌ (제거됨)
 
-**추가 필요:**
-```cpp
-// AParticleEventManager (새 클래스)
-class AParticleEventManager : public AActor {
-    void HandleParticleCollisionEvents(...);
-};
-```
+**결정:** EventManager 없이 `UParticleSystemComponent`에서 직접 브로드캐스트
+
+**이유:**
+- 기존 `TDelegate`가 이미 멀티캐스트 지원
+- 단순성 우선 원칙에 부합
+- 추후 필요시 EventManager 레이어 추가 가능
 
 ---
 
@@ -238,9 +292,9 @@ Phase 2: 이벤트 저장
     ├─ CollisionEvents 배열
     └─ ReportEventCollision() 메서드
 
-Phase 3: 델리게이트 & 디스패치
-    ├─ FOnParticleCollision 델리게이트
-    ├─ AParticleEventManager
+Phase 3: 델리게이트 & 디스패치 (수정됨)
+    ├─ FOnParticleCollision 델리게이트 (기존 TDelegate 활용)
+    ├─ EventManager 없이 직접 브로드캐스트
     └─ 델리게이트 브로드캐스트
 
 Phase 4: 이벤트 필터링
@@ -260,207 +314,114 @@ Phase 6: 성능 최적화
 
 ---
 
-## Phase 1: MVP - 기본 충돌 물리
+## Phase 1: MVP - 기본 충돌 물리 (수정됨)
 
 ### 목표
 
 파티클이 바닥/벽에 튕기는 기본 동작 구현 (이벤트 시스템 없이)
 
-### 1.1 Scene Query API 구현
+### 1.1 활용할 기존 인프라
 
-**파일:** `Source/Runtime/Engine/Engine/World.h/.cpp`
+**기존 파일들:**
+- `Source/Runtime/Engine/Collision/Picking.h` - `FRay` 구조체
+- `Source/Runtime/Engine/Collision/AABB.h` - `IntersectsRay()`
+- `Source/Runtime/Engine/Collision/OBB.h` - `IntersectsRay()`
+- `Source/Runtime/Engine/Collision/BoundingSphere.h` - `IntersectsRay()`
+- `Source/Runtime/Engine/Spatial/WorldPartitionManager.h` - `RayQueryClosest()`
 
-#### FHitResult 구조체
+### 1.2 ParticleCollisionQuery 헬퍼 구현
+
+**새 파일:** `Source/Runtime/Engine/Collision/ParticleCollisionQuery.h/.cpp`
+
+#### FParticleHitResult 구조체
 
 ```cpp
 /**
- * Ray/Sweep 충돌 결과
+ * Particle Collision 결과
  */
-struct FHitResult
+struct FParticleHitResult
 {
-    /** 충돌 위치 (월드 좌표) */
-    FVector Location;
-
-    /** 충돌 표면 노말 벡터 */
-    FVector Normal;
-
-    /** Ray 상의 충돌 지점 (0.0 = Start, 1.0 = End) */
-    float Time;
-
-    /** 충돌한 액터 */
-    AActor* HitActor;
-
-    /** 충돌한 컴포넌트 */
-    UPrimitiveComponent* Component;
-
-    /** 충돌한 본 이름 (Skeletal Mesh인 경우) */
-    FName BoneName;
-
-    /** Primitive item 인덱스 */
-    int32 Item;
-
-    /** 충돌 발생 여부 */
-    bool bBlockingHit;
-
-    FHitResult()
-        : Location(FVector::ZeroVector)
-        , Normal(FVector::ZeroVector)
-        , Time(0.0f)
-        , HitActor(nullptr)
-        , Component(nullptr)
-        , BoneName(NAME_None)
-        , Item(INDEX_NONE)
-        , bBlockingHit(false)
-    {}
+    AActor* HitActor = nullptr;
+    UPrimitiveComponent* HitComponent = nullptr;
+    FVector ImpactPoint = FVector::Zero();
+    FVector ImpactNormal = FVector::Zero();  // 충돌 노말 (바운스 계산용)
+    float Distance = -1.0f;
+    bool bHit = false;
 };
 ```
 
-#### UWorld::LineTraceSingle()
+#### ParticleCollision::LineTraceSingle()
 
 ```cpp
 /**
- * 단일 Line Trace 수행
- *
- * @param OutHit - 충돌 결과
- * @param Start - Ray 시작점 (월드 좌표)
- * @param End - Ray 종료점 (월드 좌표)
- * @param TraceChannel - 충돌 채널 (WorldStatic, WorldDynamic 등)
- * @return 충돌 발생 여부
+ * 기존 WorldPartitionManager를 래핑하는 헬퍼 함수
  */
-bool UWorld::LineTraceSingle(
-    FHitResult& OutHit,
-    const FVector& Start,
-    const FVector& End,
-    ECollisionChannel TraceChannel)
+namespace ParticleCollision
 {
-    OutHit = FHitResult();
-
-    if (!Level) {
-        return false;
-    }
-
-    // Ray 방향 및 거리 계산
-    FVector Direction = (End - Start);
-    float Distance = Direction.Size();
-    if (Distance < KINDA_SMALL_NUMBER) {
-        return false;
-    }
-    Direction /= Distance;  // Normalize
-
-    // 모든 액터에 대해 충돌 검사
-    const TArray<AActor*>& Actors = Level->GetActors();
-
-    float ClosestTime = FLT_MAX;
-    bool bHit = false;
-
-    for (AActor* Actor : Actors)
+    bool LineTraceSingle(
+        UWorld* World,
+        const FVector& Start,
+        const FVector& End,
+        FParticleHitResult& OutHit)
     {
-        if (!Actor) continue;
+        // 기존 인프라 활용
+        FRay Ray;
+        Ray.Origin = Start;
+        Ray.Direction = (End - Start).GetSafeNormal();
+        float MaxDistance = (End - Start).Size();
 
-        // 액터의 모든 Primitive 컴포넌트 체크
-        TArray<UPrimitiveComponent*> PrimitiveComponents;
-        Actor->GetComponents<UPrimitiveComponent>(PrimitiveComponents);
+        AActor* HitActor = nullptr;
+        float HitT = 0.0f;
 
-        for (UPrimitiveComponent* Comp : PrimitiveComponents)
+        // BVH 기반 Ray Query (기존 구현 활용)
+        World->GetWorldPartitionManager()->RayQueryClosest(Ray, HitActor, HitT);
+
+        if (HitActor && HitT > 0.0f && HitT <= MaxDistance)
         {
-            // ShapeComponent만 지원 (현재 구현)
-            UShapeComponent* ShapeComp = Cast<UShapeComponent>(Comp);
-            if (!ShapeComp) continue;
+            OutHit.bHit = true;
+            OutHit.HitActor = HitActor;
+            OutHit.ImpactPoint = Start + Ray.Direction * HitT;
+            OutHit.Distance = HitT;
 
-            // Shape 가져오기
-            FShape Shape;
-            ShapeComp->GetShape(Shape);
-
-            // Ray-Shape 충돌 검사
-            FVector HitLocation, HitNormal;
-            float HitTime;
-
-            bool bShapeHit = RayIntersectsShape(
-                Start, Direction, Distance,
-                Shape, ShapeComp->GetComponentTransform(),
-                HitLocation, HitNormal, HitTime
-            );
-
-            if (bShapeHit && HitTime < ClosestTime)
-            {
-                ClosestTime = HitTime;
-                OutHit.bBlockingHit = true;
-                OutHit.Location = HitLocation;
-                OutHit.Normal = HitNormal;
-                OutHit.Time = HitTime / Distance;
-                OutHit.HitActor = Actor;
-                OutHit.Component = Comp;
-                bHit = true;
-            }
+            // 노말 계산 (Shape에서 추출)
+            OutHit.ImpactNormal = CalculateImpactNormal(HitActor, OutHit.ImpactPoint);
+            return true;
         }
+
+        return false;
     }
 
-    return bHit;
-}
-
-/**
- * Ray-Shape 충돌 검사 (단순 구현)
- */
-bool UWorld::RayIntersectsShape(
-    const FVector& RayStart,
-    const FVector& RayDir,
-    float RayLength,
-    const FShape& Shape,
-    const FTransform& ShapeTransform,
-    FVector& OutLocation,
-    FVector& OutNormal,
-    float& OutTime)
-{
-    // Sphere만 구현 (MVP)
-    if (Shape.Kind == EShapeKind::Sphere)
+    /**
+     * 히트 액터의 Shape를 직접 쿼리하여 노말 추출
+     */
+    FVector CalculateImpactNormal(AActor* HitActor, const FVector& ImpactPoint)
     {
-        FVector Center = ShapeTransform.GetLocation();
-        float Radius = Shape.Sphere.Radius;
-
-        // Ray-Sphere 교차 공식
-        FVector L = Center - RayStart;
-        float Tca = FVector::DotProduct(L, RayDir);
-
-        if (Tca < 0) return false;  // Sphere가 뒤에 있음
-
-        float D2 = FVector::DotProduct(L, L) - Tca * Tca;
-        float Radius2 = Radius * Radius;
-
-        if (D2 > Radius2) return false;  // 교차 안함
-
-        float Thc = FMath::Sqrt(Radius2 - D2);
-        float T0 = Tca - Thc;
-        float T1 = Tca + Thc;
-
-        if (T0 < 0) T0 = T1;
-        if (T0 < 0 || T0 > RayLength) return false;
-
-        OutTime = T0;
-        OutLocation = RayStart + RayDir * T0;
-        OutNormal = (OutLocation - Center).GetSafeNormal();
-        return true;
+        if (auto* Primitive = HitActor->GetRootComponent<UPrimitiveComponent>())
+        {
+            // Shape 타입에 따라 노말 계산
+            // AABB: 가장 가까운 면의 노말
+            // Sphere: (ImpactPoint - Center).Normalized()
+            // OBB: 로컬 공간에서 계산 후 월드 변환
+        }
+        return FVector::UpVector; // 기본값
     }
-
-    // TODO: Box, Capsule 추가
-
-    return false;
 }
 ```
 
-**예상 코드량:** ~150 LOC
+**예상 코드량:** ~100 LOC (기존 인프라 활용으로 감소)
 
 **테스트:**
 ```cpp
-FHitResult Hit;
-bool bHit = World->LineTraceSingle(
-    Hit,
+FParticleHitResult Hit;
+bool bHit = ParticleCollision::LineTraceSingle(
+    World,
     FVector(0, 0, 100),
     FVector(0, 0, 0),
-    ECC_WorldStatic
+    Hit
 );
 
 check(bHit);
-check(Hit.Normal.Z > 0.9f);  // 바닥 노말
+check(Hit.ImpactNormal.Z > 0.9f);  // 바닥 노말
 ```
 
 ### 1.2 Particle Flags 추가
@@ -786,8 +747,8 @@ PSC->Activate();
 // - 각 충돌마다 70% 에너지 보존
 ```
 
-**예상 시간:** 8-12시간
-**리스크:** ⭐⭐⭐ 높음 (Scene Query API가 새로운 시스템)
+**예상 시간:** 4-6시간 (기존 인프라 활용으로 단축)
+**리스크:** ⭐⭐ 중간 (노말 계산 로직만 새로 구현)
 
 ---
 
@@ -1046,21 +1007,44 @@ check(Event.Normal.Z > 0.0f);  // 바닥 노말
 
 ---
 
-## Phase 3: 델리게이트 & 디스패치
+## Phase 3: 델리게이트 & 디스패치 (수정됨)
 
 ### 목표
 
 C++ 코드에서 충돌 이벤트를 콜백으로 받을 수 있도록 구현
 
-### 3.1 Delegate 선언
+### 3.1 기존 TDelegate 활용
+
+**기존 파일:** `Source/Runtime/Core/Misc/Delegates.h`
+
+```cpp
+// 기존 TDelegate 템플릿 (이미 구현됨)
+template<typename... Args>
+class TDelegate
+{
+public:
+    using HandlerType = std::function<void(Args...)>;
+
+    FDelegateHandle Add(const HandlerType& Handler);
+
+    template<typename TObj, typename TClass>
+    FDelegateHandle AddDynamic(TObj* Instance, void(TClass::* Func)(Args...));
+
+    void Broadcast(Args... args);
+    void Remove(FDelegateHandle Handle);
+    void Clear();
+};
+
+#define DECLARE_DELEGATE_TYPE(Name, ...) using Name = TDelegate<__VA_ARGS__>;
+```
+
+### 3.2 Delegate 선언 (Mundi 스타일)
 
 **파일:** `Source/Runtime/Engine/Particles/ParticleSystemComponent.h`
 
 ```cpp
-/**
- * Collision 이벤트 델리게이트 시그니처
- */
-DECLARE_MULTICAST_DELEGATE_EightParams(
+// 기존 DECLARE_DELEGATE_TYPE 매크로 사용
+DECLARE_DELEGATE_TYPE(
     FOnParticleCollision,
     FName,              // EventName
     float,              // EmitterTime
@@ -1085,124 +1069,9 @@ public:
 };
 ```
 
-### 3.2 AParticleEventManager 구현
+### 3.3 직접 브로드캐스트 (EventManager 없음)
 
-**파일:** `Source/Runtime/Engine/GameFramework/ParticleEventManager.h`
-
-```cpp
-#pragma once
-#include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "ParticleEventManager.generated.h"
-
-/**
- * 파티클 이벤트 중앙 관리자 (World Singleton)
- */
-UCLASS()
-class AParticleEventManager : public AActor
-{
-    GENERATED_BODY()
-
-public:
-    AParticleEventManager();
-
-    /**
-     * 충돌 이벤트 배열을 처리하여 델리게이트 브로드캐스트
-     */
-    virtual void HandleParticleCollisionEvents(
-        class UParticleSystemComponent* Component,
-        const TArray<struct FParticleEventCollideData>& CollisionEvents
-    );
-};
-```
-
-**파일:** `Source/Runtime/Engine/GameFramework/ParticleEventManager.cpp`
-
-```cpp
-#include "ParticleEventManager.h"
-#include "Particles/ParticleSystemComponent.h"
-#include "Particles/ParticleEventData.h"
-
-AParticleEventManager::AParticleEventManager()
-{
-    // Transient actor (저장 안됨)
-    SetFlags(RF_Transient);
-}
-
-void AParticleEventManager::HandleParticleCollisionEvents(
-    UParticleSystemComponent* Component,
-    const TArray<FParticleEventCollideData>& CollisionEvents)
-{
-    if (!Component)
-    {
-        return;
-    }
-
-    // 모든 충돌 이벤트 순회
-    for (const FParticleEventCollideData& Event : CollisionEvents)
-    {
-        // Component 델리게이트 브로드캐스트
-        Component->OnParticleCollide.Broadcast(
-            Event.EventName,
-            Event.EmitterTime,
-            Event.ParticleTime,
-            Event.Location,
-            Event.Velocity,
-            Event.Direction,
-            Event.Normal,
-            Event.BoneName
-        );
-
-        // 로그 출력 (디버깅용)
-        UE_LOG(LogParticles, Verbose, TEXT("Collision event '%s' at %s"),
-            *Event.EventName.ToString(), *Event.Location.ToString());
-    }
-}
-```
-
-### 3.3 UWorld 통합
-
-**파일:** `Source/Runtime/Engine/Engine/World.h`
-
-```cpp
-class UWorld : public UObject
-{
-    // ... 기존 코드 ...
-
-    /** 파티클 이벤트 매니저 (World당 하나) */
-    UPROPERTY(Transient)
-    class AParticleEventManager* MyParticleEventManager;
-
-    /** EventManager 가져오기 (없으면 생성) */
-    AParticleEventManager* GetParticleEventManager();
-};
-```
-
-**파일:** `Source/Runtime/Engine/Engine/World.cpp`
-
-```cpp
-AParticleEventManager* UWorld::GetParticleEventManager()
-{
-    if (MyParticleEventManager == nullptr)
-    {
-        // Spawn event manager actor
-        FActorSpawnParameters SpawnParams;
-        SpawnParams.Name = FName("ParticleEventManager");
-        SpawnParams.ObjectFlags |= RF_Transient;
-
-        MyParticleEventManager = SpawnActor<AParticleEventManager>(
-            AParticleEventManager::StaticClass(),
-            FVector::ZeroVector,
-            FRotator::ZeroRotator,
-            SpawnParams
-        );
-    }
-
-    return MyParticleEventManager;
-}
-```
-
-### 3.4 이벤트 디스패치 통합
+**결정:** EventManager 액터 없이 `UParticleSystemComponent`에서 직접 브로드캐스트
 
 **파일:** `Source/Runtime/Engine/Particles/ParticleSystemComponent.cpp`
 
@@ -1218,53 +1087,61 @@ void UParticleSystemComponent::UpdateParticles(float DeltaTime)
         Instance->Tick(DeltaTime);
     }
 
-    // 프레임 종료 - 이벤트 디스패치 (Phase 3에서 추가)
-    if (CollisionEvents.Num() > 0)
+    // 프레임 종료 - 직접 브로드캐스트 (EventManager 없이)
+    for (const auto& Event : CollisionEvents)
     {
-        UWorld* World = GetWorld();
-        if (World)
-        {
-            AParticleEventManager* EventManager = World->GetParticleEventManager();
-            if (EventManager)
-            {
-                EventManager->HandleParticleCollisionEvents(this, CollisionEvents);
-            }
-        }
-
-        // 이벤트 클리어 (다음 프레임 준비)
-        CollisionEvents.Reset();
+        OnParticleCollide.Broadcast(
+            Event.EventName,
+            Event.EmitterTime,
+            Event.ParticleTime,
+            Event.Location,
+            Event.Velocity,
+            Event.Direction,
+            Event.Normal,
+            Event.BoneName
+        );
     }
+
+    // 이벤트 클리어 (다음 프레임 준비)
+    CollisionEvents.Reset();
 }
 ```
 
-**예상 코드량:** ~200 LOC
+**장점:**
+- 코드 단순화
+- 클래스 수 감소
+- 기존 TDelegate 활용으로 추가 구현 불필요
 
-### 검증 방법
+**단점:**
+- 추후 다른 컴포넌트에서 이벤트 수신 어려움 (필요시 EventManager 추가 가능)
+
+**예상 코드량:** ~50 LOC (기존 델리게이트 활용으로 대폭 감소)
+
+### 3.4 사용 예시
 
 ```cpp
-// C++ 콜백 바인딩
-Component->OnParticleCollide.AddLambda([](
-    FName EventName,
-    float EmitterTime,
-    float ParticleTime,
-    const FVector& Location,
-    const FVector& Velocity,
-    const FVector& Direction,
-    const FVector& Normal,
+// C++ 바인딩 (람다)
+Component->OnParticleCollide.Add([](
+    FName EventName, float EmitterTime, float ParticleTime,
+    const FVector& Location, const FVector& Velocity,
+    const FVector& Direction, const FVector& Normal,
     FName BoneName)
 {
-    UE_LOG(LogTemp, Log, TEXT("Particle collision at %s"), *Location.ToString());
+    UE_LOG("Collision at %s", *Location.ToString());
 });
+
+// C++ 바인딩 (멤버 함수)
+Component->OnParticleCollide.AddDynamic(this, &AMyActor::OnParticleHit);
 
 // 파티클 활성화
 Component->Activate();
 
 // 충돌 시 콜백 호출 확인
-// 출력: "Particle collision at X=100.0 Y=200.0 Z=300.0"
+// 출력: "Collision at X=100.0 Y=200.0 Z=300.0"
 ```
 
-**예상 시간:** 4-5시간
-**리스크:** ⭐ 낮음 (델리게이트 패턴 활용)
+**예상 시간:** 2-3시간 (기존 TDelegate 활용으로 단축)
+**리스크:** ⭐ 낮음 (검증된 델리게이트 시스템 활용)
 
 ---
 
@@ -1590,49 +1467,69 @@ check(EventCount == 1);  // 3번 충돌했지만 이벤트는 1번만
 
 ---
 
-## Phase 5: Lua 바인딩
+## Phase 5: Lua 바인딩 (수정됨)
 
 ### 목표
 
 Lua 스크립트에서 충돌 이벤트를 처리할 수 있도록 구현
 
-### 5.1 Sol2 Delegate 바인딩
+### 5.1 반자동 접근 방식
 
-**파일:** `Generated/LuaBindings.cpp` (GenerateBindings.bat 실행 후 수정)
+**자동 바인딩 (GenerateBindings.bat):**
+- UPROPERTY → 자동 생성
+- UFUNCTION(LuaBind) → 자동 생성
+
+**수동 바인딩 (개발자 작성):**
+- Delegate 콜백 → Sol2로 직접 래핑 필요
+
+### 5.2 수동 델리게이트 바인딩
+
+**새 파일:** `Source/Runtime/Engine/Particles/ParticleCollisionLuaBinding.cpp`
+
+> **결정:** `.generated.cpp` 대신 별도 파일로 분리
+> **이유:** `.generated.cpp`는 자동 생성되므로 수동 수정 시 덮어씌워질 위험
 
 ```cpp
-// UParticleSystemComponent Lua 바인딩
-sol::state& lua = GetLuaState();
+#include "ParticleSystemComponent.h"
+#include <sol/sol.hpp>
 
-lua.new_usertype<UParticleSystemComponent>(
-    "UParticleSystemComponent",
-    sol::base_classes, sol::bases<UPrimitiveComponent, UActorComponent>(),
+// Lua 델리게이트 바인딩
+void BindParticleCollisionDelegate(sol::state_view lua)
+{
+    sol::table usertype = lua["UParticleSystemComponent"];
 
-    // OnParticleCollide 델리게이트 바인딩
-    "OnParticleCollide_Add", [](UParticleSystemComponent* self, sol::function callback) {
-        self->OnParticleCollide.AddLambda([callback](
-            FName EventName,
-            float EmitterTime,
-            float ParticleTime,
-            const FVector& Location,
-            const FVector& Velocity,
-            const FVector& Direction,
-            const FVector& Normal,
+    usertype["OnCollision_Connect"] = [](
+        UParticleSystemComponent* Component,
+        sol::function LuaCallback)
+    {
+        if (!Component) return;
+
+        Component->OnParticleCollide.Add([LuaCallback](
+            FName EventName, float EmitterTime, float ParticleTime,
+            const FVector& Location, const FVector& Velocity,
+            const FVector& Direction, const FVector& Normal,
             FName BoneName)
         {
-            callback(
-                EventName.ToString(),
+            // C++ → Lua 변환
+            LuaCallback(
+                EventName.ToString(),   // FName → string
                 EmitterTime,
                 ParticleTime,
-                Location,
+                Location,               // FVector는 이미 바인딩됨
                 Velocity,
                 Direction,
                 Normal,
                 BoneName.ToString()
             );
         });
-    }
-);
+    };
+}
+
+// 초기화 시 호출되도록 등록
+static bool _registered = []() {
+    // Lua 상태 초기화 후 호출 (엔진 초기화 시스템에 등록)
+    return true;
+}();
 ```
 
 ### 5.2 테스트 Lua 스크립트
@@ -2031,20 +1928,21 @@ class UParticleModuleEventReceiver : public UParticleModule
 
 ## 타임라인 및 리스크
 
-### 전체 타임라인
+### 전체 타임라인 (수정됨)
 
-| Week | Phase | 내용 | 시간 | 리스크 |
-|------|-------|-----|------|-------|
-| Week 1 | Phase 1 | MVP 충돌 물리 | 8-12h | ⭐⭐⭐ 높음 |
-| Week 2 | Phase 2-3 | 이벤트 시스템 + 델리게이트 | 7-9h | ⭐ 낮음 |
-| Week 2 | Phase 4 | 이벤트 필터링 | 4-6h | ⭐ 낮음 |
-| Week 3 | Phase 5 | Lua 바인딩 | 3-4h | ⭐ 낮음 |
-| Week 3 | Phase 6 | 성능 최적화 | 2-3h | ⭐ 낮음 |
-| **총합** | **Phase 1-6** | **완전 구현** | **24-34h** | - |
+| Week | Phase | 내용 | 수정 전 | 수정 후 | 변경 사유 |
+|------|-------|-----|--------|--------|---------|
+| Week 1 | Phase 1 | MVP 충돌 물리 | 8-12h | **4-6h** | 기존 Ray 인프라 활용 |
+| Week 1 | Phase 2 | 이벤트 저장 | 3-4h | **2-3h** | 구조 단순화 |
+| Week 1 | Phase 3 | 델리게이트 | 4-5h | **2-3h** | 기존 TDelegate 활용 |
+| Week 2 | Phase 4 | 이벤트 필터링 | 4-6h | 4-6h | 변경 없음 |
+| Week 2 | Phase 5 | Lua 바인딩 | 3-4h | 3-4h | 수동 바인딩 필요 |
+| Week 2 | Phase 6 | 성능 최적화 | 2-3h | 2-3h | 변경 없음 |
+| **총합** | **Phase 1-6** | **완전 구현** | **24-34h** | **17-25h** | **약 30% 단축** |
 
 ### 최소 구현 (권장)
 
-**Phase 1-3 (핵심 기능):** ~20시간
+**Phase 1-3 (핵심 기능):** ~8-12시간 (수정됨)
 - ✅ 충돌 물리 (튕김, 감쇠)
 - ✅ 이벤트 저장 및 디스패치
 - ✅ C++ 콜백
@@ -2053,7 +1951,7 @@ class UParticleModuleEventReceiver : public UParticleModule
 
 ### 권장 구현
 
-**Phase 1-5 (Lua 포함):** ~28시간
+**Phase 1-5 (Lua 포함):** ~15-22시간 (수정됨)
 - ✅ 핵심 기능 (Phase 1-3)
 - ✅ 이벤트 필터링 (FirstTimeOnly, CustomName 등)
 - ✅ Lua 스크립팅 지원
@@ -2062,25 +1960,25 @@ class UParticleModuleEventReceiver : public UParticleModule
 
 ### 완전 구현
 
-**Phase 1-6 (최적화 포함):** ~34시간
+**Phase 1-6 (최적화 포함):** ~17-25시간 (수정됨)
 - ✅ 권장 구현 (Phase 1-5)
 - ✅ 성능 최적화 (1000+ 파티클)
 
 대규모 파티클 효과에서도 60fps 유지.
 
-### 주요 리스크 요소
+### 주요 리스크 요소 (수정됨)
 
-#### 1. Scene Query API (Phase 1) - ⭐⭐⭐ 높음
+#### 1. Impact Normal 계산 (Phase 1) - ⭐⭐ 중간 (하향 조정)
 
 **문제:**
-- Mundi에 Line Trace API가 없음
-- Ray-Shape 충돌 수학 구현 필요
-- 여러 Shape 타입 지원 필요
+- `WorldPartitionManager::RayQueryClosest()`는 노말을 반환하지 않음
+- Shape 타입별 노말 계산 로직 필요
 
 **완화 방안:**
-- MVP: Sphere만 지원하여 복잡도 감소
-- UE5 코드 참고하여 검증된 알고리즘 사용
-- 단위 테스트로 수학 검증
+- 각 Shape 클래스의 기존 `IntersectsRay()` 활용
+- AABB: 가장 가까운 면의 노말 계산
+- Sphere: `(ImpactPoint - Center).Normalized()`
+- OBB: 로컬 공간에서 계산 후 월드 변환
 
 #### 2. 좌표계 변환 (Phase 1) - ⭐⭐ 중간
 
@@ -2195,7 +2093,58 @@ UE_LOG("Collision count: %d", Count);
 
 ---
 
+## 설계 결정 사항
+
+### 1. EventManager: 직접 브로드캐스트 방식 채택
+
+**결정:** EventManager 액터 없이 `UParticleSystemComponent`에서 직접 브로드캐스트
+
+**이유:**
+- 단순성 우선 원칙에 부합
+- 기존 `TDelegate`가 멀티캐스트 지원
+- 추후 필요시 EventManager 레이어 추가 가능
+
+### 2. Impact Normal 계산: Shape별 IntersectsRay() 활용
+
+**결정:** `WorldPartitionManager::RayQueryClosest()` 호출 후 개별 Shape의 `IntersectsRay()` 직접 호출하여 노말 추출
+
+**이유:**
+- `RayQueryClosest()`는 노말 반환 안 함
+- 각 Shape 클래스(`AABB`, `OBB`, `BoundingSphere`)에 이미 `IntersectsRay()` 구현됨
+- 노말은 바운스 계산에 필수
+
+### 3. Lua 델리게이트 바인딩: 별도 파일 분리
+
+**결정:** `Source/Runtime/Engine/Particles/ParticleCollisionLuaBinding.cpp` 별도 파일로 분리
+
+**이유:**
+- `.generated.cpp`는 자동 생성되므로 수동 수정 시 덮어씌워질 위험
+- 유지보수성 향상
+- 다른 델리게이트 바인딩 추가 시 일관된 패턴 제공
+
+---
+
+## 수정해야 할 핵심 파일 목록
+
+### 새로 생성
+1. `Source/Runtime/Engine/Collision/ParticleCollisionQuery.h/.cpp` - 충돌 쿼리 헬퍼
+2. `Source/Runtime/Engine/Particles/ParticleEventData.h` - 이벤트 데이터 구조
+3. `Source/Runtime/Engine/Particles/Modules/Collision/ParticleModuleCollision.h/.cpp` - 충돌 모듈
+4. `Source/Runtime/Engine/Particles/ParticleCollisionLuaBinding.cpp` - Lua 델리게이트 바인딩
+
+### 수정
+1. `Source/Runtime/Engine/Particles/ParticleSystemComponent.h/.cpp` - 델리게이트 & 이벤트 저장 추가
+2. `Source/Runtime/Engine/Particles/ParticleTypes.h` - Particle Flags 추가
+
+### 참고 (읽기만)
+1. `Source/Runtime/Engine/Spatial/WorldPartitionManager.h` - RayQueryClosest() 사용법
+2. `Source/Runtime/Engine/Collision/Picking.h` - FRay 구조체
+3. `Source/Runtime/Core/Misc/Delegates.h` - TDelegate 사용법
+4. `Source/Runtime/Engine/GameFramework/GameStateBase.h` - 델리게이트 사용 예시
+
+---
+
 **작성 일자**: 2025-01-25
-**버전**: 1.0
+**버전**: 1.1 (수정본)
 **작성자**: AI Assistant
 **참고**: UE5 Particle Collision Analysis Part 1-4
