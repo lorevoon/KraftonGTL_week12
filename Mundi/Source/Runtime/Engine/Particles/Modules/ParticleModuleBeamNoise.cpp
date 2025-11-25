@@ -22,15 +22,15 @@ void UParticleModuleBeamNoise::Spawn(FParticleEmitterInstance* Owner, int32 Offs
     if (!HasNoise() || !Owner)
         return;
 
-    // 세그먼트 수 가져오기
-    int32 Segments = 4;
-    if (Owner->CurrentLODLevel && Owner->CurrentLODLevel->TypeDataModule)
-    {
-        if (UParticleModuleTypeDataBeam* BeamTypeData = Cast<UParticleModuleTypeDataBeam>(Owner->CurrentLODLevel->TypeDataModule))
-        {
-            Segments = BeamTypeData->Segments;
-        }
-    }
+    // 빔 타입 모듈 체크
+    if (!Owner->CurrentLODLevel || !Owner->CurrentLODLevel->TypeDataModule)
+        return;
+
+    UParticleModuleTypeDataBeam* BeamTypeData = Cast<UParticleModuleTypeDataBeam>(Owner->CurrentLODLevel->TypeDataModule);
+    if (!BeamTypeData)
+        return;
+
+    int32 Segments = BeamTypeData->Segments;
 
     // 캐시 가져오거나 생성
     if (!NoiseCaches.Contains(Owner))
@@ -60,15 +60,15 @@ void UParticleModuleBeamNoise::Update(FParticleEmitterInstance* Owner, int32 Off
     if (!HasNoise() || !Owner || Owner->ActiveParticles == 0)
         return;
 
-    // 세그먼트 수 가져오기
-    int32 Segments = 4;
-    if (Owner->CurrentLODLevel && Owner->CurrentLODLevel->TypeDataModule)
-    {
-        if (UParticleModuleTypeDataBeam* BeamTypeData = Cast<UParticleModuleTypeDataBeam>(Owner->CurrentLODLevel->TypeDataModule))
-        {
-            Segments = BeamTypeData->Segments;
-        }
-    }
+    // 빔 타입 모듈 체크
+    if (!Owner->CurrentLODLevel || !Owner->CurrentLODLevel->TypeDataModule)
+        return;
+
+    UParticleModuleTypeDataBeam* BeamTypeData = Cast<UParticleModuleTypeDataBeam>(Owner->CurrentLODLevel->TypeDataModule);
+    if (!BeamTypeData)
+        return;
+
+    int32 Segments = BeamTypeData->Segments;
 
     FBeamNoiseCache* CachePtr = NoiseCaches.Find(Owner);
     if (!CachePtr)
