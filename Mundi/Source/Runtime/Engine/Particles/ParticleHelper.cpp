@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "ParticleHelper.h"
 #include "SceneView.h"
 #include "D3D11RHI.h"
@@ -339,6 +339,10 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
         if (MeshShader)
         {
             RHI->PrepareShader(MeshShader);
+        }
+        else
+        {
+			UE_LOG("[error] MeshShader is null!");
         }
 
         for (uint32 i = 0; i < GroupInfos.size(); ++i)

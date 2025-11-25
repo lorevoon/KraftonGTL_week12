@@ -534,6 +534,56 @@ void UTargetActorTransformWidget::RenderParticleSystemComponentControls(UParticl
 	ImGui::TextUnformatted("파티클 시스템 제어");
 	ImGui::Spacing();
 
+	// 템플릿 드롭다운
+	{
+		std::vector<std::string> TemplateLabels;
+		std::vector<const char*> TemplateItems;
+
+		TemplateLabels.emplace_back("None");
+		TemplateItems.emplace_back(TemplateLabels.back().c_str());
+
+		TArray<UParticleSystem*> ParticleSystems = UResourceManager::GetInstance().GetAll<UParticleSystem>();
+		for (UParticleSystem* System : ParticleSystems)
+		{
+			if (!System)
+			{
+				continue;
+			}
+
+			FString Label = System->GetFilePath();
+			if (Label.empty())
+			{
+				Label = System->GetName();
+			}
+
+			TemplateLabels.emplace_back(Label.c_str());
+			TemplateItems.emplace_back(TemplateLabels.back().c_str());
+		}
+
+		int CurrentTemplateIndex = 0;
+		if (ParticleComponent.Template)
+		{
+			for (size_t i = 0; i < ParticleSystems.size(); ++i)
+			{
+				if (ParticleSystems[i] == ParticleComponent.Template)
+				{
+					CurrentTemplateIndex = static_cast<int>(i) + 1;
+					break;
+				}
+			}
+		}
+
+		if (ImGui::Combo("Template", &CurrentTemplateIndex, TemplateItems.data(), static_cast<int>(TemplateItems.size())))
+		{
+			UParticleSystem* NewTemplate = nullptr;
+			if (CurrentTemplateIndex > 0 && CurrentTemplateIndex - 1 < static_cast<int>(ParticleSystems.size()))
+			{
+				NewTemplate = ParticleSystems[CurrentTemplateIndex - 1];
+			}
+			ParticleComponent.SetTemplate(NewTemplate);
+		}
+	}
+
 	// LOD 메소드 드롭다운
 	static const char* LODMethodItems[] = { "Automatic", "DirectSet", "ActivateAutomatic" };
 	int CurrentMethod = static_cast<int>(ParticleComponent.LODMethod);
