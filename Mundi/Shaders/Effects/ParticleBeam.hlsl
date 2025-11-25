@@ -58,8 +58,12 @@ float4 mainPS(PS_INPUT input) : SV_Target0
     // Multiply with vertex color
     float4 finalColor = texColor * input.Color;
 
+    // Soft alpha edge (smoothstep으로 부드러운 엣지)
+    float alphaMask = smoothstep(0.0f, 0.05f, finalColor.a);
+    finalColor.a *= alphaMask;
+
     // Alpha test
-    if (finalColor.a < 0.01f)
+    if (finalColor.a < 0.001f)
         discard;
 
     return finalColor;

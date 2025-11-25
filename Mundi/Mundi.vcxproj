@@ -370,6 +370,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Info.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PointLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpotLightActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleBeamNoise.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.cpp" />
@@ -609,6 +610,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Generated\UParticleModuleEventGenerator.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleAcceleration.generated.cpp" />
     <ClCompile Include="Generated\ACollisionParticleActor.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleBeamNoise.generated.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
@@ -835,6 +837,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PointLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpotLightActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleBeamNoise.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBeam.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.h" />
@@ -1097,6 +1100,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Generated\UParticleModuleEventGenerator.generated.h" />
     <ClInclude Include="Generated\UParticleModuleAcceleration.generated.h" />
     <ClInclude Include="Generated\ACollisionParticleActor.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleBeamNoise.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />

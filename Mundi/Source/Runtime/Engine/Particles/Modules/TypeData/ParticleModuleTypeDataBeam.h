@@ -25,12 +25,10 @@ public:
 
     UParticleModuleTypeDataBeam()
         : BeamMethod(EBeamMethod::Distance)
-        , Segments(1)
-        , Width(10.0f)
-        , Length(100.0f)
+        , Segments(4)
+        , Width(0.05f)    // 5cm
+        , Length(3.0f)    // 3m
         , TaperFactor(0.0f)
-        , NoiseStrength(0.0f)
-        , NoiseFrequency(1.0f)
     {}
 
     // 빔 방식 (현재는 Distance만 지원)
@@ -52,12 +50,4 @@ public:
     // 테이퍼 (0 = 균일, 1 = 끝점에서 완전히 가늘어짐)
     UPROPERTY(EditAnywhere, Category="Beam")
     float TaperFactor;
-
-    // 노이즈 강도 (0 = 직선)
-    UPROPERTY(EditAnywhere, Category="Noise")
-    float NoiseStrength;
-
-    // 노이즈 주파수
-    UPROPERTY(EditAnywhere, Category="Noise")
-    float NoiseFrequency;
 };

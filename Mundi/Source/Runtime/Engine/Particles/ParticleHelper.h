@@ -210,6 +210,5 @@ struct FDynamicBeamEmitterData : public FDynamicEmitterDataBase
     virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool) override;
 
 private:
-    // 빔 버텍스 생성
     void BuildBeamVertices(FSceneView* View);
 };

@@ -16,6 +16,7 @@
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSizeScaleBySpeed.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataBeam.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleBeamNoise.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleCollision.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleAcceleration.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleEventGenerator.h"
@@ -758,11 +759,17 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultBeamEmitter()
     if (TypeDataBeam)
     {
         TypeDataBeam->ModuleName = "TypeData Beam";
-        TypeDataBeam->Segments = 10;
-        TypeDataBeam->Width = 5.0f;
-        TypeDataBeam->Length = 200.0f;
-        TypeDataBeam->NoiseStrength = 10.0f;
+        TypeDataBeam->Segments = 8;
+        TypeDataBeam->Width = 0.1f;      // 10cm
+        TypeDataBeam->Length = 5.0f;     // 5m
         LOD0->TypeDataModule = TypeDataBeam;
+
+        // BeamNoise 모듈 추가
+        UParticleModuleBeamNoise* BeamNoiseModule = NewObject<UParticleModuleBeamNoise>();
+        BeamNoiseModule->NoiseRange = FVector(0.3f, 0.3f, 0.0f);  // 30cm
+        BeamNoiseModule->NoiseLockTime = 0.1f;
+        BeamNoiseModule->bSmooth = true;
+        LOD0->AddModule(BeamNoiseModule);
     }
 
     // Spawn

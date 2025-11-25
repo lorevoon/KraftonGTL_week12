@@ -11,6 +11,7 @@
 #include "Modules/ParticleModuleVelocity.h"
 #include "Modules/ParticleModuleLocation.h"
 #include "Modules/ParticleModuleSpawn.h"
+#include "Modules/ParticleModuleBeamNoise.h"
 #include "Modules/TypeData/ParticleModuleTypeDataBeam.h"
 #include "ObjectFactory.h"
 #include "Material.h"
@@ -26,7 +27,7 @@ ABeamParticleActor::ABeamParticleActor()
 	// 빔 파티클 시스템 생성
 	UParticleSystem* ParticleSystem = NewObject<UParticleSystem>();
 	ParticleSystem->SystemName = "Sample Beam Particle System";
-	ParticleSystem->SystemDuration = 5.0f;
+	ParticleSystem->SystemDuration = 10.0f;
 	ParticleSystem->SystemLoops = 0; // 무한 반복
 	ParticleSystem->bAutoActivate = true;
 
@@ -59,7 +60,7 @@ ABeamParticleActor::ABeamParticleActor()
 
 	// Required 모듈 (필수)
 	UParticleModuleRequired* RequiredModule = NewObject<UParticleModuleRequired>();
-	RequiredModule->SpawnRate = 10.0f; // 초당 5개 빔 생성
+	RequiredModule->SpawnRate = 25.0f; // 초당 5개 빔 생성
 	RequiredModule->EmitterDuration = 5.0f;
 	RequiredModule->EmitterLoops = 0; // 무한 반복
 	RequiredModule->Material = ParticleMaterial;
@@ -68,12 +69,17 @@ ABeamParticleActor::ABeamParticleActor()
 	// TypeData 모듈 (빔)
 	UParticleModuleTypeDataBeam* TypeDataBeam = NewObject<UParticleModuleTypeDataBeam>();
 	TypeDataBeam->BeamMethod = EBeamMethod::Distance;
-	TypeDataBeam->Segments = 5;        // 세그먼트 수 (노이즈 표현용)
-	TypeDataBeam->Width = 1.5f;         // 빔 폭
-	TypeDataBeam->Length = 50.0f;      // 빔 길이
-	TypeDataBeam->NoiseStrength = 1.5f; // 노이즈 강도 (번개 효과)
-	TypeDataBeam->NoiseFrequency = 2.5f; // 노이즈 주파수
+	TypeDataBeam->Segments = 8;         // 세그먼트 수 (노이즈 표현용)
+	TypeDataBeam->Width = 0.05f;        // 5cm
+	TypeDataBeam->Length = 3.0f;        // 3m
 	LODLevel->TypeDataModule = TypeDataBeam;
+
+	// BeamNoise 모듈 (번개 효과)
+	UParticleModuleBeamNoise* BeamNoiseModule = NewObject<UParticleModuleBeamNoise>();
+	BeamNoiseModule->NoiseRange = FVector(0.2f, 0.2f, 0.0f);  // 20cm
+	BeamNoiseModule->NoiseLockTime = 0.1f;
+	BeamNoiseModule->bSmooth = true;
+	LODLevel->AddModule(BeamNoiseModule);
 
 	// Spawn 모듈
 	UParticleModuleSpawn* SpawnModule = NewObject<UParticleModuleSpawn>();
@@ -85,13 +91,13 @@ ABeamParticleActor::ABeamParticleActor()
 	// Lifetime 모듈
 	UParticleModuleLifetime* LifetimeModule = NewObject<UParticleModuleLifetime>();
 	LifetimeModule->LifetimeMin = 0.5f;
-	LifetimeModule->LifetimeMax = 1.0f;
+	LifetimeModule->LifetimeMax = 1.5f;
 	LODLevel->AddModule(LifetimeModule);
 
 	// Size 모듈 (빔 폭 스케일에 사용)
 	UParticleModuleSize* SizeModule = NewObject<UParticleModuleSize>();
-	SizeModule->StartSizeMin = FVector(1.0f, 1.0f, 1.0f);
-	SizeModule->StartSizeMax = FVector(1.0f, 1.0f, 1.0f);
+	SizeModule->StartSizeMin = FVector(0.7f, 0.7f, 0.7f);
+	SizeModule->StartSizeMax = FVector(1.5f, 1.5f, 1.5f);
 	LODLevel->AddModule(SizeModule);
 
 	// Color 모듈 (빔 색상)

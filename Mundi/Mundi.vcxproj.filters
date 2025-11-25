@@ -992,6 +992,9 @@
     <ClCompile Include="Generated\ACollisionParticleActor.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
+    <ClCompile Include="Generated\UParticleModuleBeamNoise.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Generated\USkinnedMeshComponent.generated.h">
@@ -2084,6 +2087,9 @@
       <Filter>Generated</Filter>
     </ClInclude>
     <ClInclude Include="Generated\ACollisionParticleActor.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\UParticleModuleBeamNoise.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
   </ItemGroup>
