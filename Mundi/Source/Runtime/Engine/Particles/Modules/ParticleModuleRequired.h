@@ -42,6 +42,12 @@ public:
     UPROPERTY(EditAnywhere, Category="Rendering")
     float EmitterRotation;              // 이미터 회전 (Degrees)
 
+    // 로컬 공간 사용 여부
+    // - true: 로컬 좌표계 (이미터와 함께 이동)
+    // - false: 월드 좌표계 (이미터 이동해도 파티클은 월드 공간에 유지)
+    UPROPERTY(EditAnywhere, Category="Emitter")
+    bool bUseLocalSpace;
+
 public:
     // Spawn 단계에서만 실행
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;

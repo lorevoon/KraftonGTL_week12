@@ -17,6 +17,7 @@ public:
 
     UParticleModule();
 
+
     // 실행 단계 플래그
     // - ExecutionOrder 대신 각 단계별 bool 플래그 사용
     // - 한 모듈이 여러 단계에서 실행될 수 있음 (예: Color 모듈이 Spawn + Update 모두 실행)

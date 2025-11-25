@@ -13,6 +13,8 @@ UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
     , bAutoActivate(true)
     , bIsActive(false)
+    , SystemTime(0.0f)
+    , CompletedLoops(0)
 {
 }
 
@@ -49,6 +51,9 @@ void UParticleSystemComponent::Activate()
         CreateEmitterInstances();
 	}
 
+    SystemTime = 0.0f;
+    CompletedLoops = 0;
+
     bIsActive = true;
 }
 
@@ -75,6 +80,8 @@ void UParticleSystemComponent::SetTemplate(UParticleSystem* NewTemplate)
     {
         DestroyEmitterInstances();
         Template = NewTemplate;
+        SystemTime = 0.0f;
+        CompletedLoops = 0;
 
         if (Template)
         {
@@ -104,6 +111,21 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     if (!bIsActive || !Template)
     {
         return;
+    }
+
+    if (Template->SystemDuration > 0.0f)
+    {
+        SystemTime += DeltaTime;
+        while (SystemTime >= Template->SystemDuration)
+        {
+            SystemTime -= Template->SystemDuration;
+            ++CompletedLoops;
+            if (Template->SystemLoops > 0 && CompletedLoops >= Template->SystemLoops)
+            {
+                Stop();
+                return;
+            }
+        }
     }
 
     for (FParticleEmitterInstance* Instance : EmitterInstances)
@@ -182,6 +204,8 @@ void UParticleSystemComponent::CreateEmitterInstances()
 
 	// Ensure previous instances are cleared
     DestroyEmitterInstances();
+    SystemTime = 0.0f;
+    CompletedLoops = 0;
 
     for (int32 i = 0; i < Template->GetEmitterCount(); ++i)
     {
@@ -246,6 +270,9 @@ void UParticleSystemComponent::DestroyEmitterInstances()
 
 void UParticleSystemComponent::ResetInstances()
 {
+    SystemTime = 0.0f;
+    CompletedLoops = 0;
+
     for (FParticleEmitterInstance* Instance : EmitterInstances)
     {
         if (Instance)

@@ -10,6 +10,7 @@
 #include "Modules/ParticleModuleColor.h"
 #include "Modules/ParticleModuleVelocity.h"
 #include "Modules/ParticleModuleLocation.h"
+#include "Modules/ParticleModuleSpawn.h"
 #include "ObjectFactory.h"
 #include "Material.h"
 #include "ResourceManager.h"
@@ -61,7 +62,15 @@ ASpriteParticleActor::ASpriteParticleActor()
 	RequiredModule->EmitterDuration = 1.0f;
 	RequiredModule->EmitterLoops = 0; // 무한 반복
 	RequiredModule->Material = ParticleMaterial; // 파티클 머티리얼 할당
+	RequiredModule->SortMode = EParticleSortMode::ViewDistanceDepth;
 	LODLevel->RequiredModule = RequiredModule;
+
+	// Spawn 모듈
+	UParticleModuleSpawn* SpawnModule = NewObject<UParticleModuleSpawn>();
+	SpawnModule->LocationMin = FVector(0.0f, 0.0f, 0.0f);
+	SpawnModule->LocationMax = FVector(0.0f, 0.0f, 0.0f);
+	SpawnModule->DistributionType = EDistributionType::Constant;
+	LODLevel->AddModule(SpawnModule);
 
 	// Lifetime 모듈
 	UParticleModuleLifetime* LifetimeModule = NewObject<UParticleModuleLifetime>();

@@ -75,52 +75,43 @@
 
 ### Phase 1: 파티클 데이터 구조 (Day 1)
 
-- [ ] `FBaseParticle` 구조체 구현
-  - [ ] `Location`, `Velocity`, `RelativeTime`, `Lifetime`
-  - [ ] `BaseVelocity`, `Rotation`, `RotationRate`
-  - [ ] `Size`, `Color` 속성
-- [ ] `FParticleDataContainer` 구조체 구현
-  - [ ] `MemBlockSize`, `ParticleDataNumBytes` 계산
-  - [ ] `ParticleIndicesNumShorts` 관리
-  - [ ] `ParticleData`, `ParticleIndices` 메모리 할당 로직
-  - [ ] **Address Alignment** 최적화
+- [x] `FBaseParticle` 구조체 구현
+  - [x] `Location`, `Velocity`, `RelativeTime`, `Lifetime`
+  - [x] `BaseVelocity`, `Rotation`, `RotationRate`
+  - [x] `Size`, `Color` 속성
+- [ ] ~~`FParticleDataContainer` 구조체~~ → 사용하지 않기로 결정, `FParticleEmitterInstance`가 직접 버퍼 관리
+- [x] **Address Alignment**: `ParticleStrideAlignment`/`AlignUp` 로직으로 처리
 
 ### Phase 2: Emitter Instance (Day 1-2)
 
-- [ ] `FParticleEmitterInstance` 구조체 구현
-  - [ ] `SpriteTemplate`, `Component` 포인터
-  - [ ] `CurrentLODLevelIndex`, `CurrentLODLevel`
-  - [ ] `ParticleData`, `ParticleIndices`, `InstanceData` 포인터
-  - [ ] `ParticleSize`, `ParticleStride` 계산
-  - [ ] `ActiveParticles`, `MaxActiveParticles` 관리
-  - [ ] `ParticleCounter` (모노토닉 증가)
-- [ ] **[핵심]** `SpawnParticles()` 메서드 구현
-  - [ ] `PreSpawn` 로직
-  - [ ] `SpawnModules` 순회 및 적용
-  - [ ] `PostSpawn` 로직
-- [ ] **[핵심]** `KillParticle()` 메서드 구현
+- [x] `FParticleEmitterInstance` 구조체 구현
+  - [x] `EmitterTemplate`, `Component` 포인터
+  - [x] `CurrentLODLevelIndex`, `CurrentLODLevel` (현재 LOD는 0 고정, 전환은 후순위)
+  - [x] `ParticleData`, `ParticleIndices` 포인터 + `ParticleStride` 계산
+  - [x] `ActiveParticles`, `MaxActiveParticles` 관리
+  - [x] `ParticleCounter`, `EmitterTime`, `LoopCount` 등 수명 추적 필드
+- [x] **Spawn/Update/Kill 로직**
+  - [x] `SpawnParticles()`에서 SpawnRate·SpawnFraction 적용, 모듈 실행
+  - [x] `RunUpdateModules()` / `RunFinalUpdateModules()` / `KillDeadParticles()`
+  - [x] `KillParticle()` 스왑·재사용 로직
+- [x] `UParticleSystemComponent`가 인스턴스 생성/Tick을 수행하여 스폰→업데이트→Kill 루프가 실제 실행되도록 연결
+- [ ] *(후순위)* LOD 전환 로직, Duration/Loops 외 추가 정책 (Collision 등)
 
 ### Phase 3: Dynamic Emitter Data (Day 2-3)
 
-- [ ] `FDynamicEmitterReplayDataBase` 구조체
-  - [ ] `eEmitterType`, `ActiveParticleCount`
-  - [ ] `ParticleStride`, `DataContainer`
-  - [ ] `Scale`, `SortMode`
-- [ ] `FDynamicSpriteEmitterReplayDataBase` 구현
-  - [ ] `MaterialInterface`, `RequiredModule` 포인터
-- [ ] `FDynamicEmitterDataBase` 추상 클래스
-  - [ ] `EmitterIndex` 관리
-  - [ ] `GetSource()` 순수 가상 함수
+- [ ] 문서에서 요구한 `FDynamicEmitterReplayDataBase`/`FDynamicEmitterDataBase` 계층은 아직 미구현
+- [x] 현재 구현: `FDynamicSpriteEmitterData`/`FDynamicMeshEmitterData`가 인스턴스 데이터를 생성하여 렌더 파이프라인으로 전달
+- [ ] 필요 시 ReplayData 계층을 설계하거나, 현 구조로 그대로 갈 것인지 결정 필요
 
 ### Phase 4: Component 구현 (Day 3-4)
 
-- [ ] `UParticleSystemComponent` 클래스 구현
-  - [ ] `EmitterInstances` 배열 관리
-  - [ ] `Template` (UParticleSystem) 포인터
-  - [ ] `EmitterRenderData` 배열
-- [ ] 메모리 정렬(Address Align) 최적화
-- [ ] **Precache** 메커니즘 구현
-- [ ] Component 업데이트 루프 최적화
+- [x] `EmitterInstances` 배열/Template 관리, Activate/Stop/Restart 흐름
+- [x] `CreateEmitterInstances()`에서 LOD0/RequiredModule 검증 및 경고 로그
+- [x] `TickComponent()` → 인스턴스 Tick 연결
+- [x] 시스템 Duration/Loop(`SystemTime`, `CompletedLoops`) 누적 및 Stop 처리
+- [ ] `EmitterRenderData` 캐싱 + ShowFlag/Stat 연동 (현재 `GetRenderData()`는 매 호출마다 배열 생성)
+- [ ] Precache/초기 Warm-up 로직 (필요 시)
+
 
 ### 의존성
 - **선행 작업**: Person 1의 Phase 1-2 완료 필요
@@ -684,4 +675,3 @@ graph TD
 **문서 작성일**: 2025-11-21
 **프로젝트 기간**: 1주일 (7일)
 **최종 수정**: 초안
-
