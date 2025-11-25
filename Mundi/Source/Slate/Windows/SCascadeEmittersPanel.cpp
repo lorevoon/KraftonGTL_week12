@@ -16,6 +16,7 @@
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSizeScaleBySpeed.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataBeam.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleCollision.h"
 #include "Material.h"
 #include "ResourceManager.h"
 
@@ -300,6 +301,16 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "SizeScaleBySpeed";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Collision"))
+            {
+                UParticleModuleCollision* NewModule = NewObject<UParticleModuleCollision>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Collision";
                     LOD0->AddModule(NewModule);
                 }
             }
@@ -797,9 +808,12 @@ ImVec4 SCascadeEmittersPanel::GetModuleColor(const FString& moduleName)
     // Color scheme matching Unreal Cascade
     // Required = yellow (handled separately)
     // Spawn = red
+    // Collision = teal
     // Everything else = grey
     if (moduleName == "Spawn")
         return ImVec4(0.55f, 0.2f, 0.2f, 1.0f); // Red for Spawn
+    else if (moduleName == "Collision")
+        return ImVec4(0.2f, 0.5f, 0.6f, 1.0f); // Teal for Collision
     else
         return ImVec4(0.3f, 0.3f, 0.3f, 1.0f); // Grey for all other modules
 }
