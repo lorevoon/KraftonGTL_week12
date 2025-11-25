@@ -47,6 +47,11 @@ struct FParticleEmitterInstance
     float EmitterDuration;                   // 현재 LOD Level에서 이미터 총 지속 시간 설정값
     int32 LoopCount;                         // 현재까지의 루프 반복 완료 횟수
 
+    // 모듈 인스턴스 데이터 (per-instance payload)
+    // - EventGenerator 등 인스턴스 레벨 데이터가 필요한 모듈용
+    uint8* ModuleInstanceData;
+    uint32 ModuleInstanceDataStride;
+
     // Editor visibility state (set by editor, used during rendering)
     bool bEditorVisible;                     // Is this emitter visible in editor viewport
     EEmitterRenderMode EditorRenderMode;     // How to render in editor (Normal, Points, Cross, None)
@@ -98,6 +103,10 @@ struct FParticleEmitterInstance
     bool UseLocalSpace() const;
     FVector GetComponentWorldLocation() const;
 
+    // 모듈 인스턴스 데이터 접근
+    // - EventGenerator 모듈의 인스턴스 데이터 반환
+    void* GetModuleInstanceData(UParticleModule* Module);
+
 private:
     // 내부 헬퍼 함수
 
@@ -125,4 +134,10 @@ private:
 
     /** @brief LOD 설정값 기반으로 이번 프레임에 스폰 가능한지 계산 */
     bool CanSpawnThisFrame(float DeltaTime);
+
+    /** @brief 모듈 인스턴스 데이터 초기화 (Initialize에서 호출) */
+    void InitModuleInstanceData();
+
+    /** @brief 모듈 인스턴스 데이터 해제 */
+    void ClearModuleInstanceData();
 };

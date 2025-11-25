@@ -4,7 +4,23 @@
 #include "ParticleEmitterInstance.h"
 #include "PrimitiveComponent.h"
 #include "ParticleSystem.h"
+#include "ParticleEventData.h"
+#include "Delegates.h"
 #include "UParticleSystemComponent.generated.h"
+
+// 충돌 이벤트 델리게이트 타입
+// 파라미터: EventName, EmitterTime, ParticleTime, Location, Velocity, Direction, Normal, BoneName
+DECLARE_DELEGATE_TYPE(
+    FOnParticleCollision,
+    const FString&,     // EventName
+    float,              // EmitterTime
+    float,              // ParticleTime
+    const FVector&,     // Location
+    const FVector&,     // Velocity
+    const FVector&,     // Direction
+    const FVector&,     // Normal
+    const FString&      // BoneName
+);
 
 // 파티클 시스템 컴포넌트 (런타임)
 // - UParticleSystem 에셋을 인스턴스화하여 실행
@@ -45,6 +61,28 @@ public:
 
 	// LOD 메소드 (Template의 기본값을 오버라이드)
 	ParticleSystemLODMethod LODMethod;
+
+public:
+    // ========== 이벤트 시스템 (Phase 2) ==========
+
+    // 프레임당 축적된 충돌 이벤트 배열
+    TArray<FParticleEventCollideData> CollisionEvents;
+
+    // 충돌 이벤트 델리게이트
+    // 사용법: Component->OnParticleCollide.Add([](const FString& EventName, ...){ ... });
+    FOnParticleCollision OnParticleCollide;
+
+    // 충돌 이벤트 보고 (ParticleModuleCollision에서 호출)
+    void ReportEventCollision(
+        const FString& EventName,
+        float EmitterTime,
+        float ParticleTime,
+        const FVector& Location,
+        const FVector& Velocity,
+        const FVector& Direction,
+        const FVector& Normal,
+        const FString& BoneName = ""
+    );
 
 public:
     // 생명주기 함수

@@ -7,6 +7,7 @@
 
 // 전방 선언
 class UParticleModuleTypeDataBase;
+class UParticleModuleEventGenerator;
 
 // LOD 레벨별 모듈 리스트
 // - LOD별로 다른 모듈 리스트 보유
@@ -32,6 +33,12 @@ public:
     // 옵션 모듈 리스트
     UPROPERTY(EditAnywhere, Category="Modules")
     TArray<UParticleModule*> Modules;
+
+    // 이벤트 생성 모듈 (optional)
+    // - 충돌 이벤트 필터링이 필요한 경우에만 설정
+    // - nullptr이면 모든 충돌에서 이벤트 생성 (기본 동작)
+    UPROPERTY(EditAnywhere, Category="Events")
+    UParticleModuleEventGenerator* EventGenerator;
 
     // LOD 레벨 인덱스
     UPROPERTY(EditAnywhere, Category="LOD")

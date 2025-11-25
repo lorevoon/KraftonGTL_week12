@@ -7,6 +7,7 @@
 #include "ParticleLODLevel.h"
 #include "ParticleModule.h"
 #include "Modules/ParticleModuleRequired.h"
+#include "Modules/ParticleModuleEventGenerator.h"
 #include "ParticleSystemComponent.h"
 
 FParticleEmitterInstance::FParticleEmitterInstance()
@@ -24,6 +25,8 @@ FParticleEmitterInstance::FParticleEmitterInstance()
     , EmitterDuration(0.0f)
     , LoopCount(0)
     , CurrentLODLevelIndex(-1)
+    , ModuleInstanceData(nullptr)
+    , ModuleInstanceDataStride(0)
     , bEditorVisible(true)
     , EditorRenderMode(EEmitterRenderMode::Normal)
 {
@@ -32,6 +35,7 @@ FParticleEmitterInstance::FParticleEmitterInstance()
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
     ClearParticleData();
+    ClearModuleInstanceData();
 }
 
 void FParticleEmitterInstance::InitParticles()
@@ -56,7 +60,7 @@ void FParticleEmitterInstance::Initialize(UParticleEmitter* InTemplate, UParticl
     MaxActiveParticles = (InMaxActiveParticles > 0) ? InMaxActiveParticles :
         (EmitterTemplate ? EmitterTemplate->MaxParticleCount : 0);
 
-    // @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것. 
+    // @TODO: LOD 구현은 후순위. 구현 전까지 SetLODLevel 호출하지 말 것.
     //SetLODLevel(InLODIndex);
     SetLODLevel(0);
 
@@ -64,6 +68,9 @@ void FParticleEmitterInstance::Initialize(UParticleEmitter* InTemplate, UParticl
     ParticleCounter = 0;
     EmitterTime = 0.0f;
     LoopCount = 0;
+
+    // 모듈 인스턴스 데이터 초기화
+    InitModuleInstanceData();
 }
 
 uint32 FParticleEmitterInstance::CalculateParticleStride() const
@@ -285,9 +292,15 @@ void FParticleEmitterInstance::KillDeadParticles()
     for (int32 i = ActiveParticles - 1; i >= 0; --i)
     {
         const FBaseParticle* Particle = GetParticle(i);
-        if (Particle && Particle->RelativeTime >= 1.0f)
+        if (Particle)
         {
-            KillParticle(i);
+            // RelativeTime 기반 수명 만료 또는 Dead 플래그 설정 시 제거
+            bool bShouldKill = (Particle->RelativeTime >= 1.0f) ||
+                               (Particle->Flags & EParticleFlags::Dead);
+            if (bShouldKill)
+            {
+                KillParticle(i);
+            }
         }
     }
 }
@@ -450,4 +463,48 @@ FVector FParticleEmitterInstance::GetComponentWorldLocation() const
         return Component->GetWorldLocation();
     }
     return FVector::Zero();
+}
+
+void* FParticleEmitterInstance::GetModuleInstanceData(UParticleModule* Module)
+{
+    if (!ModuleInstanceData || !Module)
+    {
+        return nullptr;
+    }
+
+    // EventGenerator만 인스턴스 데이터 지원 (현재)
+    if (CurrentLODLevel && CurrentLODLevel->EventGenerator == Module)
+    {
+        return ModuleInstanceData;
+    }
+
+    return nullptr;
+}
+
+void FParticleEmitterInstance::InitModuleInstanceData()
+{
+    // 기존 데이터 해제
+    ClearModuleInstanceData();
+
+    // EventGenerator가 있으면 인스턴스 데이터 할당
+    if (CurrentLODLevel && CurrentLODLevel->EventGenerator)
+    {
+        uint32 RequiredBytes = CurrentLODLevel->EventGenerator->RequiredBytes();
+        if (RequiredBytes > 0)
+        {
+            ModuleInstanceData = new uint8[RequiredBytes];
+            ModuleInstanceDataStride = RequiredBytes;
+            std::memset(ModuleInstanceData, 0, RequiredBytes);
+        }
+    }
+}
+
+void FParticleEmitterInstance::ClearModuleInstanceData()
+{
+    if (ModuleInstanceData)
+    {
+        delete[] ModuleInstanceData;
+        ModuleInstanceData = nullptr;
+    }
+    ModuleInstanceDataStride = 0;
 }

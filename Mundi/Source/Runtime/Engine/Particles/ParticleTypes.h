@@ -32,6 +32,24 @@ enum class EDistributionType : uint8
     Particle        // 파티클별 랜덤
 };
 
+// 파티클 충돌 반응 타입
+enum class EParticleCollisionResponse : uint8
+{
+    Kill,           // 충돌 시 파티클 제거
+    Bounce,         // 충돌 시 반사
+    Stop            // 충돌 시 정지
+};
+
+// 파티클 플래그 비트마스크
+// - FBaseParticle::Flags에 사용
+namespace EParticleFlags
+{
+    constexpr int32 None           = 0;
+    constexpr int32 Dead           = 1 << 0;  // 파티클 사망 예정
+    constexpr int32 Collided       = 1 << 1;  // 이번 프레임에 충돌 발생
+    constexpr int32 IgnoreCollision = 1 << 2; // 충돌 검사 무시
+}
+
 // 전방 선언
 class UParticleEmitter;
 class UParticleLODLevel;
