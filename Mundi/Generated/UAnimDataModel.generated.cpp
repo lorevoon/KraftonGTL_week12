@@ -34,7 +34,7 @@ const bool UAnimDataModel::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UAnimDataModel)
-    MARK_AS_COMPONENT("애니메이션 데이터 모델", "애니메이션 키프레임 데이터 저장소")
+
 END_PROPERTIES()
 
 

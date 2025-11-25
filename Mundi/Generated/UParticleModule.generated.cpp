@@ -24,7 +24,6 @@ const bool UParticleModule::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModule)
-    MARK_AS_COMPONENT("파티클 모듈", "파티클 동작을 정의하는 모듈 베이스 클래스입니다")
     ADD_PROPERTY(bool, bSpawnModule, "", false)
     ADD_PROPERTY(bool, bUpdateModule, "", false)
     ADD_PROPERTY(bool, bFinalUpdateModule, "", false)

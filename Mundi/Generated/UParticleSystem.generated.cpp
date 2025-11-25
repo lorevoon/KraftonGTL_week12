@@ -36,12 +36,12 @@ const bool UParticleSystem::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleSystem)
-    MARK_AS_COMPONENT("파티클 시스템", "파티클 이미터들을 포함하는 에셋입니다")
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, Emitters, "Emitters", true)
     ADD_PROPERTY(FString, SystemName, "System", true)
     ADD_PROPERTY(float, SystemDuration, "System", true)
     ADD_PROPERTY(int32, SystemLoops, "System", true)
     ADD_PROPERTY(bool, bAutoActivate, "System", true)
+    ADD_PROPERTY(float, LODDistanceCheckTime, "system", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -58,5 +58,7 @@ LUA_BIND_BEGIN(UParticleSystem)
         T, "SystemLoops", &UParticleSystem::SystemLoops);
     AddProperty<UParticleSystem, bool>(
         T, "bAutoActivate", &UParticleSystem::bAutoActivate);
+    AddProperty<UParticleSystem, float>(
+        T, "LODDistanceCheckTime", &UParticleSystem::LODDistanceCheckTime);
 }
 LUA_BIND_END()

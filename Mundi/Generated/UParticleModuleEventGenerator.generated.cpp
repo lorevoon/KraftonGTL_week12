@@ -34,7 +34,6 @@ const bool UParticleModuleEventGenerator::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleEventGenerator)
-    MARK_AS_COMPONENT("이벤트 생성기", "파티클 이벤트 생성 조건을 설정합니다")
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, Events, "Events", true)
 END_PROPERTIES()
 

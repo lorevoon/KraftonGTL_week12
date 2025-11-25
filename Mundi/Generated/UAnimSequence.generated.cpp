@@ -34,7 +34,7 @@ const bool UAnimSequence::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UAnimSequence)
-    MARK_AS_COMPONENT("애니메이션 시퀀스", "키프레임 기반 스켈레탈 애니메이션")
+
 END_PROPERTIES()
 
 

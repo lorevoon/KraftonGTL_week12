@@ -55,6 +55,13 @@ public:
     UPROPERTY(EditAnywhere, Category="ParticleSystem")
     float CustomPlaybackRate;
 
+	// LOD 거리 체크 주기 (초) (Template의 기본값을 오버라이드)
+    UPROPERTY(EditAnywhere, Category = "ParticleSystem")
+    float LODDistanceCheckTime;
+
+	// LOD 메소드 (Template의 기본값을 오버라이드)
+	ParticleSystemLODMethod LODMethod;
+
 public:
     // ========== 이벤트 시스템 (Phase 2) ==========
 
@@ -86,6 +93,9 @@ public:
     // 컴포넌트 등록 해제: 메모리 정리
     void OnUnregister() override;
 
+    // 직렬화 (LODMethod는 UPROPERTY가 아니므로 수동 직렬화)
+    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+
 public:
     // 제어 함수
 
@@ -106,6 +116,9 @@ public:
 
     // 파티클 시스템 에셋 설정
     void SetTemplate(UParticleSystem* NewTemplate);
+
+	// 수동 LOD 설정 (LODMethod가 DirectSet일 때만 유효)
+	void SetLODIndex(int32 LODIndex);
 
     // 파티클 업데이트 (외부에서 호출)
     void UpdateParticles(float DeltaTime);
@@ -137,6 +150,12 @@ private:
     // 파티클 제거 처리 *UpdateEmitterInstance에서 이미 처리 중. 강제 제거시에만 사용할 것)
     void KillDeadParticles(FParticleEmitterInstance* Instance);
 
+    // 갱신할 LOD 인덱스 계산
+	int32 DetermineLODLevelForLocation(const FVector& EffectLocation) const;
+
     float SystemTime;     // 현재 사이클에서 경과한 시간 (시뮬레이션 값)
     int32 CompletedLoops; // 지금까지 끝낸 루프 수 (시뮬레이션 값)
+
+    float AccumLODDistanceCheckTime;
+    bool  bLODUpdatePending;
 };

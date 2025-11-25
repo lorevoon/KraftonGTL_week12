@@ -36,7 +36,6 @@ const bool UParticleModuleAcceleration::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleAcceleration)
-    MARK_AS_COMPONENT("가속도 모듈", "파티클에 가속도를 적용합니다")
     ADD_PROPERTY(FVector, Acceleration, "Acceleration", true)
 END_PROPERTIES()
 

@@ -36,7 +36,6 @@ const bool UParticleModuleSpawn::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleSpawn)
-    MARK_AS_COMPONENT("생성 모듈", "파티클 생성 위치를 제어합니다")
     ADD_PROPERTY(FVector, LocationMin, "Location", true)
     ADD_PROPERTY(FVector, LocationMax, "Location", true)
     ADD_PROPERTY(EDistributionType, DistributionType, "Location", true)

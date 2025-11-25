@@ -36,7 +36,6 @@ const bool UParticleModuleRequired::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleRequired)
-    MARK_AS_COMPONENT("파티클 필수 모듈", "모든 이미터가 반드시 가져야 하는 필수 모듈입니다")
     ADD_PROPERTY(float, SpawnRate, "Spawn", true)
     ADD_PROPERTY(float, EmitterDuration, "Duration", true)
     ADD_PROPERTY(int32, EmitterLoops, "Duration", true)

@@ -7,9 +7,9 @@
 /** @brief: 파티클의 LOD 계산 방식을 정의합니다.*/
 enum ParticleSystemLODMethod
 {
-    Automatic,        // 일정 주기마다(LODDistanceCheckTime) 거리 기반으로 LOD를 자동으로 갱신
-    DirectSet,        // 게임 코드에서 LODIndex를 직접 세팅
-    ActivateAutomatic // 처음 활성화될 때 한 번 거리 기반으로 LOD를 정하고, 그 이후에는 코드로 직접 바꾸지 않는 한 고정
+    Automatic = 0,        // 일정 주기마다(LODDistanceCheckTime) 거리 기반으로 LOD를 자동으로 갱신
+    DirectSet = 1,        // 게임 코드에서 LODIndex를 직접 세팅
+    ActivateAutomatic = 2 // 처음 활성화될 때 한 번 거리 기반으로 LOD를 정하고, 그 이후에는 코드로 직접 바꾸지 않는 한 고정
 };
 
 // 파티클 시스템 에셋 (최상위)
@@ -47,12 +47,36 @@ public:
     UPROPERTY(EditAnywhere, Category="System")
     bool bAutoActivate;
 
+	// LOD 거리 체크 주기 기본값 (초) (컴포넌트에서 오버라이드 가능)
+    UPROPERTY(EditAnywhere, Category = "system")
+    float LODDistanceCheckTime;
+
+	// LOD 메소드 기본값 (컴포넌트에서 오버라이드 가능)
+	// enum은 UPROPERTY에서 직접 지원하지 않으므로 직렬화, 디테일패널의 프로퍼티 렌더링 등은 별도 처리 필요.
+    ParticleSystemLODMethod LODMethod;
+
+	// LOD 거리 배열 (각 LOD 레벨로 전환되는 최소 거리)
+    // LODDistances[0] (LOD 0)은 
+    TArray<float> LODDistances;
+
     // 이미터 접근
     UParticleEmitter* GetEmitter(int32 Index) const;
     void AddEmitter(UParticleEmitter* Emitter);
     void RemoveEmitter(UParticleEmitter* Emitter);
     void SwapEmitters(int32 IndexA, int32 IndexB);
     int32 GetEmitterCount() const { return Emitters.Num(); }
+
+    // LOD 메소드
+	int32 GetLODLevelCount() const { return LODDistances.Num(); }
+
+	// LOD 거리 설정. 1 ~ N 인덱스만 설정 가능 (LOD 0은 무조건 0.0f. N 입력시 새로 추가)
+	// 설정 성공시 true 반환, 실패시 false 반환
+	bool SetLODDistance(int32 LODIndex, float Distance);
+	bool AddLODDistance(float Distance);
+	bool RemoveLODDistance(int32 LODIndex);
+
+	ParticleSystemLODMethod GetLODMethod() const { return LODMethod; }
+	void SetLODMethod(ParticleSystemLODMethod InMethod) { LODMethod = InMethod; }
 
     // Serialization
     virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;

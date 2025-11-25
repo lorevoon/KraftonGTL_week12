@@ -34,7 +34,6 @@ const bool UParticleModuleTypeDataBeam::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleTypeDataBeam)
-    MARK_AS_COMPONENT("빔 타입 데이터", "시작점과 끝점을 연결하는 빔 파티클입니다")
     ADD_PROPERTY(EBeamMethod, BeamMethod, "Beam", true)
     ADD_PROPERTY(int32, Segments, "Beam", true)
     ADD_PROPERTY(float, Width, "Beam", true)

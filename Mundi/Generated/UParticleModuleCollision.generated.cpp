@@ -34,7 +34,6 @@ const bool UParticleModuleCollision::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleCollision)
-    MARK_AS_COMPONENT("충돌 모듈", "파티클 충돌 검사 및 반응을 처리합니다")
     ADD_PROPERTY(EParticleCollisionResponse, CollisionResponse, "Collision", true)
     ADD_PROPERTY(float, Resilience, "Collision", true)
     ADD_PROPERTY(float, Friction, "Collision", true)
