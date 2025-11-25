@@ -8,6 +8,7 @@
 #include "SceneView.h"
 #include "Modules/TypeData/ParticleModuleTypeDataBase.h"
 #include "Modules/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Modules/TypeData/ParticleModuleTypeDataBeam.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -201,6 +202,11 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
         {
             // Mesh TypeData
             DynamicData = new FDynamicMeshEmitterData(Instance);
+        }
+        else if (Cast<UParticleModuleTypeDataBeam>(LODLevel->TypeDataModule))
+        {
+            // Beam TypeData
+            DynamicData = new FDynamicBeamEmitterData(Instance);
         }
         else
         {

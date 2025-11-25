@@ -30,6 +30,16 @@ public:
         uint32 RequiredInstances,
         uint32& OutMaxInstances);
 
+    // Beam 버텍스 버퍼 가져오기/생성 (자동 확장)
+    ID3D11Buffer* GetOrCreateBeamVertexBuffer(
+        uint32 RequiredVertices,
+        uint32& OutMaxVertices);
+
+    // Beam 인덱스 버퍼 가져오기/생성 (자동 확장)
+    ID3D11Buffer* GetOrCreateBeamIndexBuffer(
+        uint32 RequiredIndices,
+        uint32& OutMaxIndices);
+
     // Quad 버퍼 가져오기 (한 번만 생성, 모든 Sprite 파티클 공유)
     ID3D11Buffer* GetQuadVertexBuffer();
     ID3D11Buffer* GetQuadIndexBuffer();
@@ -50,6 +60,12 @@ private:
     // Mesh용 인스턴스 버퍼
     ID3D11Buffer* MeshInstanceBuffer = nullptr;
     uint32 MeshMaxInstances = 0;
+
+    // Beam용 동적 버퍼
+    ID3D11Buffer* BeamVertexBuffer = nullptr;
+    ID3D11Buffer* BeamIndexBuffer = nullptr;
+    uint32 BeamMaxVertices = 0;
+    uint32 BeamMaxIndices = 0;
 
     // 공용 Quad 버퍼 (모든 Sprite 파티클 공유)
     ID3D11Buffer* QuadVertexBuffer = nullptr;
