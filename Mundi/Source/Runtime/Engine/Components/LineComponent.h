@@ -36,6 +36,10 @@ public:
     void SetAlwaysOnTop(bool bInAlwaysOnTop) { bAlwaysOnTop = bInAlwaysOnTop; }
     bool IsAlwaysOnTop() const { return bAlwaysOnTop; }
 
+    // Line type identification (for grid vs axis)
+    void SetLineType(const FString& InType) { LineType = InType; }
+    const FString& GetLineType() const { return LineType; }
+
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(ULineComponent)
@@ -44,4 +48,5 @@ private:
     TArray<ULine*> Lines;
     bool bLinesVisible = true;
     bool bAlwaysOnTop = false;
+    FString LineType; // "Grid" or "Axis"
  };

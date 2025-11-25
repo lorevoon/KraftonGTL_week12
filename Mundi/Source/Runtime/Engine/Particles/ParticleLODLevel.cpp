@@ -140,6 +140,16 @@ void UParticleLODLevel::RemoveModule(UParticleModule* Module)
     }
 }
 
+void UParticleLODLevel::SwapModules(int32 IndexA, int32 IndexB)
+{
+    if (IndexA >= 0 && IndexA < Modules.Num() && IndexB >= 0 && IndexB < Modules.Num())
+    {
+        UParticleModule* Temp = Modules[IndexA];
+        Modules[IndexA] = Modules[IndexB];
+        Modules[IndexB] = Temp;
+    }
+}
+
 // Helper function to create module from type name
 static UParticleModule* CreateModuleFromTypeName(const FString& TypeName)
 {
@@ -160,14 +170,6 @@ void UParticleLODLevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
     if (bInIsLoading)
     {
-        // Load
-        int32 LevelValue;
-        float DistValue;
-        FJsonSerializer::ReadInt32(InOutHandle, "Level", LevelValue, 0, false);
-        FJsonSerializer::ReadFloat(InOutHandle, "DistanceThreshold", DistValue, 0.0f, false);
-        Level = LevelValue;
-        DistanceThreshold = DistValue;
-
         // Load required module
         if (InOutHandle.hasKey("RequiredModule"))
         {
@@ -236,10 +238,6 @@ void UParticleLODLevel::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     }
     else
     {
-        // Save
-        InOutHandle["Level"] = static_cast<long>(Level);
-        InOutHandle["DistanceThreshold"] = static_cast<double>(DistanceThreshold);
-
         // Save required module
         if (RequiredModule)
         {

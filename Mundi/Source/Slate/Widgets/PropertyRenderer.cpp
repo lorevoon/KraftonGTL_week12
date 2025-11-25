@@ -57,6 +57,115 @@ bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectIn
 
 	bool bChanged = false;
 
+	// Seed enum metadata once for known engine enums (until generator emits it)
+	static bool bSeededEnumMeta = false;
+	if (!bSeededEnumMeta)
+	{
+		auto SeedForClass = [](const char* ClassName, const char* PropName, const char* EnumItemsCSV, const char* Storage)
+		{
+			UClass* Cls = UClass::FindClass(FName(ClassName));
+			if (!Cls) return;
+			for (FProperty& P : Cls->Properties)
+			{
+				if (strcmp(P.Name, PropName) == 0)
+				{
+					P.Metadata.Add(FName("EnumItems"), FString(EnumItemsCSV));
+					P.Metadata.Add(FName("EnumStorage"), FString(Storage));
+					break;
+				}
+			}
+		};
+		// Particle editor enums (uint8-backed)
+		SeedForClass("UParticleModuleRequired", "SortMode", "None,ViewDistanceDepth,AgeOldestFirst,AgeNewestFirst", "u8");
+		SeedForClass("UParticleModuleSpawn", "DistributionType", "Constant,Uniform,ConstantCurve,Particle", "u8");
+		bSeededEnumMeta = true;
+	}
+
+	// Generic enum rendering via metadata (EnumItems CSV + optional EnumStorage)
+	{
+		auto it = Property.Metadata.find(FName("EnumItems"));
+		if (it != Property.Metadata.end())
+		{
+			const FString& Csv = it->second;
+			TArray<FString> Items; Items.Empty();
+			size_t start = 0; size_t pos = 0;
+			while ((pos = Csv.find(',', start)) != FString::npos)
+			{
+				FString token = Csv.substr(start, pos - start);
+				while (!token.empty() && (token.front() == ' ')) token.erase(token.begin());
+				while (!token.empty() && (token.back() == ' ')) token.pop_back();
+				Items.Add(token);
+				start = pos + 1;
+			}
+			FString last = Csv.substr(start);
+			while (!last.empty() && (last.front() == ' ')) last.erase(last.begin());
+			while (!last.empty() && (last.back() == ' ')) last.pop_back();
+			if (!last.empty()) Items.Add(last);
+
+			TArray<const char*> CItems; for (const FString& s : Items) CItems.push_back(s.c_str());
+
+			bool bU8 = false; auto st = Property.Metadata.find(FName("EnumStorage"));
+			if (st != Property.Metadata.end()) { bU8 = (st->second == FString("u8")); }
+
+			ImGui::SetNextItemWidth(180);
+			if (bU8)
+			{
+				uint8* Value8 = Property.GetValuePtr<uint8>(ObjectInstance);
+				int idx = FMath::Clamp(static_cast<int>(*Value8), 0, (int)CItems.size() - 1);
+				if (ImGui::Combo(Property.Name, &idx, CItems.data(), (int)CItems.size()))
+				{
+					*Value8 = static_cast<uint8>(idx);
+					return true;
+				}
+				return false;
+			}
+			else
+			{
+				int32* Value32 = Property.GetValuePtr<int32>(ObjectInstance);
+				int idx = FMath::Clamp(*Value32, 0, (int)CItems.size() - 1);
+				if (ImGui::Combo(Property.Name, &idx, CItems.data(), (int)CItems.size()))
+				{
+					*Value32 = idx;
+					return true;
+				}
+				return false;
+			}
+		}
+	}
+
+	// 1) Known-enum fallback (centralized) until codegen provides metadata.
+	{
+		UObject* OwnerObj = static_cast<UObject*>(ObjectInstance);
+		const char* OwnerClass = OwnerObj ? OwnerObj->GetClass()->Name : nullptr;
+		auto RenderEnumComboU8 = [&](const TArray<const char*>& Items, uint8* ValuePtr) -> bool
+		{
+			int idx = FMath::Clamp(static_cast<int>(*ValuePtr), 0, (int)Items.size() - 1);
+			ImGui::SetNextItemWidth(180);
+			if (ImGui::Combo(Property.Name, &idx, Items.data(), (int)Items.size()))
+			{
+				*ValuePtr = static_cast<uint8>(idx);
+				return true;
+			}
+			return false;
+		};
+
+		if (OwnerClass)
+		{
+			if (strcmp(OwnerClass, "UParticleModuleRequired") == 0 && strcmp(Property.Name, "SortMode") == 0)
+			{
+				static TArray<const char*> Items = { "None", "ViewDistanceDepth", "AgeOldestFirst", "AgeNewestFirst" };
+				uint8* Val = Property.GetValuePtr<uint8>(ObjectInstance);
+				if (Val) return RenderEnumComboU8(Items, Val);
+			}
+			if (strcmp(OwnerClass, "UParticleModuleSpawn") == 0 && strcmp(Property.Name, "DistributionType") == 0)
+			{
+				static TArray<const char*> Items = { "Constant", "Uniform", "ConstantCurve", "Particle" };
+				uint8* Val = Property.GetValuePtr<uint8>(ObjectInstance);
+				if (Val) return RenderEnumComboU8(Items, Val);
+			}
+		}
+	}
+
 	switch (Property.Type)
 	{
 	case EPropertyType::Bool:

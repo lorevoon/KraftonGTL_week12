@@ -14,11 +14,11 @@
 // Define class-specific body macro
 #define U_PARTICLE_SYSTEM_BODY \
 public: \
-    using Super = UObject; \
+    using Super = UResourceBase; \
     using ThisClass_t = UParticleSystem; \
     static UClass* StaticClass() \
     { \
-        static UClass Cls{ "UParticleSystem", UObject::StaticClass(), sizeof(UParticleSystem) }; \
+        static UClass Cls{ "UParticleSystem", UResourceBase::StaticClass(), sizeof(UParticleSystem) }; \
         static bool bRegistered = (UClass::SignUpClass(&Cls), true); \
         return &Cls; \
     } \
