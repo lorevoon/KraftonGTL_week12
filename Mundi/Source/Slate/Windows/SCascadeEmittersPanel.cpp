@@ -102,13 +102,34 @@ bool SCascadeEmittersPanel::HasAnySoloEmitter() const
     return false;
 }
 
+static void DrawCascadePanelHeader(const char* Title)
+{
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    float fullW = ImGui::GetContentRegionAvail().x;
+    const float headerH = 28.0f;
+
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    ImU32 bg = ImGui::GetColorU32(ImVec4(0.14f, 0.14f, 0.18f, 1.0f));
+    ImU32 top = ImGui::GetColorU32(ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
+    ImU32 border = ImGui::GetColorU32(ImVec4(0.35f, 0.35f, 0.40f, 1.0f));
+
+    dl->AddRectFilled(pos, ImVec2(pos.x + fullW, pos.y + headerH), bg, 5.0f);
+    dl->AddLine(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y), top, 1.0f);
+    dl->AddRect(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y + headerH), border, 5.0f);
+
+    ImGui::SetCursorScreenPos(ImVec2(pos.x + 10.0f, pos.y + 5.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
+    ImGui::TextUnformatted(Title);
+    ImGui::PopStyleColor();
+    ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + headerH + 6.0f));
+}
+
 void SCascadeEmittersPanel::Render(float width, float height)
 {
     EnsureEditingSystem();
 
-    // Header row with optional add button
-    ImGui::TextUnformatted("Emitters");
-    ImGui::Separator();
+    // Header row styled like a panel title
+    DrawCascadePanelHeader("Emitters");
 
     // Reset frame-local click tracking
     bClickedOnItemThisFrame = false;
