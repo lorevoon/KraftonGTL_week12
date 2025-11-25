@@ -27,6 +27,8 @@ public:
 private:
     void EnsureEditingSystem();
     UParticleEmitter* CreateDefaultSpriteEmitter();
+    UParticleEmitter* CreateDefaultMeshEmitter();
+    UParticleEmitter* CreateDefaultBeamEmitter();
 
     // UI Rendering helpers
     void RenderModuleCard(UParticleModule* module, UParticleLODLevel* parentLOD, int32 moduleIndex, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox);
