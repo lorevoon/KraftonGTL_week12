@@ -10,6 +10,9 @@
 #include "Source/Runtime/Core/Object/Property.h"
 #include "Source/Runtime/Core/Misc/JsonSerializer.h"
 #include "FViewportClient.h"
+// Particle preview wiring
+#include "Source/Runtime/Renderer/ParticleSystemEditorViewportClient.h"
+#include "Source/Runtime/Engine/Particles/ParticleSystemComponent.h"
 
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
@@ -687,6 +690,41 @@ ViewerState* SParticleSystemEditorWindow::CreateViewerState(const char* Name, UE
 void SParticleSystemEditorWindow::DestroyViewerState(ViewerState*& State)
 {
     ParticleSystemEditorBootstrap::DestroyViewerState(State);
+}
+
+void SParticleSystemEditorWindow::PreRenderViewportUpdate()
+{
+    // Ensure the viewport's preview component uses the EditingSystem template
+    if (!ActiveState || !EmittersPanel)
+        return;
+
+    FViewportClient* BaseClient = ActiveState->Client;
+    FParticleSystemEditorViewportClient* PSClient = dynamic_cast<FParticleSystemEditorViewportClient*>(BaseClient);
+    if (!PSClient)
+        return;
+
+    UParticleSystemComponent* PreviewComp = PSClient->GetPreviewComponent();
+    if (!PreviewComp && ActiveState->World)
+    {
+        // Try to find any particle system component in the preview world
+        PreviewComp = ActiveState->World->FindComponent<UParticleSystemComponent>();
+        if (PreviewComp)
+        {
+            PSClient->SetPreviewComponent(PreviewComp);
+        }
+    }
+
+    if (!PreviewComp)
+        return;
+
+    UParticleSystem* EditingSystem = EmittersPanel->GetEditingSystem();
+    // // Only override the preview when the editing system is actually populated
+    // if (EditingSystem && EditingSystem->GetEmitterCount() > 0 && PreviewComp->Template != EditingSystem)
+    if (EditingSystem && PreviewComp->Template != EditingSystem)
+    {
+        PreviewComp->SetTemplate(EditingSystem);
+        PreviewComp->Restart();
+    }
 }
 
 void SParticleSystemEditorWindow::LoadToolbarIcons()

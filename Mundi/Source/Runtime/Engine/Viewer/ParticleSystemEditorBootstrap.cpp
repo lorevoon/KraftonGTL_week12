@@ -3,6 +3,9 @@
 #include "FViewport.h"
 #include "Source/Runtime/Engine/Viewer/ViewerState.h"
 #include "Source/Runtime/Renderer/ParticleSystemEditorViewportClient.h"
+// Preview actor/component
+#include "Source/Runtime/Engine/GameFramework/SpriteParticleActor.h"
+#include "Source/Runtime/Engine/Particles/ParticleSystemComponent.h"
 
 ViewerState* ParticleSystemEditorBootstrap::CreateViewerState(const char* Name, UWorld* InWorld, ID3D11Device* InDevice)
 {
@@ -33,7 +36,20 @@ ViewerState* ParticleSystemEditorBootstrap::CreateViewerState(const char* Name, 
     State->Viewport->SetViewportClient(Client);
     State->World->SetEditorCameraActor(Client->GetCamera());
 
-    // No default preview actor yet (particle system coming later)
+    // Spawn a preview particle actor in the preview world and cache component on the client
+    if (State->World)
+    {
+        ASpriteParticleActor* PreviewPSActor = State->World->SpawnActor<ASpriteParticleActor>();
+        if (PreviewPSActor)
+        {
+            if (UParticleSystemComponent* PSC = PreviewPSActor->GetParticleSystemComponent())
+            {
+                PSC->bAutoActivate = true;
+                PSC->Activate();
+                Client->SetPreviewComponent(PSC);
+            }
+        }
+    }
 
     return State;
 }

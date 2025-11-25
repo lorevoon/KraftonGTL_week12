@@ -24,7 +24,7 @@ protected:
     void DestroyViewerState(ViewerState*& State) override;
     FString GetWindowTitle() const override { return "Cascade Particle Editor"; }
 
-    void PreRenderViewportUpdate() override {}
+    void PreRenderViewportUpdate() override;
 
 private:
     // Layout state
