@@ -718,10 +718,22 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
     if (!PreviewComp)
         return;
 
+    // If the emitters panel has no system (or an empty system), adopt the preview component's template
+    if (EmittersPanel)
+    {
+        UParticleSystem* CurrentEditing = EmittersPanel->GetEditingSystem();
+        UParticleSystem* PreviewTemplate = PreviewComp->Template;
+        const bool bPanelEmpty = (CurrentEditing == nullptr) || (CurrentEditing && CurrentEditing->GetEmitterCount() == 0);
+        if (bPanelEmpty && PreviewTemplate)
+        {
+            EmittersPanel->SetEditingSystem(PreviewTemplate);
+        }
+    }
+
     UParticleSystem* EditingSystem = EmittersPanel->GetEditingSystem();
     // // Only override the preview when the editing system is actually populated
-    // if (EditingSystem && EditingSystem->GetEmitterCount() > 0 && PreviewComp->Template != EditingSystem)
-    if (EditingSystem && PreviewComp->Template != EditingSystem)
+    // if (EditingSystem && PreviewComp->Template != EditingSystem)
+    if (EditingSystem && EditingSystem->GetEmitterCount() > 0 && PreviewComp->Template != EditingSystem)
     {
         PreviewComp->SetTemplate(EditingSystem);
         PreviewComp->Restart();
