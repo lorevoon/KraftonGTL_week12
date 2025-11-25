@@ -106,6 +106,9 @@ void SCascadeEmittersPanel::Render(float width, float height)
     ImGui::TextUnformatted("Emitters");
     ImGui::Separator();
 
+    // Reset frame-local click tracking
+    bClickedOnItemThisFrame = false;
+
     // Horizontally scrollable canvas for vertical emitter stacks
     ImGui::BeginChild("Cascade_Emitters_Canvas", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
@@ -243,6 +246,8 @@ void SCascadeEmittersPanel::Render(float width, float height)
         if (ImGui::IsItemClicked())
         {
             SelectedEmitterIndex = i;
+            SelectedModule = nullptr; // Deselect module when clicking emitter header
+            bClickedOnItemThisFrame = true;
         }
 
         // Drag source for emitter reordering (only if item is active)
@@ -500,6 +505,19 @@ void SCascadeEmittersPanel::Render(float width, float height)
     }
 
     ImGui::EndChild();
+
+    // Detect clicks on empty space to deselect both module and emitter
+    // This allows clicking blank area to show UParticleSystem properties
+    // We check after EndChild so that all item hover states are finalized
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+    {
+        // If we didn't click on any emitter/module item, deselect everything
+        if (!bClickedOnItemThisFrame && !ImGui::IsAnyItemActive())
+        {
+            SelectedModule = nullptr;
+            SelectedEmitterIndex = -1;
+        }
+    }
 
     // Keyboard navigation for reordering emitters (like Unreal Engine)
     if (SelectedEmitterIndex >= 0 && SelectedEmitterIndex < EditingSystem->GetEmitterCount())
@@ -788,6 +806,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
         if (ImGui::Button(moduleName, ImVec2(width - 30, height)))
         {
             SelectedModule = module;
+            bClickedOnItemThisFrame = true;
         }
         ImGui::PopStyleVar();
 
@@ -853,6 +872,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
         if (ImGui::Button(buttonLabel, ImVec2(width, height)))
         {
             SelectedModule = module;
+            bClickedOnItemThisFrame = true;
         }
         ImGui::PopStyleVar();
 

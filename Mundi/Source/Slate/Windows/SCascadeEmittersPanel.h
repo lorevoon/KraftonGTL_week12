@@ -68,5 +68,8 @@ private:
     // Drag-and-drop state
     int32 DraggedEmitterIndex = -1;
     UParticleModule* DraggedModule = nullptr;
+
+    // Frame-local click tracking (reset each frame in Render)
+    bool bClickedOnItemThisFrame = false;
 };
 

@@ -37,6 +37,8 @@ private:
     void RenderViewportArea(float width, float height);
     void RenderDetailsPanel(float width, float height);
     void RenderProperty(UParticleModule* Module, const struct FProperty* Prop);
+    void RenderSystemProperty(class UParticleSystem* System, const struct FProperty* Prop);
+    void RenderEmitterProperty(class UParticleEmitter* Emitter, const struct FProperty* Prop);
 
     // Toolbar icons and helpers
     void LoadToolbarIcons();

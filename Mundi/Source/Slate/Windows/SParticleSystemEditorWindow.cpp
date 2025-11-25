@@ -7,6 +7,7 @@
 #include "SCascadeEmittersPanel.h"
 #include "Source/Runtime/Engine/Particles/ParticleModule.h"
 #include "Source/Runtime/Engine/Particles/ParticleSystem.h"
+#include "Source/Runtime/Engine/Particles/ParticleEmitter.h"
 #include "Source/Runtime/Core/Object/Property.h"
 #include "Source/Runtime/Core/Misc/JsonSerializer.h"
 #include "FViewportClient.h"
@@ -798,9 +799,132 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
     }
 
     UParticleModule* SelectedModule = EmittersPanel->GetSelectedModule();
+    int32 SelectedEmitterIndex = EmittersPanel->GetSelectedEmitterIndex();
+    UParticleSystem* EditingSystem = EmittersPanel->GetEditingSystem();
+
+    // If no module is selected, show emitter or system properties
     if (!SelectedModule)
     {
-        ImGui::TextUnformatted("Select a module to view properties");
+        // If an emitter is selected, show its properties
+        if (SelectedEmitterIndex >= 0 && EditingSystem)
+        {
+            UParticleEmitter* SelectedEmitter = EditingSystem->GetEmitter(SelectedEmitterIndex);
+            if (SelectedEmitter)
+            {
+                UClass* EmitterClass = SelectedEmitter->GetClass();
+                if (!EmitterClass)
+                {
+                    ImGui::TextUnformatted("(Invalid emitter class)");
+                    return;
+                }
+
+                // Display emitter name header
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.7f, 0.5f, 1.0f)); // Orange for emitter
+                ImGui::Text("Emitter: %s", SelectedEmitter->EmitterName.c_str());
+                ImGui::PopStyleColor();
+                ImGui::Separator();
+
+                // Get all properties
+                const TArray<FProperty>& Properties = EmitterClass->GetAllProperties();
+
+                // Group properties by category
+                TMap<FString, TArray<const FProperty*>> CategorizedProperties;
+                for (const FProperty& Prop : Properties)
+                {
+                    if (Prop.bIsEditAnywhere)
+                    {
+                        FString Category = Prop.Category ? FString(Prop.Category) : FString("General");
+                        if (!CategorizedProperties.Contains(Category))
+                        {
+                            CategorizedProperties.Add(Category, TArray<const FProperty*>());
+                        }
+                        CategorizedProperties[Category].Add(&Prop);
+                    }
+                }
+
+                // Render properties by category
+                for (auto& Pair : CategorizedProperties)
+                {
+                    const FString& CategoryName = Pair.first;
+                    const TArray<const FProperty*>& CategoryProps = Pair.second;
+
+                    // Category header
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
+                    ImGui::TextUnformatted(CategoryName.c_str());
+                    ImGui::PopStyleColor();
+                    ImGui::Separator();
+
+                    // Render each property
+                    for (const FProperty* Prop : CategoryProps)
+                    {
+                        RenderEmitterProperty(SelectedEmitter, Prop);
+                    }
+
+                    ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+                }
+                return;
+            }
+        }
+
+        // No emitter selected either, show UParticleSystem properties
+        if (!EditingSystem)
+        {
+            ImGui::TextUnformatted("Select a module to view properties");
+            return;
+        }
+
+        // Show UParticleSystem properties
+        UClass* SystemClass = EditingSystem->GetClass();
+        if (!SystemClass)
+        {
+            ImGui::TextUnformatted("(Invalid system class)");
+            return;
+        }
+
+        // Display system name header
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.9f, 0.9f, 1.0f)); // Cyan for system
+        ImGui::TextUnformatted("Particle System");
+        ImGui::PopStyleColor();
+        ImGui::Separator();
+
+        // Get all properties
+        const TArray<FProperty>& Properties = SystemClass->GetAllProperties();
+
+        // Group properties by category
+        TMap<FString, TArray<const FProperty*>> CategorizedProperties;
+        for (const FProperty& Prop : Properties)
+        {
+            if (Prop.bIsEditAnywhere)
+            {
+                FString Category = Prop.Category ? FString(Prop.Category) : FString("General");
+                if (!CategorizedProperties.Contains(Category))
+                {
+                    CategorizedProperties.Add(Category, TArray<const FProperty*>());
+                }
+                CategorizedProperties[Category].Add(&Prop);
+            }
+        }
+
+        // Render properties by category
+        for (auto& Pair : CategorizedProperties)
+        {
+            const FString& CategoryName = Pair.first;
+            const TArray<const FProperty*>& CategoryProps = Pair.second;
+
+            // Category header
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
+            ImGui::TextUnformatted(CategoryName.c_str());
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+
+            // Render each property
+            for (const FProperty* Prop : CategoryProps)
+            {
+                RenderSystemProperty(EditingSystem, Prop);
+            }
+
+            ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+        }
         return;
     }
 
@@ -865,6 +989,34 @@ void SParticleSystemEditorWindow::RenderProperty(UParticleModule* Module, const 
 
     ImGui::PushID(Prop->Name);
     bool bChanged = UPropertyRenderer::RenderProperty(*Prop, Module);
+    if (bChanged && EmittersPanel && EmittersPanel->GetEditingSystem())
+    {
+        EmittersPanel->GetEditingSystem()->bIsDirty = true;
+    }
+    ImGui::PopID();
+}
+
+void SParticleSystemEditorWindow::RenderSystemProperty(UParticleSystem* System, const FProperty* Prop)
+{
+    if (!System || !Prop)
+        return;
+
+    ImGui::PushID(Prop->Name);
+    bool bChanged = UPropertyRenderer::RenderProperty(*Prop, System);
+    if (bChanged && System)
+    {
+        System->bIsDirty = true;
+    }
+    ImGui::PopID();
+}
+
+void SParticleSystemEditorWindow::RenderEmitterProperty(UParticleEmitter* Emitter, const FProperty* Prop)
+{
+    if (!Emitter || !Prop)
+        return;
+
+    ImGui::PushID(Prop->Name);
+    bool bChanged = UPropertyRenderer::RenderProperty(*Prop, Emitter);
     if (bChanged && EmittersPanel && EmittersPanel->GetEditingSystem())
     {
         EmittersPanel->GetEditingSystem()->bIsDirty = true;
