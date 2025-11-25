@@ -1428,28 +1428,7 @@ bool UPropertyRenderer::RenderSingleMaterialSlot(const char* Label, UMaterialInt
 	{
 		ImGui::Indent();
 
-		// --- 2-1. 셰이더 (읽기 전용) ---
-		UShader* CurrentShader = CurrentMaterial->GetShader();
-		FString CurrentShaderPath = (CurrentShader) ? CurrentShader->GetFilePath() : "None";
-		char ShaderPathBuffer[512];
-		strncpy_s(ShaderPathBuffer, sizeof(ShaderPathBuffer), CurrentShaderPath.c_str(), _TRUNCATE);
-		FString ShaderLabel = "Shader##" + FString(Label);
-		ImGui::SetNextItemWidth(300);
-		ImGui::BeginDisabled(true);
-		ImGui::InputText(ShaderLabel.c_str(), ShaderPathBuffer, sizeof(ShaderPathBuffer), ImGuiInputTextFlags_ReadOnly);
-		ImGui::EndDisabled();
-
-		// --- 셰이더 매크로 (읽기 전용) ---
-		FString MacroKey = UShader::GenerateMacrosToString(CurrentMaterial->GetShaderMacros());
-		char ShaderMacroBuffer[512];
-		strncpy_s(ShaderMacroBuffer, sizeof(ShaderMacroBuffer), MacroKey.c_str(), _TRUNCATE);
-		FString ShaderMacroKeyLabel = "MacroKey##" + FString(Label);
-		ImGui::SetNextItemWidth(300);
-		ImGui::BeginDisabled(true);
-		ImGui::InputText(ShaderMacroKeyLabel.c_str(), ShaderMacroBuffer, sizeof(ShaderMacroBuffer), ImGuiInputTextFlags_ReadOnly);
-		ImGui::EndDisabled();
-
-		// --- 2-2. 텍스처 슬롯 ---
+		// --- 2-1. 텍스처 슬롯 ---
 		// ImGui 위젯 값이 변경될 때만 호출됩니다.
 		UMeshComponent* MeshComponent = Cast<UMeshComponent>(OwningObject);
 

@@ -13,6 +13,11 @@
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleVelocity.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleColor.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSize.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSizeScaleBySpeed.h"
+#include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataBeam.h"
+#include "Material.h"
+#include "ResourceManager.h"
 
 void SCascadeEmittersPanel::EnsureEditingSystem()
 {
@@ -192,6 +197,21 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 }
             }
 
+            // TypeData module - PURPLE (special module, not draggable)
+            if (LOD0->TypeDataModule)
+            {
+                const char* typeName = LOD0->TypeDataModule->ModuleName.c_str();
+                if (typeName)
+                {
+                    RenderModuleCard(LOD0->TypeDataModule,
+                                   LOD0,
+                                   -2, // -2 indicates TypeData module
+                                   typeName,
+                                   ImVec4(0.4f, 0.2f, 0.5f, 1.0f), // Purple
+                                   columnWidth, moduleHeight, true); // With checkbox
+                }
+            }
+
             // Other modules
             const TArray<UParticleModule*>& Modules = LOD0->Modules;
             for (int m = 0; m < Modules.Num(); ++m)
@@ -274,6 +294,39 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 }
             }
 
+            if (ImGui::MenuItem("Size Scale By Speed"))
+            {
+                UParticleModuleSizeScaleBySpeed* NewModule = NewObject<UParticleModuleSizeScaleBySpeed>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "SizeScaleBySpeed";
+                    LOD0->AddModule(NewModule);
+                }
+            }
+
+            ImGui::Separator();
+            ImGui::TextDisabled("TypeData Modules");
+
+            if (ImGui::MenuItem("TypeData Mesh"))
+            {
+                UParticleModuleTypeDataMesh* NewModule = NewObject<UParticleModuleTypeDataMesh>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "TypeData Mesh";
+                    LOD0->TypeDataModule = NewModule;
+                }
+            }
+
+            if (ImGui::MenuItem("TypeData Beam"))
+            {
+                UParticleModuleTypeDataBeam* NewModule = NewObject<UParticleModuleTypeDataBeam>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "TypeData Beam";
+                    LOD0->TypeDataModule = NewModule;
+                }
+            }
+
             ImGui::EndPopup();
         }
 
@@ -287,7 +340,10 @@ void SCascadeEmittersPanel::Render(float width, float height)
     // Right-click empty canvas to add new emitter
     if (ImGui::BeginPopupContextWindow("EmittersEmptyContext", ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight))
     {
-        if (ImGui::MenuItem("New Particle Sprite Emitter"))
+        ImGui::TextDisabled("New Emitter");
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("Sprite Emitter"))
         {
             if (UParticleEmitter* NewEmitter = CreateDefaultSpriteEmitter())
             {
@@ -295,6 +351,25 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
             }
         }
+
+        if (ImGui::MenuItem("Mesh Emitter"))
+        {
+            if (UParticleEmitter* NewEmitter = CreateDefaultMeshEmitter())
+            {
+                EditingSystem->AddEmitter(NewEmitter);
+                SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+            }
+        }
+
+        if (ImGui::MenuItem("Beam Emitter"))
+        {
+            if (UParticleEmitter* NewEmitter = CreateDefaultBeamEmitter())
+            {
+                EditingSystem->AddEmitter(NewEmitter);
+                SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+            }
+        }
+
         ImGui::EndPopup();
     }
 
@@ -379,6 +454,164 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
     return Emitter;
 }
 
+UParticleEmitter* SCascadeEmittersPanel::CreateDefaultMeshEmitter()
+{
+    UParticleEmitter* Emitter = NewObject<UParticleEmitter>();
+    if (!Emitter)
+        return nullptr;
+
+    Emitter->EmitterName = "Mesh Emitter";
+    Emitter->MaxParticleCount = 100;
+
+    UParticleLODLevel* LOD0 = NewObject<UParticleLODLevel>();
+    if (!LOD0)
+        return nullptr;
+
+    LOD0->Level = 0;
+    LOD0->DistanceThreshold = 0.0f;
+
+    // Required module
+    UParticleModuleRequired* Required = NewObject<UParticleModuleRequired>();
+    if (Required)
+    {
+        Required->ModuleName = "Required";
+        Required->SpawnRate = 5.0f; // Lower spawn rate for mesh particles
+        LOD0->RequiredModule = Required;
+    }
+
+    // TypeData Mesh module
+    UParticleModuleTypeDataMesh* TypeDataMesh = NewObject<UParticleModuleTypeDataMesh>();
+    if (TypeDataMesh)
+    {
+        TypeDataMesh->ModuleName = "TypeData Mesh";
+        LOD0->TypeDataModule = TypeDataMesh;
+    }
+
+    // Spawn
+    if (UParticleModuleSpawn* Spawn = NewObject<UParticleModuleSpawn>())
+    {
+        Spawn->ModuleName = "Spawn";
+        LOD0->AddModule(Spawn);
+    }
+    // Lifetime
+    if (UParticleModuleLifetime* Lifetime = NewObject<UParticleModuleLifetime>())
+    {
+        Lifetime->ModuleName = "Lifetime";
+        Lifetime->LifetimeMin = 2.0f;
+        Lifetime->LifetimeMax = 3.0f;
+        LOD0->AddModule(Lifetime);
+    }
+    // Location
+    if (UParticleModuleLocation* Location = NewObject<UParticleModuleLocation>())
+    {
+        Location->ModuleName = "Location";
+        LOD0->AddModule(Location);
+    }
+    // Velocity
+    if (UParticleModuleVelocity* Velocity = NewObject<UParticleModuleVelocity>())
+    {
+        Velocity->ModuleName = "Velocity";
+        Velocity->StartVelocityMin = FVector(-50.f, 50.f, -50.f);
+        Velocity->StartVelocityMax = FVector(50.f, 150.f, 50.f);
+        LOD0->AddModule(Velocity);
+    }
+    // Size
+    if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())
+    {
+        Size->ModuleName = "Size";
+        Size->StartSizeMin = FVector(0.5f, 0.5f, 0.5f);
+        Size->StartSizeMax = FVector(1.0f, 1.0f, 1.0f);
+        LOD0->AddModule(Size);
+    }
+    // Color
+    if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
+    {
+        Color->ModuleName = "Color";
+        LOD0->AddModule(Color);
+    }
+
+    Emitter->AddLODLevel(LOD0);
+    return Emitter;
+}
+
+UParticleEmitter* SCascadeEmittersPanel::CreateDefaultBeamEmitter()
+{
+    UParticleEmitter* Emitter = NewObject<UParticleEmitter>();
+    if (!Emitter)
+        return nullptr;
+
+    Emitter->EmitterName = "Beam Emitter";
+    Emitter->MaxParticleCount = 10;
+
+    UParticleLODLevel* LOD0 = NewObject<UParticleLODLevel>();
+    if (!LOD0)
+        return nullptr;
+
+    LOD0->Level = 0;
+    LOD0->DistanceThreshold = 0.0f;
+
+    // Required module
+    UParticleModuleRequired* Required = NewObject<UParticleModuleRequired>();
+    if (Required)
+    {
+        Required->ModuleName = "Required";
+        Required->SpawnRate = 2.0f; // Low spawn rate for beams
+        LOD0->RequiredModule = Required;
+    }
+
+    // TypeData Beam module
+    UParticleModuleTypeDataBeam* TypeDataBeam = NewObject<UParticleModuleTypeDataBeam>();
+    if (TypeDataBeam)
+    {
+        TypeDataBeam->ModuleName = "TypeData Beam";
+        TypeDataBeam->Segments = 10;
+        TypeDataBeam->Width = 5.0f;
+        TypeDataBeam->Length = 200.0f;
+        TypeDataBeam->NoiseStrength = 10.0f;
+        LOD0->TypeDataModule = TypeDataBeam;
+    }
+
+    // Spawn
+    if (UParticleModuleSpawn* Spawn = NewObject<UParticleModuleSpawn>())
+    {
+        Spawn->ModuleName = "Spawn";
+        LOD0->AddModule(Spawn);
+    }
+    // Lifetime
+    if (UParticleModuleLifetime* Lifetime = NewObject<UParticleModuleLifetime>())
+    {
+        Lifetime->ModuleName = "Lifetime";
+        Lifetime->LifetimeMin = 1.0f;
+        Lifetime->LifetimeMax = 2.0f;
+        LOD0->AddModule(Lifetime);
+    }
+    // Location
+    if (UParticleModuleLocation* Location = NewObject<UParticleModuleLocation>())
+    {
+        Location->ModuleName = "Location";
+        LOD0->AddModule(Location);
+    }
+    // Velocity - beam direction
+    if (UParticleModuleVelocity* Velocity = NewObject<UParticleModuleVelocity>())
+    {
+        Velocity->ModuleName = "Velocity";
+        Velocity->StartVelocityMin = FVector(100.f, 0.f, 0.f);
+        Velocity->StartVelocityMax = FVector(200.f, 50.f, 0.f);
+        LOD0->AddModule(Velocity);
+    }
+    // Color
+    if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
+    {
+        Color->ModuleName = "Color";
+        Color->StartColor = FLinearColor(0.2f, 0.5f, 1.0f, 1.0f); // Blue-ish
+        Color->EndColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.0f); // Fade to transparent
+        LOD0->AddModule(Color);
+    }
+
+    Emitter->AddLODLevel(LOD0);
+    return Emitter;
+}
+
 void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleLODLevel* parentLOD, int32 moduleIndex, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox)
 {
     if (!module)
@@ -451,7 +684,15 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                     {
                         SelectedModule = nullptr;
                     }
-                    parentLOD->RemoveModule(module);
+                    // TypeData module (moduleIndex == -2) has special handling
+                    if (moduleIndex == -2)
+                    {
+                        parentLOD->TypeDataModule = nullptr;
+                    }
+                    else
+                    {
+                        parentLOD->RemoveModule(module);
+                    }
                 }
             }
 

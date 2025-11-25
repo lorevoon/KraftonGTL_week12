@@ -7,6 +7,7 @@
 #include "Texture.h"
 #include "ParticleLODLevel.h"
 #include "Modules/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Modules/TypeData/ParticleModuleTypeDataBeam.h"
 #include "StaticMesh.h"
 #include "ParticleDynamicBuffers.h"
 #include "ParticleSystemComponent.h"
@@ -144,12 +145,12 @@ void FDynamicSpriteEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMateria
     // 5. Material 바인딩 (셰이더, 텍스처, 샘플러)
     if (Material)
     {
-        // 셰이더 바인딩
-        UShader* Shader = Material->GetShader();
-        if (Shader)
+        // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
+        static UShader* SpriteShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleSprite.hlsl");
+        if (SpriteShader)
         {
-            RHI->PrepareShader(Shader);
-            UE_LOG("[debug] Shader bound: %s", Shader ? "Valid" : "Null");
+            RHI->PrepareShader(SpriteShader);
+            UE_LOG("[debug] Shader bound: %s", SpriteShader ? "Valid" : "Null");
         }
         else
         {
@@ -325,6 +326,9 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     UINT InstanceCount = Instances.Num();
     ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
 
+    // 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
+    static UShader* MeshShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleMesh.hlsl");
+
     if (TypeDataMesh->bUseMeshMaterials)
     {
         // 메시 머티리얼 사용 (SubMesh별 렌더링)
@@ -332,13 +336,9 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
         const TArray<FGroupInfo>& GroupInfos = ParticleMesh->GetMeshGroupInfo();
 
         // 파티클 셰이더 바인딩 (인스턴싱 + 단일 RT 출력 지원)
-        if (Material)
+        if (MeshShader)
         {
-            UShader* ParticleShader = Material->GetShader();
-            if (ParticleShader)
-            {
-                RHI->PrepareShader(ParticleShader);
-            }
+            RHI->PrepareShader(MeshShader);
         }
 
         for (uint32 i = 0; i < GroupInfos.size(); ++i)
@@ -366,14 +366,14 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     else
     {
         // 파티클 머티리얼 사용 (기존 방식 - 전체 메시 한번에)
+        // 쉐이더는 파티클 전용 쉐이더 강제 사용
+        if (MeshShader)
+        {
+            RHI->PrepareShader(MeshShader);
+        }
+
         if (Material)
         {
-            UShader* Shader = Material->GetShader();
-            if (Shader)
-            {
-                RHI->PrepareShader(Shader);
-            }
-
             ID3D11ShaderResourceView* DiffuseSRV = nullptr;
             if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
             {
@@ -388,6 +388,209 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     }
 
     // 10. 렌더 상태 복원
+    RHI->RSSetState(ERasterizerMode::Solid);
+    RHI->OMSetBlendState(false);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+}
+
+// ============================================================
+// FDynamicBeamEmitterData 구현
+// ============================================================
+
+void FDynamicBeamEmitterData::UpdateRenderData(FSceneView* View)
+{
+    if (!Source || Source->ActiveParticles == 0)
+    {
+        Vertices.Empty();
+        Indices.Empty();
+        return;
+    }
+
+    BuildBeamVertices(View);
+}
+
+void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
+{
+    // TypeDataModule에서 빔 설정 가져오기
+    UParticleLODLevel* LODLevel = Source->CurrentLODLevel;
+    if (!LODLevel || !LODLevel->TypeDataModule)
+        return;
+
+    UParticleModuleTypeDataBeam* TypeDataBeam = Cast<UParticleModuleTypeDataBeam>(LODLevel->TypeDataModule);
+    if (!TypeDataBeam)
+        return;
+
+    int32 ParticleCount = Source->ActiveParticles;
+    int32 Segments = FMath::Max(1, TypeDataBeam->Segments);
+    float Width = TypeDataBeam->Width;
+    float Length = TypeDataBeam->Length;
+    float NoiseStrength = TypeDataBeam->NoiseStrength;
+
+    // 각 파티클당 (Segments + 1) * 2 버텍스
+    // 각 세그먼트당 2 삼각형 = 6 인덱스
+    int32 VerticesPerBeam = (Segments + 1) * 2;
+    int32 IndicesPerBeam = Segments * 6;
+
+    Vertices.SetNum(ParticleCount * VerticesPerBeam);
+    Indices.SetNum(ParticleCount * IndicesPerBeam);
+    
+    const bool bUseLocalSpace = Source->UseLocalSpace();
+    const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
+    const FVector CameraPos = View->ViewLocation;
+    
+    for (int32 p = 0; p < ParticleCount; ++p)
+    {
+        FBaseParticle* Particle = Source->GetParticle(p);
+        if (!Particle)
+            continue;
+
+        // 시작점 (파티클 위치)
+        FVector StartPos = Particle->Location + ComponentWorldLocation;
+
+        // 끝점 (속도 방향 또는 기본 방향으로 Length만큼)
+        FVector BeamDir;
+        if (Particle->Velocity.SizeSquared() > 0.001f)
+        {
+            BeamDir = Particle->Velocity.GetSafeNormal();
+        }
+        else
+        {
+            BeamDir = FVector(1.0f, 0.0f, 0.0f); // 기본: X 방향
+        }
+        FVector EndPos = StartPos + BeamDir * Length;
+
+        // 파티클 컬러
+        FLinearColor ParticleColor(Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);
+
+        // 세그먼트별 버텍스 생성
+        for (int32 s = 0; s <= Segments; ++s)
+        {
+            float T = (float)s / (float)Segments;
+
+            // 세그먼트 위치 (선형 보간)
+            FVector SegPos = FMath::Lerp(StartPos, EndPos, T);
+
+            // 노이즈 적용 (시작/끝점 제외)
+            if (NoiseStrength > 0.0f && s > 0 && s < Segments)
+            {
+                float NoiseX = sinf(T * 3.14159f * 2.0f + Particle->RelativeTime * 5.0f) * NoiseStrength;
+                float NoiseY = cosf(T * 3.14159f * 3.0f + Particle->RelativeTime * 7.0f) * NoiseStrength;
+                SegPos += FVector(0, NoiseX, NoiseY);
+            }
+
+            // 빌보드 방향 계산 (카메라→세그먼트 × 빔방향)
+            FVector ToCamera = (CameraPos - SegPos).GetSafeNormal();
+            FVector Right = FVector::Cross(BeamDir, ToCamera).GetSafeNormal();
+
+            // 폭 적용 (파티클 사이즈로 스케일)
+            float HalfWidth = Width * 0.5f * Particle->Size.X;
+
+            // 버텍스 인덱스
+            int32 BaseVertex = p * VerticesPerBeam + s * 2;
+
+            // 위쪽 버텍스
+            Vertices[BaseVertex].Position = SegPos + Right * HalfWidth;
+            Vertices[BaseVertex].UV = FVector2D(T, 0.0f);
+            Vertices[BaseVertex].Color = ParticleColor;
+
+            // 아래쪽 버텍스
+            Vertices[BaseVertex + 1].Position = SegPos - Right * HalfWidth;
+            Vertices[BaseVertex + 1].UV = FVector2D(T, 1.0f);
+            Vertices[BaseVertex + 1].Color = ParticleColor;
+        }
+
+        // 인덱스 생성
+        for (int32 s = 0; s < Segments; ++s)
+        {
+            int32 BaseVertex = p * VerticesPerBeam + s * 2;
+            int32 BaseIndex = p * IndicesPerBeam + s * 6;
+
+            // 삼각형 1
+            Indices[BaseIndex + 0] = BaseVertex;
+            Indices[BaseIndex + 1] = BaseVertex + 1;
+            Indices[BaseIndex + 2] = BaseVertex + 2;
+
+            // 삼각형 2
+            Indices[BaseIndex + 3] = BaseVertex + 1;
+            Indices[BaseIndex + 4] = BaseVertex + 3;
+            Indices[BaseIndex + 5] = BaseVertex + 2;
+        }
+    }
+}
+
+void FDynamicBeamEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool)
+{
+    if (Vertices.Num() == 0 || Indices.Num() == 0)
+        return;
+
+    if (!BufferPool)
+    {
+        UE_LOG("[error] BufferPool is null!");
+        return;
+    }
+
+    ID3D11Device* Device = RHI->GetDevice();
+    ID3D11DeviceContext* Context = RHI->GetDeviceContext();
+
+    // 동적 버텍스/인덱스 버퍼 가져오기
+    uint32 MaxVertices = 0, MaxIndices = 0;
+    ID3D11Buffer* VertexBuffer = BufferPool->GetOrCreateBeamVertexBuffer(Vertices.Num(), MaxVertices);
+    ID3D11Buffer* IndexBuffer = BufferPool->GetOrCreateBeamIndexBuffer(Indices.Num(), MaxIndices);
+
+    if (!VertexBuffer || !IndexBuffer)
+    {
+        UE_LOG("[error] Failed to create beam buffers!");
+        return;
+    }
+
+    // 버텍스 데이터 업로드
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    Context->Map(VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, Vertices.GetData(), sizeof(FParticleBeamVertex) * Vertices.Num());
+    Context->Unmap(VertexBuffer, 0);
+
+    // 인덱스 데이터 업로드
+    Context->Map(IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    memcpy(mapped.pData, Indices.GetData(), sizeof(uint32) * Indices.Num());
+    Context->Unmap(IndexBuffer, 0);
+
+    // 렌더 상태 설정
+    RHI->RSSetState(ERasterizerMode::Solid_NoCull);
+    RHI->OMSetBlendState(true);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
+
+    // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
+    static UShader* BeamShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleBeam.hlsl");
+    if (BeamShader)
+    {
+        RHI->PrepareShader(BeamShader);
+    }
+
+    if (Material)
+    {
+        // 텍스처 바인딩
+        ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+        if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
+        {
+            DiffuseSRV = DiffuseTexture->GetShaderResourceView();
+        }
+        Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+
+        ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
+        Context->PSSetSamplers(0, 1, &DefaultSampler);
+    }
+
+    // 버퍼 바인딩
+    UINT Stride = sizeof(FParticleBeamVertex);
+    UINT Offset = 0;
+    Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+    Context->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // Draw
+    Context->DrawIndexed(Indices.Num(), 0, 0);
+
+    // 렌더 상태 복원
     RHI->RSSetState(ERasterizerMode::Solid);
     RHI->OMSetBlendState(false);
     RHI->OMSetDepthStencilState(EComparisonFunc::LessEqual);

@@ -556,6 +556,17 @@ void UResourceManager::InitShaderILMap()
     ShaderToInputLayoutMap["Shaders/Effects/ParticleMesh.hlsl"] = layout;
     layout.clear();
 
+    // ────────────────────────────────
+    // Particle Beam (Dynamic vertex buffer)
+    // Slot 0: Beam vertices (Position + UV + Padding + Color) - 40 bytes total
+    // ────────────────────────────────
+    layout.Add({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });    // Position (12 bytes)
+    layout.Add({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 });      // UV (8 bytes)
+    layout.Add({ "TEXCOORD", 1, DXGI_FORMAT_R32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 });         // Padding (4 bytes)
+    layout.Add({ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 });   // Color (16 bytes)
+    ShaderToInputLayoutMap["Shaders/Effects/ParticleBeam.hlsl"] = layout;
+    layout.clear();
+
     ShaderToInputLayoutMap["Shaders/Utility/FullScreenTriangle_VS.hlsl"] = {};  // FullScreenTriangle 는 InputLayout을 사용하지 않는다
 }
 

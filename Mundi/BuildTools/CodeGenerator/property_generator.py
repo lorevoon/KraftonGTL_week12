@@ -61,14 +61,17 @@ class PropertyGenerator:
         # mark_type 결정:
         # 1. AActor 자체는 MARK 없음
         # 2. AActor를 상속받은 클래스 (직간접 포함)는 MARK_AS_SPAWNABLE
-        # 3. 나머지는 MARK_AS_COMPONENT
+        # 3. UActorComponent를 상속받은 클래스는 MARK_AS_COMPONENT
+        # 4. 나머지는 MARK 없음
         mark_type = None
         if class_info.name == 'AActor':
             mark_type = None  # AActor는 MARK 없음
         elif self._is_derived_from(class_info.name, 'AActor'):
             mark_type = 'SPAWNABLE'  # AActor를 상속받은 클래스 (직간접)
+        elif self._is_derived_from(class_info.name, 'UActorComponent'):
+            mark_type = 'COMPONENT'  # UActorComponent를 상속받은 클래스
         else:
-            mark_type = 'COMPONENT'  # 그 외 (컴포넌트 등)
+            mark_type = None  # 그 외는 MARK 없음
 
         # DisplayName과 Description 결정
         display_name = class_info.display_name or class_info.name
