@@ -34,7 +34,7 @@ AMeshParticleActor::AMeshParticleActor()
 	// 이미터 생성
 	UParticleEmitter* Emitter = NewObject<UParticleEmitter>();
 	Emitter->EmitterName = "Sample Mesh Emitter";
-	Emitter->MaxParticleCount = 50;
+	Emitter->MaxParticleCount = 1000;
 
 	// LOD 레벨 생성
 	UParticleLODLevel* LODLevel = NewObject<UParticleLODLevel>();
@@ -70,7 +70,7 @@ AMeshParticleActor::AMeshParticleActor()
 	UParticleModuleTypeDataMesh* TypeDataMesh = NewObject<UParticleModuleTypeDataMesh>();
 
 	// 큐브 메시 로드
-	UStaticMesh* CubeMesh = UResourceManager::GetInstance().Load<UStaticMesh>("Data/cube-tex.obj");
+	UStaticMesh* CubeMesh = UResourceManager::GetInstance().Load<UStaticMesh>("Data/apple_mid.obj");
 	TypeDataMesh->Mesh = CubeMesh;
 
 	LODLevel->TypeDataModule = TypeDataMesh;
@@ -96,7 +96,7 @@ AMeshParticleActor::AMeshParticleActor()
 
 	// Color 모듈
 	UParticleModuleColor* ColorModule = NewObject<UParticleModuleColor>();
-	ColorModule->StartColor = FLinearColor(0.0f, 0.5f, 1.0f, 1.0f); // 파란색
+	ColorModule->StartColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f); // 흰색
 	ColorModule->EndColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f); // 흰색
 	LODLevel->AddModule(ColorModule);
 
@@ -110,7 +110,7 @@ AMeshParticleActor::AMeshParticleActor()
 	UParticleModuleLocation* LocationModule = NewObject<UParticleModuleLocation>();
 	LocationModule->StartLocation = FVector(0.0f, 0.0f, 0.0f);
 	LODLevel->AddModule(LocationModule);
-
+	
 	// LOD 레벨을 이미터에 추가
 	Emitter->AddLODLevel(LODLevel);
 
