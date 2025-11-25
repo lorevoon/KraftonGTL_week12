@@ -223,6 +223,23 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
     return RenderDataArray;
 }
 
+void UParticleSystemComponent::RebuildInstances()
+{
+    const bool bWasActive = bIsActive;
+    // Fully rebuild instances from current Template definition
+    DestroyEmitterInstances();
+    if (Template)
+    {
+        CreateEmitterInstances();
+    }
+    SystemTime = 0.0f;
+    CompletedLoops = 0;
+    if (bWasActive)
+    {
+        Activate();
+    }
+}
+
 void UParticleSystemComponent::CreateEmitterInstances()
 {
     if (!Template)

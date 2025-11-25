@@ -718,13 +718,12 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
     if (!PreviewComp)
         return;
 
-    // If the emitters panel has no system (or an empty system), adopt the preview component's template
+    // If the emitters panel has no system, adopt the preview component's template
     if (EmittersPanel)
     {
         UParticleSystem* CurrentEditing = EmittersPanel->GetEditingSystem();
         UParticleSystem* PreviewTemplate = PreviewComp->Template;
-        const bool bPanelEmpty = (CurrentEditing == nullptr) || (CurrentEditing && CurrentEditing->GetEmitterCount() == 0);
-        if (bPanelEmpty && PreviewTemplate)
+        if (!CurrentEditing && PreviewTemplate)
         {
             EmittersPanel->SetEditingSystem(PreviewTemplate);
         }
@@ -733,10 +732,22 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
     UParticleSystem* EditingSystem = EmittersPanel->GetEditingSystem();
     // // Only override the preview when the editing system is actually populated
     // if (EditingSystem && PreviewComp->Template != EditingSystem)
-    if (EditingSystem && EditingSystem->GetEmitterCount() > 0 && PreviewComp->Template != EditingSystem)
+    if (EditingSystem)
     {
-        PreviewComp->SetTemplate(EditingSystem);
-        PreviewComp->Restart();
+        if (PreviewComp->Template != EditingSystem)
+        {
+            PreviewComp->SetTemplate(EditingSystem);
+            PreviewComp->Restart();
+            // Clear dirty state once bound
+            EditingSystem->bIsDirty = false;
+        }
+        else if (EditingSystem->bIsDirty)
+        {
+            // Rebuild instances to reflect structural/property changes
+            PreviewComp->RebuildInstances();
+            PreviewComp->Restart();
+            EditingSystem->bIsDirty = false;
+        }
     }
 }
 
@@ -855,6 +866,10 @@ void SParticleSystemEditorWindow::RenderProperty(UParticleModule* Module, const 
         return;
 
     ImGui::PushID(Prop->Name);
-    UPropertyRenderer::RenderProperty(*Prop, Module);
+    bool bChanged = UPropertyRenderer::RenderProperty(*Prop, Module);
+    if (bChanged && EmittersPanel && EmittersPanel->GetEditingSystem())
+    {
+        EmittersPanel->GetEditingSystem()->bIsDirty = true;
+    }
     ImGui::PopID();
 }

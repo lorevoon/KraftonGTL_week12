@@ -148,6 +148,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 int32 sourceIndex = *(const int32*)payload->Data;
                 EditingSystem->SwapEmitters(sourceIndex, i);
+                if (EditingSystem) EditingSystem->bIsDirty = true;
                 // Update selected index if necessary
                 if (SelectedEmitterIndex == sourceIndex)
                     SelectedEmitterIndex = i;
@@ -164,6 +165,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 UParticleEmitter* ToRemove = EditingSystem->GetEmitter(i);
                 EditingSystem->RemoveEmitter(ToRemove);
+                if (EditingSystem) EditingSystem->bIsDirty = true;
                 if (SelectedEmitterIndex >= EditingSystem->GetEmitterCount())
                     SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
                 ImGui::EndPopup();
@@ -241,6 +243,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Spawn";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -251,6 +254,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Lifetime";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -261,6 +265,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Location";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -271,6 +276,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Velocity";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -281,6 +287,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Size";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -291,6 +298,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Color";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -301,6 +309,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "SizeScaleBySpeed";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -314,6 +323,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "TypeData Mesh";
                     LOD0->TypeDataModule = NewModule;
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -324,6 +334,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "TypeData Beam";
                     LOD0->TypeDataModule = NewModule;
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -349,6 +360,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 EditingSystem->AddEmitter(NewEmitter);
                 SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+                if (EditingSystem) EditingSystem->bIsDirty = true;
             }
         }
 
@@ -358,6 +370,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 EditingSystem->AddEmitter(NewEmitter);
                 SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+                if (EditingSystem) EditingSystem->bIsDirty = true;
             }
         }
 
@@ -367,6 +380,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 EditingSystem->AddEmitter(NewEmitter);
                 SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+                if (EditingSystem) EditingSystem->bIsDirty = true;
             }
         }
 
@@ -383,12 +397,14 @@ void SCascadeEmittersPanel::Render(float width, float height)
         {
             EditingSystem->SwapEmitters(SelectedEmitterIndex, SelectedEmitterIndex - 1);
             SelectedEmitterIndex--;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
         }
         // Right arrow key - move emitter to the right
         else if (ImGui::IsKeyPressed(ImGuiKey_RightArrow) && SelectedEmitterIndex < EditingSystem->GetEmitterCount() - 1)
         {
             EditingSystem->SwapEmitters(SelectedEmitterIndex, SelectedEmitterIndex + 1);
             SelectedEmitterIndex++;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
         }
     }
 }
@@ -650,6 +666,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
         if (ImGui::Checkbox("##enabled", &enabled))
         {
             module->bEnabled = enabled;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
         }
         ImGui::PopStyleVar();
         ImGui::SameLine();
@@ -693,6 +710,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                     {
                         parentLOD->RemoveModule(module);
                     }
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -706,6 +724,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                     {
                         // Add it to the parent LOD level
                         parentLOD->AddModule(ClonedModule);
+                        if (EditingSystem) EditingSystem->bIsDirty = true;
                     }
                 }
             }
@@ -744,6 +763,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                     {
                         // Add it to the parent LOD level as a regular module
                         parentLOD->AddModule(ClonedModule);
+                        if (EditingSystem) EditingSystem->bIsDirty = true;
                     }
                 }
             }
@@ -783,6 +803,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                 if (parentLOD)
                 {
                     parentLOD->SwapModules(sourceIndex, moduleIndex);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
             ImGui::EndDragDropTarget();

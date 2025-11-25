@@ -42,6 +42,7 @@ void UParticleSystem::AddEmitter(UParticleEmitter* Emitter)
     if (Emitter)
     {
         Emitters.Add(Emitter);
+        bIsDirty = true;
     }
 }
 
@@ -50,6 +51,7 @@ void UParticleSystem::RemoveEmitter(UParticleEmitter* Emitter)
     if (Emitter)
     {
         Emitters.Remove(Emitter);
+        bIsDirty = true;
     }
 }
 
@@ -60,6 +62,7 @@ void UParticleSystem::SwapEmitters(int32 IndexA, int32 IndexB)
         UParticleEmitter* Temp = Emitters[IndexA];
         Emitters[IndexA] = Emitters[IndexB];
         Emitters[IndexB] = Temp;
+        bIsDirty = true;
     }
 }
 

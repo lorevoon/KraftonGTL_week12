@@ -42,6 +42,7 @@ BEGIN_PROPERTIES(UParticleSystem)
     ADD_PROPERTY(float, SystemDuration, "System", true)
     ADD_PROPERTY(int32, SystemLoops, "System", true)
     ADD_PROPERTY(bool, bAutoActivate, "System", true)
+    ADD_PROPERTY(bool, bIsDirty, "", false)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -58,5 +59,7 @@ LUA_BIND_BEGIN(UParticleSystem)
         T, "SystemLoops", &UParticleSystem::SystemLoops);
     AddProperty<UParticleSystem, bool>(
         T, "bAutoActivate", &UParticleSystem::bAutoActivate);
+    AddReadOnlyProperty<UParticleSystem, bool>(
+        T, "bIsDirty", &UParticleSystem::bIsDirty);
 }
 LUA_BIND_END()

@@ -78,6 +78,9 @@ public:
     //@TODO Prepare과 Get 로직 분리
     // 렌더링 데이터 가져오기 (렌더러에서 호출)
     TArray<FDynamicEmitterDataBase*> GetRenderData(FSceneView* View);
+
+    // Rebuild emitter instances from current Template (structure changed)
+    void RebuildInstances();
 private:
     // 내부 함수
 

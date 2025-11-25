@@ -47,12 +47,19 @@ public:
     UPROPERTY(EditAnywhere, Category="System")
     bool bAutoActivate;
 
+    // Editor/runtime change tracking for live preview rebuilds
+    UPROPERTY()
+    bool bIsDirty = false;
+
     // 이미터 접근
     UParticleEmitter* GetEmitter(int32 Index) const;
     void AddEmitter(UParticleEmitter* Emitter);
     void RemoveEmitter(UParticleEmitter* Emitter);
     void SwapEmitters(int32 IndexA, int32 IndexB);
     int32 GetEmitterCount() const { return Emitters.Num(); }
+
+    // Mark dirty to signal preview/components to rebuild
+    inline void MarkDirty() { bIsDirty = true; }
 
     // Serialization
     virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
