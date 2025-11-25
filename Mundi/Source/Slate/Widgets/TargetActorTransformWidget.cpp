@@ -27,6 +27,7 @@
 #include "AmbientLightComponent.h"
 #include "PointLightComponent.h"
 #include "SpotLightComponent.h"
+#include "ParticleSystemComponent.h"
 #include "SceneComponent.h"
 #include "Color.h"
 #include "PlatformProcess.h"
@@ -517,6 +518,28 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails(UActorComponent
 	{
 		UPropertyRenderer::RenderAllPropertiesWithInheritance(SelectedComponent);
 	}
+
+	// 리플렉션 적용 불가 컴포넌트 속성 및 기능에 대한 수동 UI 처리
+
+	if (UParticleSystemComponent* ParticleComponent = Cast<UParticleSystemComponent>(SelectedComponent))
+	{
+		ImGui::Separator();
+		RenderParticleSystemComponentControls(*ParticleComponent);
+		
+	}
+}
+
+void UTargetActorTransformWidget::RenderParticleSystemComponentControls(UParticleSystemComponent& ParticleComponent)
+{
+	ImGui::TextUnformatted("파티클 시스템 제어");
+	ImGui::Spacing();
+
+	if (ImGui::Button("Reset Particle System"))
+	{
+		ParticleComponent.ResetToDefaultState();
+	}
+
+	ImGui::Spacing();
 }
 
 void UTargetActorTransformWidget::UpdateTransformFromComponent(USceneComponent* SelectedComponent)

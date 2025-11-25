@@ -15,6 +15,7 @@ UParticleSystemComponent::UParticleSystemComponent()
     , bIsActive(false)
     , SystemTime(0.0f)
     , CompletedLoops(0)
+    , CustomPlaybackRate(1.0f)
 {
 }
 
@@ -74,6 +75,12 @@ void UParticleSystemComponent::Restart()
     Activate();
 }
 
+void UParticleSystemComponent::ResetToDefaultState()
+{
+    CustomPlaybackRate = 1.0f;
+    Restart();
+}
+
 void UParticleSystemComponent::SetTemplate(UParticleSystem* NewTemplate)
 {
     if (Template != NewTemplate)
@@ -97,11 +104,19 @@ void UParticleSystemComponent::UpdateParticles(float DeltaTime)
         return;
     }
 
+    const float EffectiveRate = FMath::Max(CustomPlaybackRate, 0.0f);
+    if (EffectiveRate <= 0.0f)
+    {
+        return;
+    }
+
+    const float ScaledDeltaTime = DeltaTime * EffectiveRate;
+
     for (FParticleEmitterInstance* Instance : EmitterInstances)
     {
         if (Instance)
         {
-            UpdateEmitterInstance(Instance, DeltaTime);
+            UpdateEmitterInstance(Instance, ScaledDeltaTime);
         }
     }
 }
@@ -113,9 +128,17 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
         return;
     }
 
+    const float EffectiveRate = FMath::Max(CustomPlaybackRate, 0.0f);
+    if (EffectiveRate <= 0.0f)
+    {
+        return;
+    }
+
+    const float ScaledDeltaTime = DeltaTime * EffectiveRate;
+
     if (Template->SystemDuration > 0.0f)
     {
-        SystemTime += DeltaTime;
+        SystemTime += ScaledDeltaTime;
         while (SystemTime >= Template->SystemDuration)
         {
             SystemTime -= Template->SystemDuration;
@@ -132,7 +155,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     {
         if (Instance)
         {
-            UpdateEmitterInstance(Instance, DeltaTime);
+            UpdateEmitterInstance(Instance, ScaledDeltaTime);
         }
     }
 }

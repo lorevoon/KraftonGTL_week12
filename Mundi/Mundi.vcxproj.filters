@@ -2012,6 +2012,9 @@
     <ClInclude Include="Source\Runtime\Renderer\ParticleSystemEditorViewportClient.h" />
     <ClInclude Include="Source\Slate\Windows\SParticleSystemEditorWindow.h" />
     <ClInclude Include="Source\Slate\Windows\SCascadeEmittersPanel.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\ObjectMacros.h">
+      <Filter>Source\Runtime\Core\Object</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py">
@@ -2026,6 +2029,7 @@
     <None Include="BuildTools\CodeGenerator\property_generator.py">
       <Filter>BuildTools\CodeGenerator</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
