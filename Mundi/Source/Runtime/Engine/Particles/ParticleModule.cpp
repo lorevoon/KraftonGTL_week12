@@ -1,6 +1,8 @@
 ﻿#include "pch.h"
 #include "ParticleModule.h"
 #include "Source/Runtime/Core/Object/Property.h"
+#include "ResourceManager.h"
+#include "Material.h"
 
 UParticleModule::UParticleModule()
     : bSpawnModule(false)
@@ -82,6 +84,23 @@ void UParticleModule::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                         *Value = PropValue.ToString();
                     break;
                 }
+                case EPropertyType::Material:
+                {
+                    UMaterialInterface** Value = Prop.GetValuePtr<UMaterialInterface*>(this);
+                    if (PropValue.JSONType() == JSON::Class::String)
+                    {
+                        FString MaterialPath = PropValue.ToString();
+                        if (!MaterialPath.empty())
+                        {
+                            *Value = UResourceManager::GetInstance().Load<UMaterial>(MaterialPath);
+                        }
+                        else
+                        {
+                            *Value = nullptr;
+                        }
+                    }
+                    break;
+                }
                 }
             }
         }
@@ -134,6 +153,19 @@ void UParticleModule::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                 {
                     FString* Value = Prop.GetValuePtr<FString>(this);
                     InOutHandle[Prop.Name] = Value->c_str();
+                    break;
+                }
+                case EPropertyType::Material:
+                {
+                    UMaterialInterface** Value = Prop.GetValuePtr<UMaterialInterface*>(this);
+                    if (*Value)
+                    {
+                        InOutHandle[Prop.Name] = (*Value)->GetFilePath().c_str();
+                    }
+                    else
+                    {
+                        InOutHandle[Prop.Name] = "";
+                    }
                     break;
                 }
                 }

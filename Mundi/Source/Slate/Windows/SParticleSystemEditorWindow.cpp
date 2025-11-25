@@ -7,6 +7,7 @@
 #include "SCascadeEmittersPanel.h"
 #include "Source/Runtime/Engine/Particles/ParticleModule.h"
 #include "Source/Runtime/Engine/Particles/ParticleSystem.h"
+#include "Source/Runtime/Engine/Particles/ParticleEmitter.h"
 #include "Source/Runtime/Core/Object/Property.h"
 #include "Source/Runtime/Core/Misc/JsonSerializer.h"
 #include "FViewportClient.h"
@@ -171,7 +172,14 @@ void SParticleSystemEditorWindow::OnRender()
         // Restart simulation
         if (IconRestart && IconRestart->GetShaderResourceView())
         {
-            if (ImGui::ImageButton("##Cascade_RestartBtn", (void*)IconRestart->GetShaderResourceView(), IconSizeVec)) { }
+            if (ImGui::ImageButton("##Cascade_RestartBtn", (void*)IconRestart->GetShaderResourceView(), IconSizeVec))
+            {
+                UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+                if (PreviewComp)
+                {
+                    PreviewComp->Restart();
+                }
+            }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restart Simulation");
         }
 
@@ -602,7 +610,7 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
             if (ImGui::MenuItem("Pause"))
             {
                 bIsPlaying = false;
-                // TODO: Pause particle simulation
+                ApplyTimeSettings();
             }
         }
         else
@@ -610,24 +618,10 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
             if (ImGui::MenuItem("Play"))
             {
                 bIsPlaying = true;
-                // TODO: Play particle simulation
+                ApplyTimeSettings();
             }
         }
-
-        ImGui::Separator();
-
-        // Realtime toggle
-        if (ImGui::MenuItem("Realtime", nullptr, &bRealtime))
-        {
-            // TODO: Toggle realtime simulation
-        }
-
-        // Loop toggle
-        if (ImGui::MenuItem("Loop", nullptr, &bLoopSimulation))
-        {
-            // TODO: Toggle loop simulation
-        }
-
+        
         ImGui::Separator();
 
         // AnimSpeed submenu
@@ -636,22 +630,22 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
             if (ImGui::MenuItem("100%", nullptr, AnimSpeed == 1.0f))
             {
                 AnimSpeed = 1.0f;
-                // TODO: Set animation speed to 100%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("50%", nullptr, AnimSpeed == 0.5f))
             {
                 AnimSpeed = 0.5f;
-                // TODO: Set animation speed to 50%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("25%", nullptr, AnimSpeed == 0.25f))
             {
                 AnimSpeed = 0.25f;
-                // TODO: Set animation speed to 25%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("10%", nullptr, AnimSpeed == 0.1f))
             {
                 AnimSpeed = 0.1f;
-                // TODO: Set animation speed to 10%
+                ApplyTimeSettings();
             }
 
             ImGui::Separator();
@@ -659,17 +653,17 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
             if (ImGui::MenuItem("200%", nullptr, AnimSpeed == 2.0f))
             {
                 AnimSpeed = 2.0f;
-                // TODO: Set animation speed to 200%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("500%", nullptr, AnimSpeed == 5.0f))
             {
                 AnimSpeed = 5.0f;
-                // TODO: Set animation speed to 500%
+                ApplyTimeSettings();
             }
             if (ImGui::MenuItem("1000%", nullptr, AnimSpeed == 10.0f))
             {
                 AnimSpeed = 10.0f;
-                // TODO: Set animation speed to 1000%
+                ApplyTimeSettings();
             }
 
             ImGui::EndMenu();
@@ -718,13 +712,12 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
     if (!PreviewComp)
         return;
 
-    // If the emitters panel has no system (or an empty system), adopt the preview component's template
+    // If the emitters panel has no system, adopt the preview component's template
     if (EmittersPanel)
     {
         UParticleSystem* CurrentEditing = EmittersPanel->GetEditingSystem();
         UParticleSystem* PreviewTemplate = PreviewComp->Template;
-        const bool bPanelEmpty = (CurrentEditing == nullptr) || (CurrentEditing && CurrentEditing->GetEmitterCount() == 0);
-        if (bPanelEmpty && PreviewTemplate)
+        if (!CurrentEditing && PreviewTemplate)
         {
             EmittersPanel->SetEditingSystem(PreviewTemplate);
         }
@@ -733,11 +726,28 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
     UParticleSystem* EditingSystem = EmittersPanel->GetEditingSystem();
     // // Only override the preview when the editing system is actually populated
     // if (EditingSystem && PreviewComp->Template != EditingSystem)
-    if (EditingSystem && EditingSystem->GetEmitterCount() > 0 && PreviewComp->Template != EditingSystem)
+    if (EditingSystem)
     {
-        PreviewComp->SetTemplate(EditingSystem);
-        PreviewComp->Restart();
+        if (PreviewComp->Template != EditingSystem)
+        {
+            PreviewComp->SetTemplate(EditingSystem);
+            PreviewComp->Restart();
+            // Clear dirty state once bound
+            EditingSystem->bIsDirty = false;
+            // Apply time settings to newly bound component
+            ApplyTimeSettings();
+        }
+        else if (EditingSystem->bIsDirty)
+        {
+            // Rebuild instances to reflect structural/property changes
+            PreviewComp->RebuildInstances();
+            PreviewComp->Restart();
+            EditingSystem->bIsDirty = false;
+        }
     }
+
+    // Sync editor visibility/render mode state to emitter instances
+    SyncEmitterEditorStates(PreviewComp);
 }
 
 void SParticleSystemEditorWindow::LoadToolbarIcons()
@@ -789,9 +799,132 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
     }
 
     UParticleModule* SelectedModule = EmittersPanel->GetSelectedModule();
+    int32 SelectedEmitterIndex = EmittersPanel->GetSelectedEmitterIndex();
+    UParticleSystem* EditingSystem = EmittersPanel->GetEditingSystem();
+
+    // If no module is selected, show emitter or system properties
     if (!SelectedModule)
     {
-        ImGui::TextUnformatted("Select a module to view properties");
+        // If an emitter is selected, show its properties
+        if (SelectedEmitterIndex >= 0 && EditingSystem)
+        {
+            UParticleEmitter* SelectedEmitter = EditingSystem->GetEmitter(SelectedEmitterIndex);
+            if (SelectedEmitter)
+            {
+                UClass* EmitterClass = SelectedEmitter->GetClass();
+                if (!EmitterClass)
+                {
+                    ImGui::TextUnformatted("(Invalid emitter class)");
+                    return;
+                }
+
+                // Display emitter name header
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.7f, 0.5f, 1.0f)); // Orange for emitter
+                ImGui::Text("Emitter: %s", SelectedEmitter->EmitterName.c_str());
+                ImGui::PopStyleColor();
+                ImGui::Separator();
+
+                // Get all properties
+                const TArray<FProperty>& Properties = EmitterClass->GetAllProperties();
+
+                // Group properties by category
+                TMap<FString, TArray<const FProperty*>> CategorizedProperties;
+                for (const FProperty& Prop : Properties)
+                {
+                    if (Prop.bIsEditAnywhere)
+                    {
+                        FString Category = Prop.Category ? FString(Prop.Category) : FString("General");
+                        if (!CategorizedProperties.Contains(Category))
+                        {
+                            CategorizedProperties.Add(Category, TArray<const FProperty*>());
+                        }
+                        CategorizedProperties[Category].Add(&Prop);
+                    }
+                }
+
+                // Render properties by category
+                for (auto& Pair : CategorizedProperties)
+                {
+                    const FString& CategoryName = Pair.first;
+                    const TArray<const FProperty*>& CategoryProps = Pair.second;
+
+                    // Category header
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
+                    ImGui::TextUnformatted(CategoryName.c_str());
+                    ImGui::PopStyleColor();
+                    ImGui::Separator();
+
+                    // Render each property
+                    for (const FProperty* Prop : CategoryProps)
+                    {
+                        RenderEmitterProperty(SelectedEmitter, Prop);
+                    }
+
+                    ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+                }
+                return;
+            }
+        }
+
+        // No emitter selected either, show UParticleSystem properties
+        if (!EditingSystem)
+        {
+            ImGui::TextUnformatted("Select a module to view properties");
+            return;
+        }
+
+        // Show UParticleSystem properties
+        UClass* SystemClass = EditingSystem->GetClass();
+        if (!SystemClass)
+        {
+            ImGui::TextUnformatted("(Invalid system class)");
+            return;
+        }
+
+        // Display system name header
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.9f, 0.9f, 1.0f)); // Cyan for system
+        ImGui::TextUnformatted("Particle System");
+        ImGui::PopStyleColor();
+        ImGui::Separator();
+
+        // Get all properties
+        const TArray<FProperty>& Properties = SystemClass->GetAllProperties();
+
+        // Group properties by category
+        TMap<FString, TArray<const FProperty*>> CategorizedProperties;
+        for (const FProperty& Prop : Properties)
+        {
+            if (Prop.bIsEditAnywhere)
+            {
+                FString Category = Prop.Category ? FString(Prop.Category) : FString("General");
+                if (!CategorizedProperties.Contains(Category))
+                {
+                    CategorizedProperties.Add(Category, TArray<const FProperty*>());
+                }
+                CategorizedProperties[Category].Add(&Prop);
+            }
+        }
+
+        // Render properties by category
+        for (auto& Pair : CategorizedProperties)
+        {
+            const FString& CategoryName = Pair.first;
+            const TArray<const FProperty*>& CategoryProps = Pair.second;
+
+            // Category header
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
+            ImGui::TextUnformatted(CategoryName.c_str());
+            ImGui::PopStyleColor();
+            ImGui::Separator();
+
+            // Render each property
+            for (const FProperty* Prop : CategoryProps)
+            {
+                RenderSystemProperty(EditingSystem, Prop);
+            }
+
+            ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+        }
         return;
     }
 
@@ -855,6 +988,103 @@ void SParticleSystemEditorWindow::RenderProperty(UParticleModule* Module, const 
         return;
 
     ImGui::PushID(Prop->Name);
-    UPropertyRenderer::RenderProperty(*Prop, Module);
+    bool bChanged = UPropertyRenderer::RenderProperty(*Prop, Module);
+    if (bChanged && EmittersPanel && EmittersPanel->GetEditingSystem())
+    {
+        EmittersPanel->GetEditingSystem()->bIsDirty = true;
+    }
     ImGui::PopID();
+}
+
+void SParticleSystemEditorWindow::RenderSystemProperty(UParticleSystem* System, const FProperty* Prop)
+{
+    if (!System || !Prop)
+        return;
+
+    ImGui::PushID(Prop->Name);
+    bool bChanged = UPropertyRenderer::RenderProperty(*Prop, System);
+    if (bChanged && System)
+    {
+        System->bIsDirty = true;
+    }
+    ImGui::PopID();
+}
+
+void SParticleSystemEditorWindow::RenderEmitterProperty(UParticleEmitter* Emitter, const FProperty* Prop)
+{
+    if (!Emitter || !Prop)
+        return;
+
+    ImGui::PushID(Prop->Name);
+    bool bChanged = UPropertyRenderer::RenderProperty(*Prop, Emitter);
+    if (bChanged && EmittersPanel && EmittersPanel->GetEditingSystem())
+    {
+        EmittersPanel->GetEditingSystem()->bIsDirty = true;
+    }
+    ImGui::PopID();
+}
+
+UParticleSystemComponent* SParticleSystemEditorWindow::GetPreviewComponent() const
+{
+    if (!ActiveState || !ActiveState->Client)
+        return nullptr;
+
+    FParticleSystemEditorViewportClient* PSClient = dynamic_cast<FParticleSystemEditorViewportClient*>(ActiveState->Client);
+    if (!PSClient)
+        return nullptr;
+
+    return PSClient->GetPreviewComponent();
+}
+
+void SParticleSystemEditorWindow::ApplyTimeSettings()
+{
+    UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+    if (!PreviewComp)
+        return;
+
+    // Calculate effective playback rate
+    // If paused, set to 0. If playing, use AnimSpeed.
+    // If not realtime, we could potentially step manually, but for now just pause.
+    float EffectiveRate = 0.0f;
+    if (bIsPlaying && bRealtime)
+    {
+        EffectiveRate = AnimSpeed;
+    }
+
+    PreviewComp->CustomPlaybackRate = EffectiveRate;
+}
+
+void SParticleSystemEditorWindow::SyncEmitterEditorStates(UParticleSystemComponent* PreviewComp)
+{
+    if (!PreviewComp || !EmittersPanel)
+        return;
+
+    // Check if any emitter has solo enabled
+    bool bAnySolo = EmittersPanel->HasAnySoloEmitter();
+
+    // Sync visibility and render mode from editor states to emitter instances
+    int32 NumInstances = PreviewComp->EmitterInstances.Num();
+    for (int32 i = 0; i < NumInstances; ++i)
+    {
+        FParticleEmitterInstance* Instance = PreviewComp->EmitterInstances[i];
+        if (!Instance)
+            continue;
+
+        FEmitterEditorState& EditorState = EmittersPanel->GetEmitterEditorState(i);
+
+        // Determine visibility based on solo mode
+        if (bAnySolo)
+        {
+            // If any emitter is solo'd, only show solo'd emitters that are also visible
+            Instance->bEditorVisible = EditorState.bIsSolo && EditorState.bIsVisible;
+        }
+        else
+        {
+            // Normal visibility check
+            Instance->bEditorVisible = EditorState.bIsVisible;
+        }
+
+        // Sync render mode
+        Instance->EditorRenderMode = static_cast<EEmitterRenderMode>(EditorState.RenderMode);
+    }
 }

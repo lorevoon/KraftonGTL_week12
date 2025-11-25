@@ -51,6 +51,10 @@ public:
     UPROPERTY(EditAnywhere, Category = "system")
     float LODDistanceCheckTime;
 
+	// Editor/runtime change tracking for live preview rebuilds
+	UPROPERTY()
+	bool bIsDirty = false;
+
 	// LOD 메소드 기본값 (컴포넌트에서 오버라이드 가능)
 	// enum은 UPROPERTY에서 직접 지원하지 않으므로 직렬화, 디테일패널의 프로퍼티 렌더링 등은 별도 처리 필요.
     ParticleSystemLODMethod LODMethod;
@@ -78,6 +82,9 @@ public:
 	ParticleSystemLODMethod GetLODMethod() const { return LODMethod; }
 	void SetLODMethod(ParticleSystemLODMethod InMethod) { LODMethod = InMethod; }
 
+	// Mark dirty to signal preview/components to rebuild
+	inline void MarkDirty() { bIsDirty = true; }
+	
     // Serialization
     virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 };

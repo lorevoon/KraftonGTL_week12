@@ -19,6 +19,14 @@
 #include "Material.h"
 #include "ResourceManager.h"
 
+void SCascadeEmittersPanel::SetEditingSystem(UParticleSystem* InSystem)
+{
+    EditingSystem = InSystem;
+    // Reset editor states when changing systems
+    EmitterEditorStates.Empty();
+    EnsureEditorStates();
+}
+
 void SCascadeEmittersPanel::EnsureEditingSystem()
 {
     if (!EditingSystem)
@@ -26,6 +34,68 @@ void SCascadeEmittersPanel::EnsureEditingSystem()
         EditingSystem = NewObject<UParticleSystem>();
         EditingSystem->SystemName = "NewParticleSystem";
     }
+    EnsureEditorStates();
+}
+
+void SCascadeEmittersPanel::EnsureEditorStates()
+{
+    if (!EditingSystem)
+        return;
+
+    int32 EmitterCount = EditingSystem->GetEmitterCount();
+    // Grow the array if needed
+    while (EmitterEditorStates.Num() < EmitterCount)
+    {
+        EmitterEditorStates.Add(FEmitterEditorState());
+    }
+    // Shrink if emitters were removed
+    if (EmitterEditorStates.Num() > EmitterCount)
+    {
+        EmitterEditorStates.resize(EmitterCount);
+    }
+}
+
+FEmitterEditorState& SCascadeEmittersPanel::GetEmitterEditorState(int32 EmitterIndex)
+{
+    EnsureEditorStates();
+    static FEmitterEditorState DefaultState;
+    if (EmitterIndex >= 0 && EmitterIndex < EmitterEditorStates.Num())
+    {
+        return EmitterEditorStates[EmitterIndex];
+    }
+    return DefaultState;
+}
+
+bool SCascadeEmittersPanel::IsEmitterVisibleInEditor(int32 EmitterIndex) const
+{
+    if (EmitterIndex < 0 || EmitterIndex >= EmitterEditorStates.Num())
+        return true;
+
+    const FEmitterEditorState& State = EmitterEditorStates[EmitterIndex];
+
+    // Check if any emitter has solo enabled
+    bool bAnySolo = HasAnySoloEmitter();
+
+    if (bAnySolo)
+    {
+        // If any emitter is solo'd, only show solo'd emitters
+        return State.bIsSolo && State.bIsVisible;
+    }
+    else
+    {
+        // Normal visibility check
+        return State.bIsVisible;
+    }
+}
+
+bool SCascadeEmittersPanel::HasAnySoloEmitter() const
+{
+    for (const FEmitterEditorState& State : EmitterEditorStates)
+    {
+        if (State.bIsSolo)
+            return true;
+    }
+    return false;
 }
 
 void SCascadeEmittersPanel::Render(float width, float height)
@@ -35,6 +105,9 @@ void SCascadeEmittersPanel::Render(float width, float height)
     // Header row with optional add button
     ImGui::TextUnformatted("Emitters");
     ImGui::Separator();
+
+    // Reset frame-local click tracking
+    bClickedOnItemThisFrame = false;
 
     // Horizontally scrollable canvas for vertical emitter stacks
     ImGui::BeginChild("Cascade_Emitters_Canvas", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
@@ -74,26 +147,68 @@ void SCascadeEmittersPanel::Render(float width, float height)
         ImGui::TextUnformatted(Name.c_str());
 
         // Second row: Control icons (horizontal layout)
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 2));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 1));  // Wider padding, minimal vertical
 
-        const float iconButtonSize = 16.0f;
-        if (ImGui::Button("V##vis", ImVec2(iconButtonSize, iconButtonSize))) {} // Visibility
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle Visibility");
+        const float iconButtonWidth = 20.0f;
+        const float iconButtonHeight = 20.0f;
+        FEmitterEditorState& EditorState = GetEmitterEditorState(i);
 
-        ImGui::SameLine();
-
-        if (ImGui::Button("R##render", ImVec2(iconButtonSize, iconButtonSize))) {} // Render mode
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Render Mode");
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("S##solo", ImVec2(iconButtonSize, iconButtonSize))) {} // Solo mode
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Solo Mode");
-
+        // Visibility toggle (V)
+        ImVec4 visButtonColor = EditorState.bIsVisible ? ImVec4(0.2f, 0.5f, 0.2f, 1.0f) : ImVec4(0.5f, 0.2f, 0.2f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, visButtonColor);
+        if (ImGui::Button("V##vis", ImVec2(iconButtonWidth, iconButtonHeight)))
+        {
+            EditorState.bIsVisible = !EditorState.bIsVisible;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
+        }
         ImGui::PopStyleColor();
-        ImGui::PopStyleVar(2);
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Toggle Visibility (%s)", EditorState.bIsVisible ? "Visible" : "Hidden");
+        }
+
+        ImGui::SameLine();
+
+        // Render mode toggle (R) - cycles through modes
+        const char* renderModeLabels[] = { "N", "P", "X", "-" }; // Normal, Points, Cross, None
+        const char* renderModeNames[] = { "Normal", "Points", "Cross", "None" };
+        int renderModeIndex = static_cast<int>(EditorState.RenderMode);
+        ImVec4 renderButtonColor = (EditorState.RenderMode == EEmitterEditorRenderMode::Normal)
+            ? ImVec4(0.3f, 0.3f, 0.3f, 1.0f)
+            : ImVec4(0.4f, 0.3f, 0.2f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, renderButtonColor);
+        if (ImGui::Button(renderModeLabels[renderModeIndex], ImVec2(iconButtonWidth, iconButtonHeight)))
+        {
+            // Cycle to next render mode
+            renderModeIndex = (renderModeIndex + 1) % 4;
+            EditorState.RenderMode = static_cast<EEmitterEditorRenderMode>(renderModeIndex);
+            if (EditingSystem) EditingSystem->bIsDirty = true;
+        }
+        ImGui::PopStyleColor();
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Render Mode: %s (click to cycle)", renderModeNames[static_cast<int>(EditorState.RenderMode)]);
+        }
+
+        ImGui::SameLine();
+
+        // Solo toggle (S)
+        ImVec4 soloButtonColor = EditorState.bIsSolo ? ImVec4(0.6f, 0.5f, 0.1f, 1.0f) : ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, soloButtonColor);
+        if (ImGui::Button("S##solo", ImVec2(iconButtonWidth, iconButtonHeight)))
+        {
+            EditorState.bIsSolo = !EditorState.bIsSolo;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
+        }
+        ImGui::PopStyleColor();
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Solo Mode (%s)", EditorState.bIsSolo ? "Solo" : "Off");
+        }
+
+        ImGui::PopStyleVar(3);
 
         ImGui::EndGroup();
 
@@ -131,6 +246,8 @@ void SCascadeEmittersPanel::Render(float width, float height)
         if (ImGui::IsItemClicked())
         {
             SelectedEmitterIndex = i;
+            SelectedModule = nullptr; // Deselect module when clicking emitter header
+            bClickedOnItemThisFrame = true;
         }
 
         // Drag source for emitter reordering (only if item is active)
@@ -148,6 +265,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 int32 sourceIndex = *(const int32*)payload->Data;
                 EditingSystem->SwapEmitters(sourceIndex, i);
+                if (EditingSystem) EditingSystem->bIsDirty = true;
                 // Update selected index if necessary
                 if (SelectedEmitterIndex == sourceIndex)
                     SelectedEmitterIndex = i;
@@ -164,6 +282,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 UParticleEmitter* ToRemove = EditingSystem->GetEmitter(i);
                 EditingSystem->RemoveEmitter(ToRemove);
+                if (EditingSystem) EditingSystem->bIsDirty = true;
                 if (SelectedEmitterIndex >= EditingSystem->GetEmitterCount())
                     SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
                 ImGui::EndPopup();
@@ -241,6 +360,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Spawn";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -251,6 +371,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Lifetime";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -261,6 +382,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Location";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -271,6 +393,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Velocity";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -281,6 +404,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Size";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -291,6 +415,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Color";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -301,6 +426,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "SizeScaleBySpeed";
                     LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -314,6 +440,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "TypeData Mesh";
                     LOD0->TypeDataModule = NewModule;
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -324,6 +451,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "TypeData Beam";
                     LOD0->TypeDataModule = NewModule;
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -349,6 +477,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 EditingSystem->AddEmitter(NewEmitter);
                 SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+                if (EditingSystem) EditingSystem->bIsDirty = true;
             }
         }
 
@@ -358,6 +487,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 EditingSystem->AddEmitter(NewEmitter);
                 SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+                if (EditingSystem) EditingSystem->bIsDirty = true;
             }
         }
 
@@ -367,6 +497,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             {
                 EditingSystem->AddEmitter(NewEmitter);
                 SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+                if (EditingSystem) EditingSystem->bIsDirty = true;
             }
         }
 
@@ -374,6 +505,19 @@ void SCascadeEmittersPanel::Render(float width, float height)
     }
 
     ImGui::EndChild();
+
+    // Detect clicks on empty space to deselect both module and emitter
+    // This allows clicking blank area to show UParticleSystem properties
+    // We check after EndChild so that all item hover states are finalized
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+    {
+        // If we didn't click on any emitter/module item, deselect everything
+        if (!bClickedOnItemThisFrame && !ImGui::IsAnyItemActive())
+        {
+            SelectedModule = nullptr;
+            SelectedEmitterIndex = -1;
+        }
+    }
 
     // Keyboard navigation for reordering emitters (like Unreal Engine)
     if (SelectedEmitterIndex >= 0 && SelectedEmitterIndex < EditingSystem->GetEmitterCount())
@@ -383,12 +527,14 @@ void SCascadeEmittersPanel::Render(float width, float height)
         {
             EditingSystem->SwapEmitters(SelectedEmitterIndex, SelectedEmitterIndex - 1);
             SelectedEmitterIndex--;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
         }
         // Right arrow key - move emitter to the right
         else if (ImGui::IsKeyPressed(ImGuiKey_RightArrow) && SelectedEmitterIndex < EditingSystem->GetEmitterCount() - 1)
         {
             EditingSystem->SwapEmitters(SelectedEmitterIndex, SelectedEmitterIndex + 1);
             SelectedEmitterIndex++;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
         }
     }
 }
@@ -650,6 +796,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
         if (ImGui::Checkbox("##enabled", &enabled))
         {
             module->bEnabled = enabled;
+            if (EditingSystem) EditingSystem->bIsDirty = true;
         }
         ImGui::PopStyleVar();
         ImGui::SameLine();
@@ -659,6 +806,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
         if (ImGui::Button(moduleName, ImVec2(width - 30, height)))
         {
             SelectedModule = module;
+            bClickedOnItemThisFrame = true;
         }
         ImGui::PopStyleVar();
 
@@ -693,6 +841,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                     {
                         parentLOD->RemoveModule(module);
                     }
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -706,6 +855,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                     {
                         // Add it to the parent LOD level
                         parentLOD->AddModule(ClonedModule);
+                        if (EditingSystem) EditingSystem->bIsDirty = true;
                     }
                 }
             }
@@ -722,6 +872,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
         if (ImGui::Button(buttonLabel, ImVec2(width, height)))
         {
             SelectedModule = module;
+            bClickedOnItemThisFrame = true;
         }
         ImGui::PopStyleVar();
 
@@ -744,6 +895,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                     {
                         // Add it to the parent LOD level as a regular module
                         parentLOD->AddModule(ClonedModule);
+                        if (EditingSystem) EditingSystem->bIsDirty = true;
                     }
                 }
             }
@@ -783,6 +935,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                 if (parentLOD)
                 {
                     parentLOD->SwapModules(sourceIndex, moduleIndex);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
             ImGui::EndDragDropTarget();

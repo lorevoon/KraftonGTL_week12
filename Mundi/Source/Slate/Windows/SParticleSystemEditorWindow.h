@@ -28,7 +28,7 @@ protected:
 
 private:
     // Layout state
-    float ColumnSplitRatio = 0.6f;      // Left vs Right
+    float ColumnSplitRatio = 0.4f;      // Left vs Right (smaller = narrower left column for square viewport)
     float LeftRowSplitRatio = 0.6f;     // Viewport vs Details (left column)
     float RightRowSplitRatio = 0.45f;   // Emitters vs Curves (right column)
 
@@ -37,6 +37,8 @@ private:
     void RenderViewportArea(float width, float height);
     void RenderDetailsPanel(float width, float height);
     void RenderProperty(UParticleModule* Module, const struct FProperty* Prop);
+    void RenderSystemProperty(class UParticleSystem* System, const struct FProperty* Prop);
+    void RenderEmitterProperty(class UParticleEmitter* Emitter, const struct FProperty* Prop);
 
     // Toolbar icons and helpers
     void LoadToolbarIcons();
@@ -68,8 +70,15 @@ private:
     EDetailMode CurrentDetailMode = EDetailMode::High;
 
     // Time menu state
-    bool bIsPlaying = false;
+    bool bIsPlaying = true;
     bool bRealtime = true;
     bool bLoopSimulation = true;
     float AnimSpeed = 1.0f;
+
+    // Helper to get preview component
+    class UParticleSystemComponent* GetPreviewComponent() const;
+    // Apply current time settings to the preview component
+    void ApplyTimeSettings();
+    // Sync emitter editor states (visibility, render mode, solo) to emitter instances
+    void SyncEmitterEditorStates(class UParticleSystemComponent* PreviewComp);
 };
