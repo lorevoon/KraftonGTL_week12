@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
@@ -189,18 +189,19 @@ void UParticleSystem::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
     if (bInIsLoading)
     {
-        // Load
+        // UPROPERTY 필드는 자동 직렬화되므로 수동 처리 대상만 별도 처리
         int32 LODMethodValue = static_cast<int32>(ParticleSystemLODMethod::Automatic);
         FJsonSerializer::ReadInt32(InOutHandle, "LODMethod", LODMethodValue, static_cast<int32>(ParticleSystemLODMethod::Automatic), false);
         LODMethod = static_cast<ParticleSystemLODMethod>(LODMethodValue);
+
         // Load LOD distances
         LODDistances.Empty();
         if (InOutHandle.hasKey("LODDistances"))
-            const JSON& LODArray = InOutHandle.at("LODDistances");
         {
+            const JSON& LODArray = InOutHandle.at("LODDistances");
             if (LODArray.JSONType() == JSON::Class::Array)
-                for (const JSON& Elem : LODArray.ArrayRange())
             {
+                for (const JSON& Elem : LODArray.ArrayRange())
                 {
                     if (Elem.JSONType() == JSON::Class::Floating || Elem.JSONType() == JSON::Class::Integral)
                     {
@@ -208,17 +209,16 @@ void UParticleSystem::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                     }
                 }
             }
-
         }
-            LODDistances[0] = 0.0f;
-            // LOD0은 항상 0으로 강제
+        if (LODDistances.IsEmpty())
         {
+            LODDistances.Add(0.0f);
         }
         else
-            LODDistances.Add(0.0f);
         {
-        if (LODDistances.IsEmpty())
+            LODDistances[0] = 0.0f; // LOD0은 항상 0
         }
+
         // Load emitters array
         if (InOutHandle.hasKey("Emitters"))
         {
@@ -248,7 +248,9 @@ void UParticleSystem::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     }
     else
     {
+        // UPROPERTY 필드는 자동 직렬화됨. 수동 직렬화 대상만 저장.
         InOutHandle["LODMethod"] = static_cast<long>(LODMethod);
+
         // Save LOD distances
         JSON LODArray = JSON::Make(JSON::Class::Array);
         for (float Dist : LODDistances)
