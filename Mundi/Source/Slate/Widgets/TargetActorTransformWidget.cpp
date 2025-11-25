@@ -535,7 +535,12 @@ void UTargetActorTransformWidget::RenderParticleSystemComponentControls(UParticl
 	ImGui::Spacing();
 
 	// LOD 메소드 드롭다운
-	
+	static const char* LODMethodItems[] = { "Automatic", "DirectSet", "ActivateAutomatic" };
+	int CurrentMethod = static_cast<int>(ParticleComponent.LODMethod);
+	if (ImGui::Combo("LOD Method", &CurrentMethod, LODMethodItems, IM_ARRAYSIZE(LODMethodItems)))
+	{
+		ParticleComponent.LODMethod = static_cast<ParticleSystemLODMethod>(CurrentMethod);
+	}
 
 	if (ImGui::Button("Reset Particle System"))
 	{

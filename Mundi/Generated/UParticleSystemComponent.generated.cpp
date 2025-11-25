@@ -41,6 +41,7 @@ BEGIN_PROPERTIES(UParticleSystemComponent)
     ADD_PROPERTY(bool, bAutoActivate, "ParticleSystem", true)
     ADD_PROPERTY(bool, bIsActive, "", false)
     ADD_PROPERTY(float, CustomPlaybackRate, "ParticleSystem", true)
+    ADD_PROPERTY(float, LODDistanceCheckTime, "ParticleSystem", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -55,5 +56,7 @@ LUA_BIND_BEGIN(UParticleSystemComponent)
         T, "bIsActive", &UParticleSystemComponent::bIsActive);
     AddProperty<UParticleSystemComponent, float>(
         T, "CustomPlaybackRate", &UParticleSystemComponent::CustomPlaybackRate);
+    AddProperty<UParticleSystemComponent, float>(
+        T, "LODDistanceCheckTime", &UParticleSystemComponent::LODDistanceCheckTime);
 }
 LUA_BIND_END()
