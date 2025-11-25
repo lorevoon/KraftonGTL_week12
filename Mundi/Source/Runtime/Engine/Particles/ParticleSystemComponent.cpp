@@ -53,6 +53,25 @@ void UParticleSystemComponent::OnUnregister()
     UPrimitiveComponent::OnUnregister();
 }
 
+void UParticleSystemComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    // EmitterInstances는 런타임 데이터이므로 복제 시 초기화
+    // 복제된 컴포넌트는 OnRegister에서 새로운 인스턴스를 생성할 것
+    EmitterInstances.clear();
+
+    // 런타임 상태 초기화
+    SystemTime = 0.0f;
+    CompletedLoops = 0;
+    AccumLODDistanceCheckTime = 0.0f;
+    bLODUpdatePending = false;
+    bIsActive = false;
+
+    // 이벤트 데이터 초기화
+    CollisionEvents.clear();
+}
+
 void UParticleSystemComponent::Activate()
 {
     if (!Template || bIsActive)
@@ -301,8 +320,11 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
 
         UParticleModuleRequired* RequiredModule = Instance->CurrentLODLevel->RequiredModule;
 
-        // Material이 없으면 렌더링 불가
-        if (!RequiredModule->Material)
+        // Material이 없으면 렌더링 불가 (단, 메시 파티클이 bUseMeshMaterials 사용 시 예외)
+        UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(Instance->CurrentLODLevel->TypeDataModule);
+        bool bMeshUsesMeshMaterials = MeshTypeData && MeshTypeData->bUseMeshMaterials && MeshTypeData->Mesh;
+
+        if (!RequiredModule->Material && !bMeshUsesMeshMaterials)
             continue;
 
         // 파티클이 없으면 스킵

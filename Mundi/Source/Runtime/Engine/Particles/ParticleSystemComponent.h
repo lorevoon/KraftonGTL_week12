@@ -96,6 +96,9 @@ public:
     // 직렬화 (LODMethod는 UPROPERTY가 아니므로 수동 직렬화)
     virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
+    // 서브 오브젝트 복제 (EmitterInstances는 런타임 데이터이므로 초기화)
+    void DuplicateSubObjects() override;
+
 public:
     // 제어 함수
 

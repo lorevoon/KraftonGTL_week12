@@ -1411,15 +1411,49 @@ bool UPropertyRenderer::RenderSingleMaterialSlot(const char* Label, UMaterialInt
 		return false;
 	}
 
-	// --- 1. 머티리얼 에셋 선택 콤보박스 ---
+	// --- 1. 머티리얼 에셋 선택 콤보박스 (with thumbnails) ---
 	FString CurrentMaterialPath = (CurrentMaterial) ? CurrentMaterial->GetFilePath() : "None";
 
-	ImGui::SetNextItemWidth(240);
+	const float ThumbnailSize = 24.0f;
+	const ImVec2 ThumbnailImVec(ThumbnailSize, ThumbnailSize);
+
+	// Show current material thumbnail next to combo box
+	if (CurrentMaterial)
+	{
+		UTexture* DiffuseTex = CurrentMaterial->GetTexture(EMaterialTextureSlot::Diffuse);
+		if (DiffuseTex && DiffuseTex->GetShaderResourceView())
+		{
+			ImGui::Image(reinterpret_cast<ImTextureID>(DiffuseTex->GetShaderResourceView()), ThumbnailImVec);
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::BeginTooltip();
+				ImGui::TextUnformatted(CurrentMaterial->GetFilePath().c_str());
+				ImGui::Text("Diffuse: %s", DiffuseTex->GetFilePath().c_str());
+				ImGui::Image(reinterpret_cast<ImTextureID>(DiffuseTex->GetShaderResourceView()), ImVec2(128.0f, 128.0f));
+				ImGui::EndTooltip();
+			}
+		}
+		else
+		{
+			ImGui::Dummy(ThumbnailImVec);
+		}
+	}
+	else
+	{
+		ImGui::Dummy(ThumbnailImVec);
+	}
+	ImGui::SameLine();
+
+	ImGui::SetNextItemWidth(220.0f - ThumbnailSize - ImGui::GetStyle().ItemSpacing.x);
 	if (ImGui::BeginCombo(Label, CurrentMaterialPath.c_str()))
 	{
+		// Dropdown item spacing
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, 1.0f));
+
 		// "None" 옵션
 		bool bIsNoneSelected = (CurrentMaterial == nullptr);
-		if (ImGui::Selectable(CachedMaterialItems[0], bIsNoneSelected))
+		FString NoneSelectableID = FString("##Selectable_None_") + Label;
+		if (ImGui::Selectable(NoneSelectableID.c_str(), bIsNoneSelected, 0, ImVec2(0, ThumbnailSize - 1.0f)))
 		{
 			bElementChanged = true;
 			if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(OwningObject))
@@ -1431,16 +1465,33 @@ bool UPropertyRenderer::RenderSingleMaterialSlot(const char* Label, UMaterialInt
 				*MaterialPtr = nullptr;
 			}
 		}
+		ImVec2 NoneNextCursorPos = ImGui::GetCursorPos();
+		ImVec2 NoneItemPos = ImGui::GetItemRectMin();
+		ImGui::SetCursorScreenPos(ImVec2(NoneItemPos.x, NoneItemPos.y));
+		ImGui::Dummy(ThumbnailImVec);
+		ImGui::SameLine();
+		ImGui::TextUnformatted("None");
+		ImGui::SetCursorPos(NoneNextCursorPos);
+		ImGui::Dummy(ImVec2(0.0f, 0.0f));
 		if (bIsNoneSelected) ImGui::SetItemDefaultFocus();
 
-		// 캐시된 머티리얼 목록
+		// 캐시된 머티리얼 목록 with thumbnails
 		for (int j = 0; j < (int)CachedMaterialPaths.size(); ++j)
 		{
 			const FString& Path = CachedMaterialPaths[j];
 			const char* DisplayName = CachedMaterialItems[j + 1];
 			bool bIsSelected = (CurrentMaterialPath == Path);
 
-			if (ImGui::Selectable(DisplayName, bIsSelected))
+			// Load material to get its diffuse texture for preview
+			UMaterial* PreviewMaterial = UResourceManager::GetInstance().Load<UMaterial>(Path);
+			UTexture* PreviewTexture = nullptr;
+			if (PreviewMaterial)
+			{
+				PreviewTexture = PreviewMaterial->GetTexture(EMaterialTextureSlot::Diffuse);
+			}
+
+			FString SelectableID = FString("##Selectable_") + Path + std::to_string(j) + Label;
+			if (ImGui::Selectable(SelectableID.c_str(), bIsSelected, 0, ImVec2(0, ThumbnailSize - 1.0f)))
 			{
 				bElementChanged = true;
 				if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(OwningObject))
@@ -1449,12 +1500,52 @@ bool UPropertyRenderer::RenderSingleMaterialSlot(const char* Label, UMaterialInt
 				}
 				else
 				{
-					*MaterialPtr = UResourceManager::GetInstance().Load<UMaterial>(Path);
+					*MaterialPtr = PreviewMaterial;
 				}
 			}
+			ImVec2 NextItemCursorPos = ImGui::GetCursorPos();
+
+			// Tooltip on hover
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::BeginTooltip();
+				ImGui::TextUnformatted(Path.c_str());
+				if (PreviewTexture && PreviewTexture->GetShaderResourceView())
+				{
+					ImGui::Text("Diffuse: %s", PreviewTexture->GetFilePath().c_str());
+					ImGui::Text("Size: %u x %u", PreviewTexture->GetWidth(), PreviewTexture->GetHeight());
+					ImGui::Image(reinterpret_cast<ImTextureID>(PreviewTexture->GetShaderResourceView()), ImVec2(128.0f, 128.0f));
+				}
+				ImGui::EndTooltip();
+			}
+
+			// Draw thumbnail and text over the selectable
+			ImVec2 ItemPos = ImGui::GetItemRectMin();
+			ImGui::SetCursorScreenPos(ImVec2(ItemPos.x, ItemPos.y));
+
+			if (PreviewTexture && PreviewTexture->GetShaderResourceView())
+			{
+				ImGui::Image(reinterpret_cast<ImTextureID>(PreviewTexture->GetShaderResourceView()), ThumbnailImVec);
+			}
+			else
+			{
+				ImGui::Dummy(ThumbnailImVec);
+			}
+
+			ImVec2 TextPos = ImVec2(
+				ItemPos.x + ThumbnailSize + ImGui::GetStyle().ItemSpacing.x,
+				ItemPos.y
+			);
+			ImGui::SetCursorScreenPos(TextPos);
+			ImGui::TextUnformatted(DisplayName);
+
 			if (bIsSelected) ImGui::SetItemDefaultFocus();
+
+			ImGui::SetCursorPos(NextItemCursorPos);
+			ImGui::Dummy(ImVec2(0.0f, 0.0f));
 		}
 
+		ImGui::PopStyleVar();
 		ImGui::EndCombo();
 		CurrentMaterial = *MaterialPtr; // 콤보박스에서 변경되었을 수 있으므로 업데이트
 	}
@@ -1468,11 +1559,12 @@ bool UPropertyRenderer::RenderSingleMaterialSlot(const char* Label, UMaterialInt
 		// ImGui 위젯 값이 변경될 때만 호출됩니다.
 		UMeshComponent* MeshComponent = Cast<UMeshComponent>(OwningObject);
 
+		// For non-MeshComponent objects (like particle modules), skip detailed material editing
+		// The thumbnail preview is already shown next to the combo box
 		if (!MeshComponent)
 		{
-			ImGui::Text("UMeshComponent만 텍스처를 변경할 수 있습니다");
 			ImGui::Unindent();
-			return false;
+			return bElementChanged;
 		}
 
 		for (uint8 TexSlotIndex = 0; TexSlotIndex < (uint8)EMaterialTextureSlot::Max; ++TexSlotIndex)

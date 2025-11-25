@@ -81,4 +81,12 @@ private:
     void ApplyTimeSettings();
     // Sync emitter editor states (visibility, render mode, solo) to emitter instances
     void SyncEmitterEditorStates(class UParticleSystemComponent* PreviewComp);
+
+    // Deferred command pattern for file operations
+    enum class EParticleEditorCommand { None, New, Load, Save };
+    EParticleEditorCommand PendingCommand = EParticleEditorCommand::None;
+    void ProcessPendingCommands();
+    void OnNewParticleSystem();
+    void OnLoadParticleSystem();
+    void OnSaveParticleSystem();
 };
