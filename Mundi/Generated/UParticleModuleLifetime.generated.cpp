@@ -34,7 +34,6 @@ const bool UParticleModuleLifetime::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleLifetime)
-    MARK_AS_COMPONENT("수명 모듈", "파티클 수명을 제어합니다")
     ADD_PROPERTY(float, LifetimeMin, "Lifetime", true)
     ADD_PROPERTY(float, LifetimeMax, "Lifetime", true)
 END_PROPERTIES()

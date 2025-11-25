@@ -24,7 +24,7 @@ const bool UParticleModuleTypeDataBase::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleModuleTypeDataBase)
-    MARK_AS_COMPONENT("타입 데이터 베이스", "파티클 이미터의 타입을 결정하는 베이스 클래스입니다")
+
 END_PROPERTIES()
 
 

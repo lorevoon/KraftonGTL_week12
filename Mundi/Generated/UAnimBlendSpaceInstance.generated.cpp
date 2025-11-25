@@ -34,7 +34,7 @@ const bool UAnimBlendSpaceInstance::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UAnimBlendSpaceInstance)
-    MARK_AS_COMPONENT("블렌드 스페이스 2D 인스턴스", "2D 파라미터 기반 삼각 보간 블렌드")
+
 END_PROPERTIES()
 
 

@@ -38,7 +38,6 @@ const bool UParticleLODLevel::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UParticleLODLevel)
-    MARK_AS_COMPONENT("파티클 LOD 레벨", "LOD 레벨별 파티클 모듈 리스트입니다")
     ADD_PROPERTY(UParticleModuleRequired*, RequiredModule, "Required", true)
     ADD_PROPERTY(UParticleModuleTypeDataBase*, TypeDataModule, "TypeData", true)
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, Modules, "Modules", true)
