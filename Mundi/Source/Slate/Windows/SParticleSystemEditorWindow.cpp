@@ -113,7 +113,7 @@ void SParticleSystemEditorWindow::OnRender()
                 ofn.lpstrFileTitle = NULL;
                 ofn.nMaxFileTitle = 0;
                 ofn.lpstrInitialDir = "Data\\ParticleSystems";
-                ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+                ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
                 if (GetOpenFileNameA(&ofn) == TRUE)
                 {
@@ -147,7 +147,7 @@ void SParticleSystemEditorWindow::OnRender()
                     ofn.lpstrFileTitle = NULL;
                     ofn.nMaxFileTitle = 0;
                     ofn.lpstrInitialDir = "Data\\ParticleSystems";
-                    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+                    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
                     ofn.lpstrDefExt = "particle";
 
                     if (GetSaveFileNameA(&ofn) == TRUE)
