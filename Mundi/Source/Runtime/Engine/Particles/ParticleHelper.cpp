@@ -550,7 +550,7 @@ void FDynamicBeamEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     // 버텍스 데이터 업로드
     D3D11_MAPPED_SUBRESOURCE mapped;
     Context->Map(VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    memcpy(mapped.pData, Vertices.GetData(), sizeof(FParticleBeamVertex) * Vertices.Num());
+    memcpy(mapped.pData, Vertices.GetData(), sizeof(FParticleBeamInstance) * Vertices.Num());
     Context->Unmap(VertexBuffer, 0);
 
     // 인덱스 데이터 업로드
@@ -585,7 +585,7 @@ void FDynamicBeamEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     }
 
     // 버퍼 바인딩
-    UINT Stride = sizeof(FParticleBeamVertex);
+    UINT Stride = sizeof(FParticleBeamInstance);
     UINT Offset = 0;
     Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
     Context->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);

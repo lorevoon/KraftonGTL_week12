@@ -59,7 +59,7 @@ ABeamParticleActor::ABeamParticleActor()
 
 	// Required 모듈 (필수)
 	UParticleModuleRequired* RequiredModule = NewObject<UParticleModuleRequired>();
-	RequiredModule->SpawnRate = 5.0f; // 초당 5개 빔 생성
+	RequiredModule->SpawnRate = 10.0f; // 초당 5개 빔 생성
 	RequiredModule->EmitterDuration = 5.0f;
 	RequiredModule->EmitterLoops = 0; // 무한 반복
 	RequiredModule->Material = ParticleMaterial;
@@ -68,11 +68,11 @@ ABeamParticleActor::ABeamParticleActor()
 	// TypeData 모듈 (빔)
 	UParticleModuleTypeDataBeam* TypeDataBeam = NewObject<UParticleModuleTypeDataBeam>();
 	TypeDataBeam->BeamMethod = EBeamMethod::Distance;
-	TypeDataBeam->Segments = 10;        // 세그먼트 수 (노이즈 표현용)
-	TypeDataBeam->Width = 5.0f;         // 빔 폭
-	TypeDataBeam->Length = 200.0f;      // 빔 길이
-	TypeDataBeam->NoiseStrength = 10.0f; // 노이즈 강도 (번개 효과)
-	TypeDataBeam->NoiseFrequency = 2.0f; // 노이즈 주파수
+	TypeDataBeam->Segments = 5;        // 세그먼트 수 (노이즈 표현용)
+	TypeDataBeam->Width = 1.5f;         // 빔 폭
+	TypeDataBeam->Length = 50.0f;      // 빔 길이
+	TypeDataBeam->NoiseStrength = 1.5f; // 노이즈 강도 (번개 효과)
+	TypeDataBeam->NoiseFrequency = 2.5f; // 노이즈 주파수
 	LODLevel->TypeDataModule = TypeDataBeam;
 
 	// Spawn 모듈

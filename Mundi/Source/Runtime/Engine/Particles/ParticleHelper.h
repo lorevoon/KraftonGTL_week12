@@ -125,6 +125,16 @@ struct FParticleMeshInstance
     }
 };
 
+// Beam 파티클 버텍스 데이터 (셰이더 입력과 일치)
+struct FParticleBeamInstance
+{
+    FVector Position;       // 12 bytes (POSITION)
+    FVector2D UV;           // 8 bytes (TEXCOORD0)
+    float Padding0;         // 4 bytes (정렬)
+    FLinearColor Color;     // 16 bytes (COLOR0)
+    // Total: 40 bytes
+};
+
 // Forward declare for EditorRenderMode (defined in ParticleEmitterInstance.h)
 enum class EEmitterRenderMode : uint8;
 
@@ -185,20 +195,10 @@ private:
     void BuildMeshInstances();
 };
 
-// Beam 파티클 버텍스 데이터 (셰이더 입력과 일치)
-struct FParticleBeamVertex
-{
-    FVector Position;       // 12 bytes (POSITION)
-    FVector2D UV;           // 8 bytes (TEXCOORD0)
-    float Padding0;         // 4 bytes (정렬)
-    FLinearColor Color;     // 16 bytes (COLOR0)
-    // Total: 40 bytes
-};
-
 // Beam 파티클 렌더링 데이터
 struct FDynamicBeamEmitterData : public FDynamicEmitterDataBase
 {
-    TArray<FParticleBeamVertex> Vertices;   // 빔 버텍스들
+    TArray<FParticleBeamInstance> Vertices;   // 빔 버텍스들
     TArray<uint32> Indices;                  // 인덱스 버퍼
 
     FDynamicBeamEmitterData(FParticleEmitterInstance* InSource)
