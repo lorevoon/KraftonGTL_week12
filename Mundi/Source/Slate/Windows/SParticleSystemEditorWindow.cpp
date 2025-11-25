@@ -394,8 +394,23 @@ void SParticleSystemEditorWindow::RenderRightColumn(float width, float height)
 
     // Curves panel (bottom)
     ImGui::BeginChild("Cascade_Curves", ImVec2(width, curvesH), true, ImGuiWindowFlags_NoScrollbar);
-    ImGui::TextUnformatted("Curve Editor");
-    ImGui::Separator();
+    {
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        float fullW = ImGui::GetContentRegionAvail().x;
+        const float headerH = 28.0f;
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImU32 bg = ImGui::GetColorU32(ImVec4(0.14f, 0.14f, 0.18f, 1.0f));
+        ImU32 top = ImGui::GetColorU32(ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
+        ImU32 border = ImGui::GetColorU32(ImVec4(0.35f, 0.35f, 0.40f, 1.0f));
+        dl->AddRectFilled(pos, ImVec2(pos.x + fullW, pos.y + headerH), bg, 5.0f);
+        dl->AddLine(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y), top, 1.0f);
+        dl->AddRect(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y + headerH), border, 5.0f);
+        ImGui::SetCursorScreenPos(ImVec2(pos.x + 10.0f, pos.y + 5.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
+        ImGui::TextUnformatted("Curve Editor");
+        ImGui::PopStyleColor();
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + headerH + 6.0f));
+    }
     ImGui::TextUnformatted("(Curve editor placeholder)");
     ImGui::EndChild();
 }
@@ -739,8 +754,24 @@ void SParticleSystemEditorWindow::LoadToolbarIcons()
 
 void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
 {
-    ImGui::TextUnformatted("Details");
-    ImGui::Separator();
+    // Styled header bar for Details
+    {
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        float fullW = ImGui::GetContentRegionAvail().x;
+        const float headerH = 28.0f;
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        ImU32 bg = ImGui::GetColorU32(ImVec4(0.14f, 0.14f, 0.18f, 1.0f));
+        ImU32 top = ImGui::GetColorU32(ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
+        ImU32 border = ImGui::GetColorU32(ImVec4(0.35f, 0.35f, 0.40f, 1.0f));
+        dl->AddRectFilled(pos, ImVec2(pos.x + fullW, pos.y + headerH), bg, 5.0f);
+        dl->AddLine(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y), top, 1.0f);
+        dl->AddRect(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y + headerH), border, 5.0f);
+        ImGui::SetCursorScreenPos(ImVec2(pos.x + 10.0f, pos.y + 5.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
+        ImGui::TextUnformatted("Details");
+        ImGui::PopStyleColor();
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + headerH + 6.0f));
+    }
 
     if (!EmittersPanel)
     {
