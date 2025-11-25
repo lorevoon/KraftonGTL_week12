@@ -8,6 +8,7 @@
 #include "ParticleLODLevel.h"
 #include "Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Modules/TypeData/ParticleModuleTypeDataBeam.h"
+#include "Modules/ParticleModuleBeamNoise.h"
 #include "StaticMesh.h"
 #include "ParticleDynamicBuffers.h"
 #include "ParticleSystemComponent.h"
@@ -415,7 +416,6 @@ void FDynamicBeamEmitterData::UpdateRenderData(FSceneView* View)
 
 void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
 {
-    // TypeDataModule에서 빔 설정 가져오기
     UParticleLODLevel* LODLevel = Source->CurrentLODLevel;
     if (!LODLevel || !LODLevel->TypeDataModule)
         return;
@@ -428,30 +428,43 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
     int32 Segments = FMath::Max(1, TypeDataBeam->Segments);
     float Width = TypeDataBeam->Width;
     float Length = TypeDataBeam->Length;
-    float NoiseStrength = TypeDataBeam->NoiseStrength;
+    float TaperFactor = TypeDataBeam->TaperFactor;
 
-    // 각 파티클당 (Segments + 1) * 2 버텍스
-    // 각 세그먼트당 2 삼각형 = 6 인덱스
+    // BeamNoise 모듈에서 노이즈 데이터 가져오기
+    UParticleModuleBeamNoise* NoiseModule = nullptr;
+    FBeamNoiseCache* NoiseCache = nullptr;
+    for (UParticleModule* Module : LODLevel->Modules)
+    {
+        if (UParticleModuleBeamNoise* BeamNoise = Cast<UParticleModuleBeamNoise>(Module))
+        {
+            NoiseModule = BeamNoise;
+            NoiseCache = BeamNoise->GetNoiseCache(Source);
+            break;
+        }
+    }
+
+    bool bHasNoise = NoiseModule && NoiseModule->HasNoise() && NoiseCache;
+    float NoiseLockTime = NoiseModule ? NoiseModule->NoiseLockTime : 0.0f;
+    bool bSmooth = NoiseModule ? NoiseModule->bSmooth : false;
+
     int32 VerticesPerBeam = (Segments + 1) * 2;
     int32 IndicesPerBeam = Segments * 6;
 
     Vertices.SetNum(ParticleCount * VerticesPerBeam);
     Indices.SetNum(ParticleCount * IndicesPerBeam);
-    
+
     const bool bUseLocalSpace = Source->UseLocalSpace();
     const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
     const FVector CameraPos = View->ViewLocation;
-    
+
     for (int32 p = 0; p < ParticleCount; ++p)
     {
         FBaseParticle* Particle = Source->GetParticle(p);
         if (!Particle)
             continue;
 
-        // 시작점 (파티클 위치)
         FVector StartPos = Particle->Location + ComponentWorldLocation;
 
-        // 끝점 (속도 방향 또는 기본 방향으로 Length만큼)
         FVector BeamDir;
         if (Particle->Velocity.SizeSquared() > 0.001f)
         {
@@ -459,65 +472,71 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
         }
         else
         {
-            BeamDir = FVector(1.0f, 0.0f, 0.0f); // 기본: X 방향
+            BeamDir = FVector(1.0f, 0.0f, 0.0f);
         }
         FVector EndPos = StartPos + BeamDir * Length;
 
-        // 파티클 컬러
         FLinearColor ParticleColor(Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);
 
-        // 세그먼트별 버텍스 생성
         for (int32 s = 0; s <= Segments; ++s)
         {
             float T = (float)s / (float)Segments;
-
-            // 세그먼트 위치 (선형 보간)
             FVector SegPos = FMath::Lerp(StartPos, EndPos, T);
 
-            // 노이즈 적용 (시작/끝점 제외)
-            if (NoiseStrength > 0.0f && s > 0 && s < Segments)
+            FVector ToCamera = (CameraPos - SegPos).GetSafeNormal();
+            FVector Right = FVector::Cross(ToCamera, BeamDir).GetSafeNormal();
+            if (Right.SizeSquared() < 0.001f)
             {
-                float NoiseX = sinf(T * 3.14159f * 2.0f + Particle->RelativeTime * 5.0f) * NoiseStrength;
-                float NoiseY = cosf(T * 3.14159f * 3.0f + Particle->RelativeTime * 7.0f) * NoiseStrength;
-                SegPos += FVector(0, NoiseX, NoiseY);
+                Right = FVector::Cross(FVector(0, 0, 1), BeamDir).GetSafeNormal();
+            }
+            FVector Up = FVector::Cross(Right, BeamDir).GetSafeNormal();
+
+            // 노이즈 적용 (시작/끝점 제외)
+            if (bHasNoise && s > 0 && s < Segments && p < NoiseCache->NoisePoints.Num())
+            {
+                int32 NoiseIdx = FMath::Min(s - 1, NoiseCache->NoisePoints[p].Num() - 1);
+                if (NoiseIdx >= 0 && NoiseIdx < NoiseCache->NoisePoints[p].Num())
+                {
+                    FVector NoiseOffset;
+                    if (bSmooth && NoiseLockTime > 0.0f && p < NoiseCache->NextNoisePoints.Num() && NoiseIdx < NoiseCache->NextNoisePoints[p].Num())
+                    {
+                        float LerpAlpha = NoiseCache->NoiseTimers[p] / NoiseLockTime;
+                        NoiseOffset = FMath::Lerp(NoiseCache->NoisePoints[p][NoiseIdx], NoiseCache->NextNoisePoints[p][NoiseIdx], LerpAlpha);
+                    }
+                    else
+                    {
+                        NoiseOffset = NoiseCache->NoisePoints[p][NoiseIdx];
+                    }
+                    SegPos += Right * NoiseOffset.X + Up * NoiseOffset.Y;
+                }
             }
 
-            // 빌보드 방향 계산 (카메라→세그먼트 × 빔방향)
-            FVector ToCamera = (CameraPos - SegPos).GetSafeNormal();
-            FVector Right = FVector::Cross(BeamDir, ToCamera).GetSafeNormal();
+            float TaperScale = 1.0f - (TaperFactor * T);
+            float HalfWidth = Width * 0.5f * Particle->Size.X * TaperScale;
 
-            // 폭 적용 (파티클 사이즈로 스케일)
-            float HalfWidth = Width * 0.5f * Particle->Size.X;
-
-            // 버텍스 인덱스
             int32 BaseVertex = p * VerticesPerBeam + s * 2;
 
-            // 위쪽 버텍스
             Vertices[BaseVertex].Position = SegPos + Right * HalfWidth;
-            Vertices[BaseVertex].UV = FVector2D(T, 0.0f);
+            Vertices[BaseVertex].UV = FVector2D(T, 1.0f);
             Vertices[BaseVertex].Color = ParticleColor;
 
-            // 아래쪽 버텍스
             Vertices[BaseVertex + 1].Position = SegPos - Right * HalfWidth;
-            Vertices[BaseVertex + 1].UV = FVector2D(T, 1.0f);
+            Vertices[BaseVertex + 1].UV = FVector2D(T, 0.0f);
             Vertices[BaseVertex + 1].Color = ParticleColor;
         }
 
-        // 인덱스 생성
         for (int32 s = 0; s < Segments; ++s)
         {
             int32 BaseVertex = p * VerticesPerBeam + s * 2;
             int32 BaseIndex = p * IndicesPerBeam + s * 6;
 
-            // 삼각형 1
             Indices[BaseIndex + 0] = BaseVertex;
-            Indices[BaseIndex + 1] = BaseVertex + 1;
-            Indices[BaseIndex + 2] = BaseVertex + 2;
+            Indices[BaseIndex + 1] = BaseVertex + 2;
+            Indices[BaseIndex + 2] = BaseVertex + 1;
 
-            // 삼각형 2
             Indices[BaseIndex + 3] = BaseVertex + 1;
-            Indices[BaseIndex + 4] = BaseVertex + 3;
-            Indices[BaseIndex + 5] = BaseVertex + 2;
+            Indices[BaseIndex + 4] = BaseVertex + 2;
+            Indices[BaseIndex + 5] = BaseVertex + 3;
         }
     }
 }
@@ -550,7 +569,7 @@ void FDynamicBeamEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     // 버텍스 데이터 업로드
     D3D11_MAPPED_SUBRESOURCE mapped;
     Context->Map(VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    memcpy(mapped.pData, Vertices.GetData(), sizeof(FParticleBeamVertex) * Vertices.Num());
+    memcpy(mapped.pData, Vertices.GetData(), sizeof(FParticleBeamInstance) * Vertices.Num());
     Context->Unmap(VertexBuffer, 0);
 
     // 인덱스 데이터 업로드
@@ -585,7 +604,7 @@ void FDynamicBeamEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     }
 
     // 버퍼 바인딩
-    UINT Stride = sizeof(FParticleBeamVertex);
+    UINT Stride = sizeof(FParticleBeamInstance);
     UINT Offset = 0;
     Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
     Context->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);

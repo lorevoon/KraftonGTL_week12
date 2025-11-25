@@ -38,8 +38,7 @@ BEGIN_PROPERTIES(UParticleModuleTypeDataBeam)
     ADD_PROPERTY(int32, Segments, "Beam", true)
     ADD_PROPERTY(float, Width, "Beam", true)
     ADD_PROPERTY(float, Length, "Beam", true)
-    ADD_PROPERTY(float, NoiseStrength, "Noise", true)
-    ADD_PROPERTY(float, NoiseFrequency, "Noise", true)
+    ADD_PROPERTY(float, TaperFactor, "Beam", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -55,8 +54,6 @@ LUA_BIND_BEGIN(UParticleModuleTypeDataBeam)
     AddProperty<UParticleModuleTypeDataBeam, float>(
         T, "Length", &UParticleModuleTypeDataBeam::Length);
     AddProperty<UParticleModuleTypeDataBeam, float>(
-        T, "NoiseStrength", &UParticleModuleTypeDataBeam::NoiseStrength);
-    AddProperty<UParticleModuleTypeDataBeam, float>(
-        T, "NoiseFrequency", &UParticleModuleTypeDataBeam::NoiseFrequency);
+        T, "TaperFactor", &UParticleModuleTypeDataBeam::TaperFactor);
 }
 LUA_BIND_END()
