@@ -283,9 +283,15 @@ void FParticleEmitterInstance::KillDeadParticles()
     for (int32 i = ActiveParticles - 1; i >= 0; --i)
     {
         const FBaseParticle* Particle = GetParticle(i);
-        if (Particle && Particle->RelativeTime >= 1.0f)
+        if (Particle)
         {
-            KillParticle(i);
+            // RelativeTime 기반 수명 만료 또는 Dead 플래그 설정 시 제거
+            bool bShouldKill = (Particle->RelativeTime >= 1.0f) ||
+                               (Particle->Flags & EParticleFlags::Dead);
+            if (bShouldKill)
+            {
+                KillParticle(i);
+            }
         }
     }
 }

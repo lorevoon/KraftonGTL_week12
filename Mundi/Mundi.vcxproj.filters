@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
     <FxCompile Include="Shaders\PostProcess\GammaCorrection_PS.hlsl">
@@ -99,6 +99,9 @@
       <Filter>Source\Runtime\Engine\Particles\Modules</Filter>
     </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSizeScaleBySpeed.cpp">
+      <Filter>Source\Runtime\Engine\Particles\Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleCollision.cpp">
       <Filter>Source\Runtime\Engine\Particles\Modules</Filter>
     </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleLODLevel.cpp">
@@ -393,6 +396,9 @@
       <Filter>Source\Runtime\Engine\Collision</Filter>
     </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\Collision\Picking.cpp">
+      <Filter>Source\Runtime\Engine\Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Collision\ParticleCollisionQuery.cpp">
       <Filter>Source\Runtime\Engine\Collision</Filter>
     </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\Spatial\BVHierarchy.cpp">
@@ -911,6 +917,9 @@
     <ClCompile Include="Generated\UParticleModuleSizeScaleBySpeed.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
+    <ClCompile Include="Generated\UParticleModuleCollision.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
@@ -958,6 +967,9 @@
     <ClCompile Include="Source\Runtime\Renderer\ParticleSystemEditorViewportClient.cpp" />
     <ClCompile Include="Source\Slate\Windows\SParticleSystemEditorWindow.cpp" />
     <ClCompile Include="Source\Slate\Windows\SCascadeEmittersPanel.cpp" />
+    <ClCompile Include="Generated\UParticleModuleCollision.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Generated\USkinnedMeshComponent.generated.h">
@@ -998,6 +1010,9 @@
       <Filter>Source\Runtime\Engine\Particles\Modules</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSizeScaleBySpeed.h">
+      <Filter>Source\Runtime\Engine\Particles\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleCollision.h">
       <Filter>Source\Runtime\Engine\Particles\Modules</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleLODLevel.h">
@@ -1298,6 +1313,9 @@
       <Filter>Source\Runtime\Engine\Collision</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\Collision\Picking.h">
+      <Filter>Source\Runtime\Engine\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Collision\ParticleCollisionQuery.h">
       <Filter>Source\Runtime\Engine\Collision</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\Spatial\BVHierarchy.h">
@@ -1882,6 +1900,9 @@
     <ClInclude Include="Generated\UParticleModuleSizeScaleBySpeed.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
+    <ClInclude Include="Generated\UParticleModuleCollision.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
     <ClInclude Include="ThirdParty\ImGui\imconfig.h">
       <Filter>ThirdParty\ImGui</Filter>
     </ClInclude>
@@ -2012,6 +2033,9 @@
     <ClInclude Include="Source\Runtime\Renderer\ParticleSystemEditorViewportClient.h" />
     <ClInclude Include="Source\Slate\Windows\SParticleSystemEditorWindow.h" />
     <ClInclude Include="Source\Slate\Windows\SCascadeEmittersPanel.h" />
+    <ClInclude Include="Generated\UParticleModuleCollision.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py">
