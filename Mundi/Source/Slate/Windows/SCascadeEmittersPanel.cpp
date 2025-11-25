@@ -17,6 +17,7 @@
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataBeam.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleCollision.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleEventGenerator.h"
 #include "Material.h"
 #include "ResourceManager.h"
 
@@ -213,6 +214,21 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 }
             }
 
+            // EventGenerator module - TEAL (event-related)
+            if (LOD0->EventGenerator)
+            {
+                const char* eventGenName = LOD0->EventGenerator->ModuleName.c_str();
+                if (eventGenName)
+                {
+                    RenderModuleCard(LOD0->EventGenerator,
+                                   LOD0,
+                                   -3, // -3 indicates EventGenerator module
+                                   eventGenName,
+                                   ImVec4(0.2f, 0.5f, 0.6f, 1.0f), // Teal
+                                   columnWidth, moduleHeight, true); // With checkbox
+                }
+            }
+
             // Other modules
             const TArray<UParticleModule*>& Modules = LOD0->Modules;
             for (int m = 0; m < Modules.Num(); ++m)
@@ -312,6 +328,16 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 {
                     NewModule->ModuleName = "Collision";
                     LOD0->AddModule(NewModule);
+                }
+            }
+
+            if (ImGui::MenuItem("Event Generator"))
+            {
+                UParticleModuleEventGenerator* NewModule = NewObject<UParticleModuleEventGenerator>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "EventGenerator";
+                    LOD0->EventGenerator = NewModule;
                 }
             }
 
@@ -700,6 +726,11 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
                     {
                         parentLOD->TypeDataModule = nullptr;
                     }
+                    // EventGenerator module (moduleIndex == -3) has special handling
+                    else if (moduleIndex == -3)
+                    {
+                        parentLOD->EventGenerator = nullptr;
+                    }
                     else
                     {
                         parentLOD->RemoveModule(module);
@@ -808,13 +839,11 @@ ImVec4 SCascadeEmittersPanel::GetModuleColor(const FString& moduleName)
     // Color scheme matching Unreal Cascade
     // Required = yellow (handled separately)
     // Spawn = red
-    // Collision = teal
+    // EventGenerator = teal (handled separately)
     // Everything else = grey
     if (moduleName == "Spawn")
         return ImVec4(0.55f, 0.2f, 0.2f, 1.0f); // Red for Spawn
-    else if (moduleName == "Collision")
-        return ImVec4(0.2f, 0.5f, 0.6f, 1.0f); // Teal for Collision
     else
-        return ImVec4(0.3f, 0.3f, 0.3f, 1.0f); // Grey for all other modules
+        return ImVec4(0.3f, 0.3f, 0.3f, 1.0f); // Grey for all other modules (including Collision)
 }
 

@@ -7,6 +7,7 @@
 #include "Source/Runtime/Engine/Scripting/LuaBindHelpers.h"
 
 #include "ParticleModule.h"
+#include "ParticleModuleEventGenerator.h"
 #include "ParticleModuleRequired.h"
 #include "ParticleModuleTypeDataBase.h"
 
@@ -42,6 +43,7 @@ BEGIN_PROPERTIES(UParticleLODLevel)
     ADD_PROPERTY(UParticleModuleRequired*, RequiredModule, "Required", true)
     ADD_PROPERTY(UParticleModuleTypeDataBase*, TypeDataModule, "TypeData", true)
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, Modules, "Modules", true)
+    ADD_PROPERTY(UParticleModuleEventGenerator*, EventGenerator, "Events", true)
     ADD_PROPERTY(int32, Level, "LOD", true)
     ADD_PROPERTY(float, DistanceThreshold, "LOD", true)
 END_PROPERTIES()
@@ -56,6 +58,8 @@ LUA_BIND_BEGIN(UParticleLODLevel)
         T, "TypeDataModule", &UParticleLODLevel::TypeDataModule);
     AddPropertyArrayPtr<UParticleLODLevel, UParticleModule>(
         T, "Modules", &UParticleLODLevel::Modules);
+    AddPropertyPtr<UParticleLODLevel, UParticleModuleEventGenerator>(
+        T, "EventGenerator", &UParticleLODLevel::EventGenerator);
     AddProperty<UParticleLODLevel, int32>(
         T, "Level", &UParticleLODLevel::Level);
     AddProperty<UParticleLODLevel, float>(

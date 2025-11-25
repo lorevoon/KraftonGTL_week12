@@ -1,9 +1,11 @@
 ﻿#include "pch.h"
 #include "ParticleModuleCollision.h"
+#include "ParticleModuleEventGenerator.h"
 #include "ParticleEmitterInstance.h"
 #include "ParticleSystemComponent.h"
 #include "ParticleHelper.h"
 #include "ParticleCollisionQuery.h"
+#include "ParticleLODLevel.h"
 #include "World.h"
 
 UParticleModuleCollision::UParticleModuleCollision()
@@ -89,30 +91,55 @@ bool UParticleModuleCollision::PerformCollisionCheck(FParticleEmitterInstance* O
 		// 충돌 반응 적용
 		ApplyCollisionResponse(Particle, HitResult, Payload->CollisionCount);
 
-		// ========== 이벤트 report ==========
+		// 최대 충돌 횟수 체크 (이벤트 생성 전에 Dead 플래그 설정)
+		if (MaxCollisions > 0 && Payload->CollisionCount >= MaxCollisions)
+		{
+			// 충돌 횟수 초과 - 파티클 제거 예약
+			Particle->Flags |= EParticleFlags::Dead;
+			Particle->RelativeTime = 1.0f; // KillDeadParticles에서 제거됨
+		}
+
+		// ========== 이벤트 생성 (Phase 4) ==========
 		FVector Direction = (WorldLocation - WorldOldLocation);
 		if (Direction.SizeSquared() > KINDA_SMALL_NUMBER)
 		{
 			Direction.Normalize();
 		}
 
-		Owner->Component->ReportEventCollision(
-			"Collision",              // 기본 이벤트 이름
-			Owner->EmitterTime,       // 이미터 시간
-			Particle->RelativeTime,   // 파티클 생명 시간
-			HitResult.ImpactPoint,    // 충돌 위치
-			Particle->Velocity,       // 속도
-			Direction,                // 이동 방향
-			HitResult.ImpactNormal,   // 충돌 노말
-			""                        // 본 이름 (현재 미사용)
-		);
-
-		// 최대 충돌 횟수 체크
-		if (MaxCollisions > 0 && Payload->CollisionCount >= MaxCollisions)
+		// EventGenerator가 있으면 필터링된 이벤트 생성
+		UParticleModuleEventGenerator* EventGenerator = Owner->CurrentLODLevel ? Owner->CurrentLODLevel->EventGenerator : nullptr;
+		if (EventGenerator)
 		{
-			// 충돌 횟수 초과 - 파티클 제거 예약
-			Particle->Flags |= EParticleFlags::Dead;
-			Particle->RelativeTime = 1.0f; // KillDeadParticles에서 제거됨
+			FParticleEventInstancePayload* EventPayload =
+				reinterpret_cast<FParticleEventInstancePayload*>(
+					Owner->GetModuleInstanceData(EventGenerator)
+				);
+
+			if (EventPayload)
+			{
+				EventGenerator->HandleParticleCollision(
+					Owner,
+					EventPayload,
+					Payload,
+					HitResult,
+					Particle,
+					Direction
+				);
+			}
+		}
+		else
+		{
+			// EventGenerator 없으면 모든 충돌에서 이벤트 생성 (기존 동작)
+			Owner->Component->ReportEventCollision(
+				"Collision",              // 기본 이벤트 이름
+				Owner->EmitterTime,       // 이미터 시간
+				Particle->RelativeTime,   // 파티클 생명 시간
+				HitResult.ImpactPoint,    // 충돌 위치
+				Particle->Velocity,       // 속도
+				Direction,                // 이동 방향
+				HitResult.ImpactNormal,   // 충돌 노말
+				""                        // 본 이름 (현재 미사용)
+			);
 		}
 
 		return true;
