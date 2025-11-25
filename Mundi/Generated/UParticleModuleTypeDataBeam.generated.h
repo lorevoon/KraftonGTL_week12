@@ -12,21 +12,21 @@
 #endif
 
 // Define class-specific body macro
-#define U_PARTICLE_SYSTEM_BODY \
+#define U_PARTICLE_MODULE_TYPE_DATA_BEAM_BODY \
 public: \
-    using Super = UResourceBase; \
-    using ThisClass_t = UParticleSystem; \
+    using Super = UParticleModuleTypeDataBase; \
+    using ThisClass_t = UParticleModuleTypeDataBeam; \
     static UClass* StaticClass() \
     { \
-        static UClass Cls{ "UParticleSystem", UResourceBase::StaticClass(), sizeof(UParticleSystem) }; \
+        static UClass Cls{ "UParticleModuleTypeDataBeam", UParticleModuleTypeDataBase::StaticClass(), sizeof(UParticleModuleTypeDataBeam) }; \
         static bool bRegistered = (UClass::SignUpClass(&Cls), true); \
         return &Cls; \
     } \
-    virtual UClass* GetClass() const override { return UParticleSystem::StaticClass(); } \
-    UParticleSystem(const UParticleSystem&) = default; \
-    UParticleSystem* Duplicate() const override \
+    virtual UClass* GetClass() const override { return UParticleModuleTypeDataBeam::StaticClass(); } \
+    UParticleModuleTypeDataBeam(const UParticleModuleTypeDataBeam&) = default; \
+    UParticleModuleTypeDataBeam* Duplicate() const override \
     { \
-        UParticleSystem* NewObject = ObjectFactory::DuplicateObject<UParticleSystem>(this); \
+        UParticleModuleTypeDataBeam* NewObject = ObjectFactory::DuplicateObject<UParticleModuleTypeDataBeam>(this); \
         NewObject->DuplicateSubObjects(); \
         NewObject->PostDuplicate(); \
         return NewObject; \
@@ -37,4 +37,4 @@ private: \
 public:
 
 // Redirect generic macro to class-specific one
-#define CURRENT_CLASS_GENERATED_BODY U_PARTICLE_SYSTEM_BODY
+#define CURRENT_CLASS_GENERATED_BODY U_PARTICLE_MODULE_TYPE_DATA_BEAM_BODY

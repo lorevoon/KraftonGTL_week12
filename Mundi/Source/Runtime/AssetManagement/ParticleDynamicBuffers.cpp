@@ -115,6 +115,95 @@ ID3D11Buffer* UParticleDynamicBuffers::GetOrCreateMeshInstanceBuffer(
     return MeshInstanceBuffer;
 }
 
+ID3D11Buffer* UParticleDynamicBuffers::GetOrCreateBeamVertexBuffer(
+    uint32 RequiredVertices,
+    uint32& OutMaxVertices)
+{
+    if (!Device)
+    {
+        OutMaxVertices = 0;
+        return nullptr;
+    }
+
+    // 버퍼가 없거나 용량이 부족하면 재생성
+    if (!BeamVertexBuffer || BeamMaxVertices < RequiredVertices)
+    {
+        if (BeamVertexBuffer)
+        {
+            BeamVertexBuffer->Release();
+            BeamVertexBuffer = nullptr;
+        }
+
+        // 1.5배 여유분 확보
+        BeamMaxVertices = RequiredVertices * 3 / 2;
+        if (BeamMaxVertices < 128)
+            BeamMaxVertices = 128;
+
+        // FParticleBeamVertex 크기: 40 bytes
+        const uint32 VertexSize = 40;
+
+        D3D11_BUFFER_DESC desc = {};
+        desc.ByteWidth = VertexSize * BeamMaxVertices;
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        HRESULT hr = Device->CreateBuffer(&desc, nullptr, &BeamVertexBuffer);
+        if (FAILED(hr))
+        {
+            BeamMaxVertices = 0;
+            OutMaxVertices = 0;
+            return nullptr;
+        }
+    }
+
+    OutMaxVertices = BeamMaxVertices;
+    return BeamVertexBuffer;
+}
+
+ID3D11Buffer* UParticleDynamicBuffers::GetOrCreateBeamIndexBuffer(
+    uint32 RequiredIndices,
+    uint32& OutMaxIndices)
+{
+    if (!Device)
+    {
+        OutMaxIndices = 0;
+        return nullptr;
+    }
+
+    // 버퍼가 없거나 용량이 부족하면 재생성
+    if (!BeamIndexBuffer || BeamMaxIndices < RequiredIndices)
+    {
+        if (BeamIndexBuffer)
+        {
+            BeamIndexBuffer->Release();
+            BeamIndexBuffer = nullptr;
+        }
+
+        // 1.5배 여유분 확보
+        BeamMaxIndices = RequiredIndices * 3 / 2;
+        if (BeamMaxIndices < 256)
+            BeamMaxIndices = 256;
+
+        D3D11_BUFFER_DESC desc = {};
+        desc.ByteWidth = sizeof(uint32) * BeamMaxIndices;
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        HRESULT hr = Device->CreateBuffer(&desc, nullptr, &BeamIndexBuffer);
+        if (FAILED(hr))
+        {
+            BeamMaxIndices = 0;
+            OutMaxIndices = 0;
+            return nullptr;
+        }
+    }
+
+    OutMaxIndices = BeamMaxIndices;
+    return BeamIndexBuffer;
+}
+
 ID3D11Buffer* UParticleDynamicBuffers::GetQuadVertexBuffer()
 {
     if (!bQuadBuffersInitialized)
@@ -208,6 +297,19 @@ void UParticleDynamicBuffers::ReleaseResources()
         MeshInstanceBuffer = nullptr;
     }
     MeshMaxInstances = 0;
+
+    if (BeamVertexBuffer)
+    {
+        BeamVertexBuffer->Release();
+        BeamVertexBuffer = nullptr;
+    }
+    if (BeamIndexBuffer)
+    {
+        BeamIndexBuffer->Release();
+        BeamIndexBuffer = nullptr;
+    }
+    BeamMaxVertices = 0;
+    BeamMaxIndices = 0;
 
     if (QuadVertexBuffer)
     {

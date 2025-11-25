@@ -1321,13 +1321,34 @@ void FSceneRenderer::RenderDebugPass()
 {
 	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTarget);
 
-	// 그리드 라인 수집
+	// 그리드 및 축 라인 수집
 	for (ULineComponent* LineComponent : Proxies.EditorLines)
 	{
 		if (!LineComponent || LineComponent->IsAlwaysOnTop())
 			continue;
-		
-        if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
+
+		// Check line type and corresponding show flag
+		const FString& LineType = LineComponent->GetLineType();
+		bool bShouldRender = false;
+
+		if (LineType == "Grid" && World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
+		{
+			bShouldRender = true;
+		}
+		else if (LineType == "Axis" && World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Axis))
+		{
+			bShouldRender = true;
+		}
+		else if (LineType.empty()) // Legacy support for lines without type
+		{
+			// Fall back to grid flag for backward compatibility
+			if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
+			{
+				bShouldRender = true;
+			}
+		}
+
+		if (bShouldRender)
 		{
 			LineComponent->CollectLineBatches(OwnerRenderer);
 		}

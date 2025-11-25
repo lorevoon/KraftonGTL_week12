@@ -967,6 +967,12 @@
     <ClCompile Include="Source\Runtime\Renderer\ParticleSystemEditorViewportClient.cpp" />
     <ClCompile Include="Source\Slate\Windows\SParticleSystemEditorWindow.cpp" />
     <ClCompile Include="Source\Slate\Windows\SCascadeEmittersPanel.cpp" />
+    <ClCompile Include="Generated\ABeamParticleActor.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\UParticleModuleTypeDataBeam.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
     <ClCompile Include="Generated\UParticleModuleCollision.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
@@ -2033,6 +2039,15 @@
     <ClInclude Include="Source\Runtime\Renderer\ParticleSystemEditorViewportClient.h" />
     <ClInclude Include="Source\Slate\Windows\SParticleSystemEditorWindow.h" />
     <ClInclude Include="Source\Slate\Windows\SCascadeEmittersPanel.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\ObjectMacros.h">
+      <Filter>Source\Runtime\Core\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\ABeamParticleActor.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\UParticleModuleTypeDataBeam.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
     <ClInclude Include="Generated\UParticleModuleCollision.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
@@ -2050,6 +2065,7 @@
     <None Include="BuildTools\CodeGenerator\property_generator.py">
       <Filter>BuildTools\CodeGenerator</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">

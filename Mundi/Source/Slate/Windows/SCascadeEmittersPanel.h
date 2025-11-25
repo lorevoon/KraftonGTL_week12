@@ -27,14 +27,20 @@ public:
 private:
     void EnsureEditingSystem();
     UParticleEmitter* CreateDefaultSpriteEmitter();
+    UParticleEmitter* CreateDefaultMeshEmitter();
+    UParticleEmitter* CreateDefaultBeamEmitter();
 
     // UI Rendering helpers
-    void RenderModuleCard(UParticleModule* module, UParticleLODLevel* parentLOD, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox);
+    void RenderModuleCard(UParticleModule* module, UParticleLODLevel* parentLOD, int32 moduleIndex, const char* moduleName, const ImVec4& backgroundColor, float width, float height, bool showCheckbox);
     ImVec4 GetModuleColor(const FString& moduleName);
 
 private:
     UParticleSystem* EditingSystem = nullptr; // temporary, in-memory
     int32 SelectedEmitterIndex = -1;
     UParticleModule* SelectedModule = nullptr; // Currently selected module for details panel
+
+    // Drag-and-drop state
+    int32 DraggedEmitterIndex = -1;
+    UParticleModule* DraggedModule = nullptr;
 };
 

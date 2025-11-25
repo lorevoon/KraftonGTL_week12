@@ -1,5 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props" Condition="Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props')" />
+  <Import Project="..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props" Condition="Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props')" />
+  <Import Project="..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.props" Condition="Exists('..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug_StandAlone|x64">
       <Configuration>Debug_StandAlone</Configuration>
@@ -287,6 +290,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SpringArmComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\BeamParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Gamma.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Character.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Controller.cpp" />
@@ -597,6 +601,8 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Generated\UParticleModuleTypeDataMesh.generated.cpp" />
     <ClCompile Include="Generated\ASpriteParticleActor.generated.cpp" />
     <ClCompile Include="Generated\AMeshParticleActor.generated.cpp" />
+    <ClCompile Include="Generated\ABeamParticleActor.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleTypeDataBeam.generated.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
@@ -762,6 +768,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Core\Misc\Hash.h" />
     <ClInclude Include="Source\Runtime\Core\Misc\PathUtils.h" />
     <ClInclude Include="Source\Runtime\Core\Object\FireballActor.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\ObjectMacros.h" />
     <ClInclude Include="Source\Runtime\Core\Object\Property.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationAsset.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimBlendMath.h" />
@@ -795,6 +802,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\Components\SphereComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\SpringArmComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\BeamParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Gamma.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_LetterBox.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Vignette.h" />
@@ -821,6 +829,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpotLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBeam.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\GameObject.h" />
@@ -1073,18 +1082,24 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Generated\UParticleModuleTypeDataMesh.generated.h" />
     <ClInclude Include="Generated\ASpriteParticleActor.generated.h" />
     <ClInclude Include="Generated\AMeshParticleActor.generated.h" />
+    <ClInclude Include="Generated\ABeamParticleActor.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleTypeDataBeam.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
     <None Include="BuildTools\CodeGenerator\lua_generator.py" />
     <None Include="BuildTools\CodeGenerator\parser.py" />
     <None Include="BuildTools\CodeGenerator\property_generator.py" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="BuildTools\CodeGenerator\requirements.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.targets" Condition="Exists('..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.targets')" />
+    <Import Project="..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.targets" Condition="Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.targets')" />
+    <Import Project="..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.targets" Condition="Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.targets')" />
   </ImportGroup>
   <UsingTask TaskName="ConvertToBase64" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
     <ParameterGroup>
@@ -1205,5 +1220,16 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
       <Output TaskParameter="Output" PropertyName="EncodedScript" />
     </ConvertToBase64>
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $(EncodedScript)" Condition="'$(EncodedScript)' != ''" />
+  </Target>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Build.Tasks.Git.8.0.0\build\Microsoft.Build.Tasks.Git.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.targets'))" />
   </Target>
 </Project>

@@ -2,6 +2,9 @@
 // Slot 0: Mesh vertices (Position, Normal, UV)
 // Slot 1: Instance data (Transform matrix + Color)
 
+#include "../Common/LightStructures.hlsl"
+#include "../Common/LightingBuffers.hlsl"
+
 // b1: ViewProjBuffer (VS)
 cbuffer ViewProjBuffer : register(b1)
 {
@@ -80,14 +83,15 @@ float4 mainPS(PS_INPUT input) : SV_Target0
         texColor = float4(1, 1, 1, 1);
     }
 
-    // Simple lighting (ambient + directional)
-    float3 lightDir = normalize(float3(0.5f, -1.0f, 0.5f));
+    // Lighting from LightBuffer (b8)
+    float3 lightDir = normalize(DirectionalLight.Direction);
     float ndotl = max(dot(input.WorldNormal, -lightDir), 0.0f);
-    float ambient = 0.3f;
-    float lighting = ambient + (1.0f - ambient) * ndotl;
+    float3 ambient = AmbientLight.Color.rgb;
+    float3 directional = DirectionalLight.Color.rgb * ndotl;
+    float3 lighting = saturate(ambient + directional);
 
     // Multiply texture * instance color * lighting
-    float4 finalColor = texColor * input.Color * float4(lighting, lighting, lighting, 1.0f);
+    float4 finalColor = texColor * input.Color * float4(lighting, 1.0f);
 
     // Alpha test
     if (finalColor.a < 0.01f)
