@@ -534,6 +534,9 @@ void UTargetActorTransformWidget::RenderParticleSystemComponentControls(UParticl
 	ImGui::TextUnformatted("파티클 시스템 제어");
 	ImGui::Spacing();
 
+	// LOD 메소드 드롭다운
+	
+
 	if (ImGui::Button("Reset Particle System"))
 	{
 		ParticleComponent.ResetToDefaultState();
