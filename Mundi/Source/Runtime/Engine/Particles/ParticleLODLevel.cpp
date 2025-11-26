@@ -113,6 +113,12 @@ uint32 UParticleLODLevel::GetRequiredBytes() const
         TotalBytes += RequiredModule->RequiredBytes();
     }
 
+    // TypeData 모듈의 페이로드 크기 추가 (Ribbon/Trail 등)
+    if (TypeDataModule && TypeDataModule->bEnabled)
+    {
+        TotalBytes += TypeDataModule->RequiredBytes();
+    }
+
     for (UParticleModule* Module : Modules)
     {
         if (Module && Module->bEnabled)

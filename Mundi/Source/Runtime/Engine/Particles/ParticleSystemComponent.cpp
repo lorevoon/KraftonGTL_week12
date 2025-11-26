@@ -13,6 +13,7 @@
 #include "PlayerCameraManager.h"
 #include "CameraActor.h"
 #include "CameraComponent.h"
+#include "ParticleModuleTypeDataRibbon.h"
 #include "PlatformTime.h"
 #include "ParticleStatManager.h"
 
@@ -343,6 +344,11 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
         {
             // Beam TypeData
             DynamicData = new FDynamicBeamEmitterData(Instance);
+        }
+        else if (Cast<UParticleModuleTypeDataRibbon>(LODLevel->TypeDataModule))
+        {
+            // Ribbon TypeData
+            DynamicData = new FDynamicRibbonEmitterData(Instance);
         }
         else
         {

@@ -6,6 +6,7 @@
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
 #include "ParticleModule.h"
+#include "ParticleModuleTypeDataBase.h"
 #include "Modules/ParticleModuleRequired.h"
 #include "Modules/ParticleModuleEventGenerator.h"
 #include "ParticleSystemComponent.h"
@@ -315,6 +316,15 @@ void FParticleEmitterInstance::KillParticle(int32 ActiveIndex)
     }
 
     const int32 LastActive = ActiveParticles - 1;
+
+    // TypeDataModule handles type-specific cleanup
+    if (CurrentLODLevel && CurrentLODLevel->TypeDataModule)
+    {
+        const int32 DyingDataIndex = ParticleIndices[ActiveIndex];
+        CurrentLODLevel->TypeDataModule->OnParticleKilled(this, DyingDataIndex);
+    }
+
+    // Swap & Pop
     if (ActiveIndex != LastActive)
     {
         // Swap: LastActive의 DataIndex를 죽을 위치로
@@ -465,6 +475,15 @@ FVector FParticleEmitterInstance::GetComponentWorldLocation() const
         return Component->GetWorldLocation();
     }
     return FVector::Zero();
+}
+
+FTransform FParticleEmitterInstance::GetComponentWorldTransform() const
+{
+    if (Component)
+    {
+        return Component->GetWorldTransform();
+    }
+    return FTransform();
 }
 
 void* FParticleEmitterInstance::GetModuleInstanceData(UParticleModule* Module)

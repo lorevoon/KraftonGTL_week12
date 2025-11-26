@@ -20,4 +20,8 @@ public:
     // TypeData 모듈은 Spawn/Update 호출 안 됨
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override {}
     virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override {}
+
+    // 파티클이 죽을 때 호출 (Trail/Ribbon 등 연결 구조 관리용)
+    // @param DyingDataIndex: 죽는 파티클의 DataIndex (ParticleData 배열의 인덱스)
+    virtual void OnParticleKilled(FParticleEmitterInstance* Owner, int32 DyingDataIndex) {}
 };

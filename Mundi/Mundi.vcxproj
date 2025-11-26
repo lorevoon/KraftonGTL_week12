@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
   <Import Project="..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props" Condition="Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props')" />
   <Import Project="..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props" Condition="Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props')" />
@@ -297,6 +297,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\GameFramework\DancingCharacter.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\GameModeBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\GameStateBase.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\RibbonParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\ParticleActor.cpp" />
@@ -371,8 +372,85 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PointLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpotLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleBeamNoise.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSpawnPerUnit.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataRibbon.cpp">
+      <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <Optimization>Disabled</Optimization>
+      <SupportJustMyCode>true</SupportJustMyCode>
+      <AssemblerOutput>NoListing</AssemblerOutput>
+      <AssemblerListingLocation>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\</AssemblerListingLocation>
+      <UndefineAllPreprocessorDefinitions>false</UndefineAllPreprocessorDefinitions>
+      <BrowseInformation>false</BrowseInformation>
+      <BrowseInformationFile>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\</BrowseInformationFile>
+      <CompileAs>Default</CompileAs>
+      <ConformanceMode>true</ConformanceMode>
+      <DiagnosticsFormat>Column</DiagnosticsFormat>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <ErrorReporting>Prompt</ErrorReporting>
+      <ExpandAttributedSource>false</ExpandAttributedSource>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <EnableASAN>false</EnableASAN>
+      <EnableFuzzer>false</EnableFuzzer>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <ForceConformanceInForLoopScope>true</ForceConformanceInForLoopScope>
+      <GenerateModuleDependencies>false</GenerateModuleDependencies>
+      <GenerateSourceDependencies>false</GenerateSourceDependencies>
+      <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
+      <MinimalRebuild>false</MinimalRebuild>
+      <ModuleDependenciesFile>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\</ModuleDependenciesFile>
+      <ModuleOutputFile>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\</ModuleOutputFile>
+      <OmitDefaultLibName>false</OmitDefaultLibName>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <ObjectFileName>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\</ObjectFileName>
+      <CallingConvention>Cdecl</CallingConvention>
+      <ProgramDataBaseFileName>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\vc143.pdb</ProgramDataBaseFileName>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\Mundi.pch</PrecompiledHeaderOutputFile>
+      <PreprocessToFile>false</PreprocessToFile>
+      <PreprocessKeepComments>false</PreprocessKeepComments>
+      <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+      <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+      <ShowIncludes>false</ShowIncludes>
+      <SourceDependenciesFile>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\</SourceDependenciesFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
+      <SpectreMitigation>false</SpectreMitigation>
+      <StructMemberAlignment>Default</StructMemberAlignment>
+      <TrackerLogDirectory>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\Mundi.tlog\</TrackerLogDirectory>
+      <TranslateIncludes>false</TranslateIncludes>
+      <MinimalRebuildFromTracking>true</MinimalRebuildFromTracking>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <UseFullPaths>true</UseFullPaths>
+      <WarningLevel>Level3</WarningLevel>
+      <XMLDocumentationFileName>C:\KraftonGTL_week12\Intermediate\Mundi\Debug\</XMLDocumentationFileName>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <IntelJCCErratum>false</IntelJCCErratum>
+      <BuildStlModules>false</BuildStlModules>
+      <TreatAngleIncludeAsExternal>false</TreatAngleIncludeAsExternal>
+      <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+      <TreatExternalTemplatesAsInternal>true</TreatExternalTemplatesAsInternal>
+      <DisableAnalyzeExternal>false</DisableAnalyzeExternal>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_EDITOR;_UNICODE;UNICODE;</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\KraftonGTL_week12\Mundi\;C:\KraftonGTL_week12\Mundi\Generated;C:\KraftonGTL_week12\Mundi\Source\Runtime\Core\Object;C:\KraftonGTL_week12\Mundi\Source\Runtime\Core\Math;C:\KraftonGTL_week12\Mundi\Source\Runtime\Core\Containers;C:\KraftonGTL_week12\Mundi\Source\Runtime\Core\Misc;C:\KraftonGTL_week12\Mundi\Source\Runtime\Core\Memory;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\GameFramework;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\Scripting;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\Components;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\Collision;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\Spatial;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\Animation;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\Audio;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\Particles;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\Particles\Modules;C:\KraftonGTL_week12\Mundi\Source\Runtime\Engine\Particles\Modules\TypeData;C:\KraftonGTL_week12\Mundi\Source\Runtime\RHI;C:\KraftonGTL_week12\Mundi\Source\Runtime\Renderer;C:\KraftonGTL_week12\Mundi\Source\Runtime\AssetManagement;C:\KraftonGTL_week12\Mundi\Source\Runtime\InputCore;C:\KraftonGTL_week12\Mundi\Source\Editor;C:\KraftonGTL_week12\Mundi\Source\Slate;ThirdParty\DirectXTex\include;ThirdParty\DirectXTK\include;ThirdParty\Lua\include;ThirdParty\sol;ThirdParty;ThirdParty\FBXSDK\include;C:\vcpkg\installed\x64-windows\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /bigobj /MP </AdditionalOptions>
+      <LinkCompiled>true</LinkCompiled>
+    </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleHelper.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\GameObject.cpp" />
@@ -612,6 +690,9 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Generated\UParticleModuleAcceleration.generated.cpp" />
     <ClCompile Include="Generated\AParticleActor.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleBeamNoise.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleTypeDataRibbon.generated.cpp" />
+    <ClCompile Include="Generated\ARibbonParticleActor.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleSpawnPerUnit.generated.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
@@ -825,6 +906,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\GameFramework\GameEngine.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\GameModeBase.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\GameStateBase.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\RibbonParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\ParticleActor.h" />
@@ -839,9 +921,11 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpotLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleBeamNoise.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSpawnPerUnit.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBeam.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataRibbon.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleStatManager.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\GameObject.h" />
@@ -1104,6 +1188,9 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Generated\UParticleModuleAcceleration.generated.h" />
     <ClInclude Include="Generated\AParticleActor.generated.h" />
     <ClInclude Include="Generated\UParticleModuleBeamNoise.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleTypeDataRibbon.generated.h" />
+    <ClInclude Include="Generated\ARibbonParticleActor.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleSpawnPerUnit.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />

@@ -13,11 +13,27 @@
 #include "ParticleDynamicBuffers.h"
 #include "ParticleSystemComponent.h"
 #include "ResourceManager.h"
+#include "ParticleModuleTypeDataRibbon.h"
 
 // ============================================================
 // 헬퍼 함수들
 // ============================================================
 // (CreateParticleQuadBuffers는 UParticleDynamicBuffers로 이동됨)
+
+// Hermite Cubic Interpolation for FVector
+// P(t) = (2t³ - 3t² + 1)P0 + (t³ - 2t² + t)T0 + (-2t³ + 3t²)P1 + (t³ - t²)T1
+static FVector CubicInterp(const FVector& P0, const FVector& T0, const FVector& P1, const FVector& T1, float Alpha)
+{
+    float Alpha2 = Alpha * Alpha;
+    float Alpha3 = Alpha2 * Alpha;
+
+    float H1 = 2.0f * Alpha3 - 3.0f * Alpha2 + 1.0f;  // (2t³ - 3t² + 1)
+    float H2 = Alpha3 - 2.0f * Alpha2 + Alpha;        // (t³ - 2t² + t)
+    float H3 = -2.0f * Alpha3 + 3.0f * Alpha2;        // (-2t³ + 3t²)
+    float H4 = Alpha3 - Alpha2;                       // (t³ - t²)
+
+    return P0 * H1 + T0 * H2 + P1 * H3 + T1 * H4;
+}
 
 
 // ============================================================
@@ -605,6 +621,333 @@ void FDynamicBeamEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
 
     // 버퍼 바인딩
     UINT Stride = sizeof(FParticleBeamInstance);
+    UINT Offset = 0;
+    Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+    Context->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // Draw
+    Context->DrawIndexed(Indices.Num(), 0, 0);
+
+    // 렌더 상태 복원
+    RHI->RSSetState(ERasterizerMode::Solid);
+    RHI->OMSetBlendState(false);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+}
+
+// ============================================================
+// Ribbon 파티클 렌더링
+// ============================================================
+
+void FDynamicRibbonEmitterData::UpdateRenderData(FSceneView* View)
+{
+    BuildRibbonVertices(View);
+}
+
+void FDynamicRibbonEmitterData::BuildRibbonVertices(FSceneView* View)
+{
+    if (!Source || !View)
+        return;
+
+    Vertices.SetNum(0);
+    Indices.SetNum(0);
+
+    int32 ParticleCount = Source->ActiveParticles;
+    if (ParticleCount < 1)
+        return;
+
+    // Ribbon TypeData 가져오기
+    UParticleModuleTypeDataRibbon* RibbonModule = nullptr;
+    if (Source->CurrentLODLevel && Source->CurrentLODLevel->TypeDataModule)
+    {
+        RibbonModule = Cast<UParticleModuleTypeDataRibbon>(Source->CurrentLODLevel->TypeDataModule);
+    }
+
+    if (!RibbonModule)
+        return;
+
+    // Ribbon 파라미터
+    float Width = RibbonModule->Width;
+    int32 MaxParticleInTrailCount = RibbonModule->MaxParticleInTrailCount;
+    float TilingDistance = RibbonModule->TilingDistance;
+    int32 MaxTessellation = RibbonModule->MaxTessellationBetweenParticles;
+    float TessellationStepSize = RibbonModule->DistanceTessellationStepSize;
+    bool bEnableTangentDiffInterpScale = RibbonModule->bEnableTangentDiffInterpScale;
+    ERibbonRenderAxis RenderAxis = RibbonModule->RenderAxis;
+
+    const bool bUseLocalSpace = Source->UseLocalSpace();
+    const FTransform CompTransform = bUseLocalSpace ? Source->GetComponentWorldTransform() : FTransform();
+    const FVector CameraPos = View->ViewLocation;
+
+    // HEAD 파티클 찾기 (DataIndex로 찾기)
+    int32 HeadDataIndex = -1;
+    for (int32 i = 0; i < ParticleCount; ++i)
+    {
+        // ActiveIndex i에 해당하는 DataIndex 가져오기
+        int32 DataIndex = Source->ParticleIndices[i];
+        uint8* ParticleBytes = Source->ParticleData + DataIndex * Source->ParticleStride;
+        FRibbonTypeDataPayload* Payload = (FRibbonTypeDataPayload*)(ParticleBytes + sizeof(FBaseParticle));
+
+        if (Payload && (Payload->Flags & ETrailParticleFlags::Head))
+        {
+            HeadDataIndex = DataIndex;
+            break;
+        }
+    }
+
+    if (HeadDataIndex == -1)
+        return;  // HEAD 없으면 리본 없음
+
+    // Trail 구성 (HEAD → TAIL 순회, DataIndex로 순회)
+    struct FTrailPoint
+    {
+        FVector Position;
+        FVector Tangent;
+        FLinearColor Color;
+        float Size;
+    };
+
+    TArray<FTrailPoint> TrailPoints;
+    TrailPoints.Reserve(MaxParticleInTrailCount);
+
+    int32 CurrentDataIndex = HeadDataIndex;
+    while (CurrentDataIndex != -1 && TrailPoints.Num() < MaxParticleInTrailCount)
+    {
+        // DataIndex로 직접 접근
+        uint8* ParticleBytes = Source->ParticleData + CurrentDataIndex * Source->ParticleStride;
+        FBaseParticle* Particle = (FBaseParticle*)ParticleBytes;
+        FRibbonTypeDataPayload* Payload = (FRibbonTypeDataPayload*)(ParticleBytes + sizeof(FBaseParticle));
+
+        if (!Payload)
+            break;
+
+        FTrailPoint Point;
+        Point.Position = bUseLocalSpace ? CompTransform.TransformPosition(Particle->Location) : Particle->Location;
+        Point.Tangent = Payload->Tangent;
+        Point.Color = Particle->Color;
+        Point.Size = Particle->Size.X;
+
+        TrailPoints.Add(Point);
+
+        // 다음 파티클로 (Next는 DataIndex!)
+        CurrentDataIndex = Payload->Next;
+    }
+
+    if (TrailPoints.Num() < 2)
+        return;  // 최소 2개 파티클 필요
+
+    // Hermite Curve 보간 + Triangle Strip 생성
+    TArray<FVector> InterpPositions;
+    TArray<FLinearColor> InterpColors;
+    TArray<float> InterpSizes;
+    TArray<FVector> InterpTangents;
+
+    float AccumulatedDistance = 0.0f;
+
+    for (int32 i = 0; i < TrailPoints.Num() - 1; ++i)
+    {
+        const FTrailPoint& Current = TrailPoints[i];
+        const FTrailPoint& Next = TrailPoints[i + 1];
+
+        // 세그먼트 길이
+        FVector SegmentDelta = Next.Position - Current.Position;
+        float SegmentLength = SegmentDelta.Size();
+
+        // Hermite curve용 Tangent (길이 스케일)
+        FVector StartTangent = Current.Tangent * SegmentLength;
+        FVector EndTangent = Next.Tangent * SegmentLength;
+
+        // 테셀레이션 개수 계산
+        int32 InterpCount = 1;
+        if (TessellationStepSize > 0.001f)
+        {
+            InterpCount = FMath::Max(1, (int32)(SegmentLength / TessellationStepSize));
+        }
+
+        // Tangent 각도 차이로 추가 세분화
+        if (bEnableTangentDiffInterpScale)
+        {
+            float TangentDot = FVector::Dot(Current.Tangent, Next.Tangent);
+            TangentDot = FMath::Clamp(TangentDot, -1.0f, 1.0f);
+            float AngleFactor = (1.0f - TangentDot) * 2.0f;  // 0~2 범위
+            InterpCount += (int32)AngleFactor;
+        }
+
+        InterpCount = FMath::Clamp(InterpCount, 1, MaxTessellation);
+
+        // Hermite curve 보간
+        for (int32 Step = 0; Step <= InterpCount; ++Step)
+        {
+            // 마지막 세그먼트의 끝 포인트는 다음 세그먼트 시작에서 처리
+            if (i < TrailPoints.Num() - 2 && Step == InterpCount)
+                continue;
+
+            float Alpha = (float)Step / (float)InterpCount;
+
+            // Hermite Cubic Interpolation
+            FVector InterpPos = CubicInterp(Current.Position, StartTangent, Next.Position, EndTangent, Alpha);
+            FLinearColor InterpColor = FMath::Lerp(Current.Color, Next.Color, Alpha);
+            float InterpSize = FMath::Lerp(Current.Size, Next.Size, Alpha);
+            FVector InterpTangent = FMath::Lerp(Current.Tangent, Next.Tangent, Alpha).GetSafeNormal();
+
+            InterpPositions.Add(InterpPos);
+            InterpColors.Add(InterpColor);
+            InterpSizes.Add(InterpSize);
+            InterpTangents.Add(InterpTangent);
+        }
+    }
+
+    if (InterpPositions.Num() < 2)
+        return;
+
+    // Triangle Strip 버텍스 생성
+    Vertices.Reserve(InterpPositions.Num() * 2);
+
+    for (int32 i = 0; i < InterpPositions.Num(); ++i)
+    {
+        FVector Position = InterpPositions[i];
+        FVector Tangent = InterpTangents[i];
+        FLinearColor Color = InterpColors[i];
+        float Size = InterpSizes[i];
+
+        // Up 벡터 계산 (RenderAxis에 따라)
+        FVector Up;
+        switch (RenderAxis)
+        {
+        case ERibbonRenderAxis::CameraUp:
+        {
+            FVector ToCamera = (CameraPos - Position).GetSafeNormal();
+            Up = FVector::Cross(Tangent, ToCamera).GetSafeNormal();
+            Up = FVector::Cross(Up, Tangent).GetSafeNormal();  // Re-orthogonalize
+            break;
+        }
+        case ERibbonRenderAxis::SourceUp:
+            // Component의 Z축 (Up 벡터) - Rotation으로 (0,0,1) 회전
+            Up = CompTransform.Rotation.RotateVector(FVector(0, 0, 1));
+            break;
+        case ERibbonRenderAxis::WorldUp:
+        default:
+            Up = FVector(0, 0, 1);
+            break;
+        }
+
+        // Right 벡터 (리본 너비 방향)
+        FVector Right = FVector::Cross(Tangent, Up).GetSafeNormal();
+        float HalfWidth = Width * 0.5f * Size;
+
+        // UV 계산
+        float U = 0.0f;
+        if (TilingDistance > 0.001f && i > 0)
+        {
+            float Distance = (Position - InterpPositions[i - 1]).Size();
+            AccumulatedDistance += Distance;
+            U = AccumulatedDistance / TilingDistance;
+        }
+        else
+        {
+            U = (float)i / (float)(InterpPositions.Num() - 1);
+        }
+
+        // 양쪽 버텍스 생성
+        FParticleRibbonInstance LeftVertex, RightVertex;
+
+        LeftVertex.Position = Position - Right * HalfWidth;
+        LeftVertex.UV = FVector2D(U, 0.0f);
+        LeftVertex.Padding0 = 0.0f;
+        LeftVertex.Color = Color;
+
+        RightVertex.Position = Position + Right * HalfWidth;
+        RightVertex.UV = FVector2D(U, 1.0f);
+        RightVertex.Padding0 = 0.0f;
+        RightVertex.Color = Color;
+
+        Vertices.Add(LeftVertex);
+        Vertices.Add(RightVertex);
+    }
+
+    // Triangle Strip 인덱스 생성
+    int32 SegmentCount = InterpPositions.Num() - 1;
+    Indices.Reserve(SegmentCount * 6);
+
+    for (int32 i = 0; i < SegmentCount; ++i)
+    {
+        int32 BaseVertex = i * 2;
+
+        // 삼각형 1 (CCW)
+        Indices.Add(BaseVertex);
+        Indices.Add(BaseVertex + 2);
+        Indices.Add(BaseVertex + 1);
+
+        // 삼각형 2 (CCW)
+        Indices.Add(BaseVertex + 1);
+        Indices.Add(BaseVertex + 2);
+        Indices.Add(BaseVertex + 3);
+    }
+}
+
+void FDynamicRibbonEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool)
+{
+    if (Vertices.Num() == 0 || Indices.Num() == 0)
+        return;
+
+    if (!RHI || !BufferPool)
+        return;
+
+    // 동적 버텍스/인덱스 버퍼 가져오기 (Beam 버퍼 재사용 - 구조 동일)
+    uint32 MaxVertices = 0, MaxIndices = 0;
+    ID3D11Buffer* VertexBuffer = BufferPool->GetOrCreateBeamVertexBuffer(Vertices.Num(), MaxVertices);
+    ID3D11Buffer* IndexBuffer = BufferPool->GetOrCreateBeamIndexBuffer(Indices.Num(), MaxIndices);
+
+    if (!VertexBuffer || !IndexBuffer)
+    {
+        UE_LOG("[error] Failed to create ribbon buffers!");
+        return;
+    }
+
+    // 버텍스/인덱스 데이터 업로드
+    ID3D11DeviceContext* Context = RHI->GetDeviceContext();
+
+    D3D11_MAPPED_SUBRESOURCE MappedVB, MappedIB;
+    if (SUCCEEDED(Context->Map(VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedVB)))
+    {
+        memcpy(MappedVB.pData, Vertices.data(), Vertices.Num() * sizeof(FParticleRibbonInstance));
+        Context->Unmap(VertexBuffer, 0);
+    }
+
+    if (SUCCEEDED(Context->Map(IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedIB)))
+    {
+        memcpy(MappedIB.pData, Indices.data(), Indices.Num() * sizeof(uint32));
+        Context->Unmap(IndexBuffer, 0);
+    }
+
+    // 렌더 상태 설정 (Beam과 동일 - 양면 렌더링 필요)
+    RHI->RSSetState(ERasterizerMode::Solid_NoCull);
+    RHI->OMSetBlendState(true);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
+
+    // 셰이더 바인딩 - 빔 셰이더 재사용
+    static UShader* BeamShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleBeam.hlsl");
+    if (BeamShader)
+    {
+        RHI->PrepareShader(BeamShader);
+    }
+
+    // 텍스처 바인딩 (Material이 있으면 사용)
+    ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+    if (Material)
+    {
+        if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
+        {
+            DiffuseSRV = DiffuseTexture->GetShaderResourceView();
+        }
+    }
+    Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+
+    ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
+    Context->PSSetSamplers(0, 1, &DefaultSampler);
+
+    // 버퍼 바인딩
+    UINT Stride = sizeof(FParticleRibbonInstance);
     UINT Offset = 0;
     Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
     Context->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);

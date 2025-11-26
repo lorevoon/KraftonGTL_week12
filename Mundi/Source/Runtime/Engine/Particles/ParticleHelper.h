@@ -212,3 +212,31 @@ struct FDynamicBeamEmitterData : public FDynamicEmitterDataBase
 private:
     void BuildBeamVertices(FSceneView* View);
 };
+
+// Ribbon 파티클 버텍스 데이터 (Beam과 동일한 구조)
+struct FParticleRibbonInstance
+{
+    FVector Position;       // 12 bytes (POSITION)
+    FVector2D UV;           // 8 bytes (TEXCOORD0)
+    float Padding0;         // 4 bytes (정렬)
+    FLinearColor Color;     // 16 bytes (COLOR0)
+    // Total: 40 bytes
+};
+
+// Ribbon 파티클 렌더링 데이터
+struct FDynamicRibbonEmitterData : public FDynamicEmitterDataBase
+{
+    TArray<FParticleRibbonInstance> Vertices;   // 리본 버텍스들
+    TArray<uint32> Indices;                     // 인덱스 버퍼
+
+    FDynamicRibbonEmitterData(FParticleEmitterInstance* InSource)
+        : FDynamicEmitterDataBase(InSource)
+    {
+    }
+
+    virtual void UpdateRenderData(FSceneView* View) override;
+    virtual void Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool) override;
+
+private:
+    void BuildRibbonVertices(FSceneView* View);
+};
