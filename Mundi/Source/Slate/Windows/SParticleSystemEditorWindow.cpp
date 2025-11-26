@@ -830,6 +830,49 @@ void SParticleSystemEditorWindow::LoadToolbarIcons()
         IconPanelCurves = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_CurveEditor.png");
 }
 
+// Helper: Render a minimal object header (Module/Emitter/System name)
+static void RenderDetailsObjectHeader(const char* label, ImU32 accentColor)
+{
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    float availW = ImGui::GetContentRegionAvail().x;
+
+    // Simple underline style
+    ImVec2 textSize = ImGui::CalcTextSize(label);
+
+    // Text
+    dl->AddText(pos, IM_COL32(220, 220, 220, 255), label);
+
+    // Thin accent underline
+    float lineY = pos.y + textSize.y + 3.0f;
+    dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + textSize.x + 8.0f, lineY), accentColor, 2.0f);
+
+    // Faded line extending to the right
+    dl->AddLine(ImVec2(pos.x + textSize.x + 8.0f, lineY), ImVec2(pos.x + availW, lineY), IM_COL32(60, 60, 60, 255), 1.0f);
+
+    ImGui::Dummy(ImVec2(availW, textSize.y + 10.0f));
+}
+
+// Helper: Render a subtle category header (just text with a dot)
+static void RenderDetailsCategoryHeader(const char* categoryName)
+{
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+
+    // Small dot before category name
+    float dotRadius = 2.5f;
+    ImVec2 dotCenter = ImVec2(pos.x + dotRadius, pos.y + ImGui::GetTextLineHeight() * 0.5f);
+    dl->AddCircleFilled(dotCenter, dotRadius, IM_COL32(120, 120, 140, 255));
+
+    // Category text (slightly dimmed)
+    ImGui::SetCursorScreenPos(ImVec2(pos.x + dotRadius * 2 + 6.0f, pos.y));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.65f, 1.0f));
+    ImGui::TextUnformatted(categoryName);
+    ImGui::PopStyleColor();
+
+    ImGui::Dummy(ImVec2(0, 2.0f));
+}
+
 void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
 {
     // Chip-style header for Details
@@ -841,19 +884,31 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         ImDrawList* dl = ImGui::GetWindowDrawList();
         ImVec2 ts = ImGui::CalcTextSize("Details");
         ImVec2 chipMin = pos;
-        float chipW = ts.x + padX * 2.0f; const float iconSize = 20.0f; bool hasIcon = (IconPanelDetails && IconPanelDetails->GetShaderResourceView()); if (hasIcon) chipW += iconSize + 6.0f; ImVec2 chipMax = ImVec2(pos.x + chipW, pos.y + ts.y + padY * 2.0f);
+        float chipW = ts.x + padX * 2.0f;
+        const float iconSize = 20.0f;
+        bool hasIcon = (IconPanelDetails && IconPanelDetails->GetShaderResourceView());
+        if (hasIcon) chipW += iconSize + 6.0f;
+        ImVec2 chipMax = ImVec2(pos.x + chipW, pos.y + ts.y + padY * 2.0f);
         ImU32 chipBg = ImGui::GetColorU32(ImVec4(0.18f, 0.19f, 0.23f, 1.0f));
         ImU32 chipBorder = ImGui::GetColorU32(ImVec4(0.36f, 0.40f, 0.48f, 1.0f));
         ImU32 lineCol = ImGui::GetColorU32(ImVec4(0.18f, 0.18f, 0.20f, 1.0f));
         dl->AddRectFilled(chipMin, chipMax, chipBg, 6.0f);
         dl->AddRect(chipMin, chipMax, chipBorder, 6.0f, 0, 1.0f);
-        ImVec2 cur = ImVec2(pos.x + padX, pos.y + padY); ImGui::SetCursorScreenPos(cur); if (hasIcon) { ImGui::Image((void*)IconPanelDetails->GetShaderResourceView(), ImVec2(iconSize, iconSize)); ImGui::SameLine(); cur.x += iconSize + 6.0f; } ImGui::SetCursorScreenPos(cur);
+        ImVec2 cur = ImVec2(pos.x + padX, pos.y + padY);
+        ImGui::SetCursorScreenPos(cur);
+        if (hasIcon)
+        {
+            ImGui::Image((void*)IconPanelDetails->GetShaderResourceView(), ImVec2(iconSize, iconSize));
+            ImGui::SameLine();
+            cur.x += iconSize + 6.0f;
+        }
+        ImGui::SetCursorScreenPos(cur);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
         ImGui::TextUnformatted("Details");
         ImGui::PopStyleColor();
         float lineY = chipMax.y + 5.0f;
         dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + fullW, lineY), lineCol, 1.0f);
-        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 6.0f));
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 8.0f));
     }
 
     if (!EmittersPanel)
@@ -882,11 +937,10 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
                     return;
                 }
 
-                // Display emitter name header
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.7f, 0.5f, 1.0f)); // Orange for emitter
-                ImGui::Text("Emitter: %s", SelectedEmitter->EmitterName.c_str());
-                ImGui::PopStyleColor();
-                ImGui::Separator();
+                // Display emitter name header with orange accent
+                char headerLabel[256];
+                sprintf_s(headerLabel, "Emitter: %s", SelectedEmitter->EmitterName.c_str());
+                RenderDetailsObjectHeader(headerLabel, IM_COL32(230, 160, 100, 255));
 
                 // Get all properties
                 const TArray<FProperty>& Properties = EmitterClass->GetAllProperties();
@@ -907,25 +961,22 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
                 }
 
                 // Render properties by category
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 5));
                 for (auto& Pair : CategorizedProperties)
                 {
                     const FString& CategoryName = Pair.first;
                     const TArray<const FProperty*>& CategoryProps = Pair.second;
 
-                    // Category header
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
-                    ImGui::TextUnformatted(CategoryName.c_str());
-                    ImGui::PopStyleColor();
-                    ImGui::Separator();
-
-                    // Render each property
+                    RenderDetailsCategoryHeader(CategoryName.c_str());
+                    ImGui::Indent(6.0f);
                     for (const FProperty* Prop : CategoryProps)
                     {
                         RenderEmitterProperty(SelectedEmitter, Prop);
                     }
-
-                    ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+                    ImGui::Unindent(6.0f);
+                    ImGui::Dummy(ImVec2(0, 6));
                 }
+                ImGui::PopStyleVar();
                 return;
             }
         }
@@ -933,7 +984,10 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         // No emitter selected either, show UParticleSystem properties
         if (!EditingSystem)
         {
-            ImGui::TextUnformatted("Select a module to view properties");
+            ImGui::Dummy(ImVec2(0, 20));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+            ImGui::TextWrapped("Select a module or emitter to view its properties.");
+            ImGui::PopStyleColor();
             return;
         }
 
@@ -945,11 +999,8 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
             return;
         }
 
-        // Display system name header
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.9f, 0.9f, 1.0f)); // Cyan for system
-        ImGui::TextUnformatted("Particle System");
-        ImGui::PopStyleColor();
-        ImGui::Separator();
+        // Display system name header with cyan accent
+        RenderDetailsObjectHeader("Particle System", IM_COL32(100, 200, 220, 255));
 
         // Get all properties
         const TArray<FProperty>& Properties = SystemClass->GetAllProperties();
@@ -970,25 +1021,22 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         }
 
         // Render properties by category
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 5));
         for (auto& Pair : CategorizedProperties)
         {
             const FString& CategoryName = Pair.first;
             const TArray<const FProperty*>& CategoryProps = Pair.second;
 
-            // Category header
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
-            ImGui::TextUnformatted(CategoryName.c_str());
-            ImGui::PopStyleColor();
-            ImGui::Separator();
-
-            // Render each property
+            RenderDetailsCategoryHeader(CategoryName.c_str());
+            ImGui::Indent(6.0f);
             for (const FProperty* Prop : CategoryProps)
             {
                 RenderSystemProperty(EditingSystem, Prop);
             }
-
-            ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+            ImGui::Unindent(6.0f);
+            ImGui::Dummy(ImVec2(0, 6));
         }
+        ImGui::PopStyleVar();
         return;
     }
 
@@ -1000,11 +1048,8 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         return;
     }
 
-    // Display module name header
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.5f, 1.0f));
-    ImGui::TextUnformatted(SelectedModule->ModuleName.c_str());
-    ImGui::PopStyleColor();
-    ImGui::Separator();
+    // Display module name header with yellow accent
+    RenderDetailsObjectHeader(SelectedModule->ModuleName.c_str(), IM_COL32(220, 200, 80, 255));
 
     // Get all properties including inherited ones
     const TArray<FProperty>& Properties = ModuleClass->GetAllProperties();
@@ -1025,25 +1070,22 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
     }
 
     // Render properties by category
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 5));
     for (auto& Pair : CategorizedProperties)
     {
         const FString& CategoryName = Pair.first;
         const TArray<const FProperty*>& CategoryProps = Pair.second;
 
-        // Category header
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
-        ImGui::TextUnformatted(CategoryName.c_str());
-        ImGui::PopStyleColor();
-        ImGui::Separator();
-
-        // Render each property
+        RenderDetailsCategoryHeader(CategoryName.c_str());
+        ImGui::Indent(6.0f);
         for (const FProperty* Prop : CategoryProps)
         {
             RenderProperty(SelectedModule, Prop);
         }
-
-        ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+        ImGui::Unindent(6.0f);
+        ImGui::Dummy(ImVec2(0, 6));
     }
+    ImGui::PopStyleVar();
 }
 
 void SParticleSystemEditorWindow::RenderProperty(UParticleModule* Module, const FProperty* Prop)

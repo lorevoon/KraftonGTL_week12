@@ -60,14 +60,27 @@ void SCascadeCurveEditor::Render(float width, float height)
 
 void SCascadeCurveEditor::RenderToolbar(float width)
 {
-    // Inline toolbar (no child), dynamically sized by its contents
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    ImVec2 toolbarStart = ImGui::GetCursorScreenPos();
+
+    // Toolbar styling
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 3));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(3, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+
+    // Subtle button colors
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.25f, 0.28f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.35f, 0.38f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.2f, 0.22f, 1.0f));
+
+    // Use smaller font for toolbar
+    float originalFontScale = ImGui::GetFont()->Scale;
+    ImGui::GetFont()->Scale *= 0.9f;
+    ImGui::PushFont(ImGui::GetFont());
 
     // Fit buttons
     if (ImGui::Button("Fit All"))
     {
-        // Reset view to fit all curves
         ViewMinTime = 0.0f;
         ViewMaxTime = 1.0f;
         ViewMinValue = 0.0f;
@@ -76,7 +89,7 @@ void SCascadeCurveEditor::RenderToolbar(float width)
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fit view to all curves");
 
     ImGui::SameLine();
-    if (ImGui::Button("Fit Horz"))
+    if (ImGui::Button("H"))
     {
         ViewMinTime = 0.0f;
         ViewMaxTime = 1.0f;
@@ -84,7 +97,7 @@ void SCascadeCurveEditor::RenderToolbar(float width)
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fit horizontal (time) axis");
 
     ImGui::SameLine();
-    if (ImGui::Button("Fit Vert"))
+    if (ImGui::Button("V"))
     {
         ViewMinValue = 0.0f;
         ViewMaxValue = 1.0f;
@@ -92,11 +105,19 @@ void SCascadeCurveEditor::RenderToolbar(float width)
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fit vertical (value) axis");
 
     ImGui::SameLine();
-    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::Dummy(ImVec2(6, 0));
     ImGui::SameLine();
 
-    // Tangent mode buttons - apply to selected key when clicked
-    ImGui::TextUnformatted("Tangent:");
+    // Vertical separator line
+    ImVec2 sepPos = ImGui::GetCursorScreenPos();
+    dl->AddLine(ImVec2(sepPos.x, sepPos.y + 2), ImVec2(sepPos.x, sepPos.y + 16), IM_COL32(80, 80, 80, 255), 1.0f);
+    ImGui::Dummy(ImVec2(8, 0));
+    ImGui::SameLine();
+
+    // Tangent label
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+    ImGui::TextUnformatted("Tangent");
+    ImGui::PopStyleColor();
     ImGui::SameLine();
 
     // Check if we have a valid key selected
@@ -105,137 +126,167 @@ void SCascadeCurveEditor::RenderToolbar(float width)
                            SelectedTrackIndex >= 0 && SelectedTrackIndex < CurveEntries[SelectedEntryIndex].Tracks.Num() &&
                            SelectedKeyIndex < CurveEntries[SelectedEntryIndex].Tracks[SelectedTrackIndex].Keys.Num());
 
-    // Get current key's interp mode if selected
     int32 selectedKeyInterpMode = -1;
     if (hasSelectedKey)
     {
         selectedKeyInterpMode = CurveEntries[SelectedEntryIndex].Tracks[SelectedTrackIndex].Keys[SelectedKeyIndex].InterpMode;
     }
 
-    bool isAuto = (selectedKeyInterpMode == 0);
-    bool isUser = (selectedKeyInterpMode == 1);
-    bool isBreak = (selectedKeyInterpMode == 2);
-    bool isLinear = (selectedKeyInterpMode == 3);
-    bool isConst = (selectedKeyInterpMode == 4);
-
-    if (isAuto) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
-    if (ImGui::Button("Auto"))
-    {
-        if (hasSelectedKey)
+    // Tangent mode button helper
+    auto TangentButton = [&](const char* label, int mode, const char* tooltip) {
+        bool isActive = (selectedKeyInterpMode == mode);
+        if (isActive)
         {
-            ApplyTangentModeToSelectedKey(0);
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.45f, 0.3f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.5f, 0.35f, 1.0f));
         }
-        CurrentTangentMode = ETangentMode::Auto;
-    }
-    if (isAuto) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Auto tangent - smooth curve through keys");
-
-    ImGui::SameLine();
-
-    if (isUser) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
-    if (ImGui::Button("User"))
-    {
-        if (hasSelectedKey)
+        if (ImGui::Button(label))
         {
-            ApplyTangentModeToSelectedKey(1);
+            if (hasSelectedKey)
+            {
+                ApplyTangentModeToSelectedKey(mode);
+            }
+            CurrentTangentMode = static_cast<ETangentMode>(mode);
         }
-        CurrentTangentMode = ETangentMode::User;
-    }
-    if (isUser) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("User tangent - manually adjust tangent handles");
+        if (isActive) ImGui::PopStyleColor(2);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
+        ImGui::SameLine();
+    };
 
+    TangentButton("A", 0, "Auto - smooth curve");
+    TangentButton("U", 1, "User - manual tangents");
+    TangentButton("B", 2, "Break - split tangents");
+    TangentButton("L", 3, "Linear - straight line");
+    TangentButton("C", 4, "Constant - step function");
+
+    ImGui::Dummy(ImVec2(2, 0));
     ImGui::SameLine();
 
-    if (isBreak) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
-    if (ImGui::Button("Break"))
+    // Vertical separator
+    sepPos = ImGui::GetCursorScreenPos();
+    dl->AddLine(ImVec2(sepPos.x, sepPos.y + 2), ImVec2(sepPos.x, sepPos.y + 16), IM_COL32(80, 80, 80, 255), 1.0f);
+    ImGui::Dummy(ImVec2(8, 0));
+    ImGui::SameLine();
+
+    // Grid/Snap toggles as small buttons
+    // Store state before button to ensure push/pop match
+    bool wasShowGrid = bShowGrid;
+    if (wasShowGrid)
     {
-        if (hasSelectedKey)
-        {
-            ApplyTangentModeToSelectedKey(2);
-        }
-        CurrentTangentMode = ETangentMode::Break;
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.4f, 0.5f, 1.0f));
     }
-    if (isBreak) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Break tangent - separate in/out tangent control");
-
-    ImGui::SameLine();
-
-    if (isLinear) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
-    if (ImGui::Button("Linear"))
+    if (ImGui::Button("Grid"))
     {
-        if (hasSelectedKey)
-        {
-            ApplyTangentModeToSelectedKey(3);
-        }
-        CurrentTangentMode = ETangentMode::Linear;
+        bShowGrid = !bShowGrid;
     }
-    if (isLinear) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Linear - straight line to next key");
+    if (wasShowGrid) ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle grid display");
 
     ImGui::SameLine();
 
-    if (isConst) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
-    if (ImGui::Button("Const"))
+    bool wasSnapToGrid = bSnapToGrid;
+    if (wasSnapToGrid)
     {
-        if (hasSelectedKey)
-        {
-            ApplyTangentModeToSelectedKey(4);
-        }
-        CurrentTangentMode = ETangentMode::Constant;
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.4f, 0.5f, 1.0f));
     }
-    if (isConst) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Constant - hold value until next key (step)");
+    if (ImGui::Button("Snap"))
+    {
+        bSnapToGrid = !bSnapToGrid;
+    }
+    if (wasSnapToGrid) ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Snap to grid when dragging keys");
 
-    ImGui::SameLine();
-    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-    ImGui::SameLine();
+    // Restore font
+    ImGui::GetFont()->Scale = originalFontScale;
+    ImGui::PopFont();
 
-    // Grid toggle
-    ImGui::Checkbox("Grid", &bShowGrid);
-    ImGui::SameLine();
-    ImGui::Checkbox("Snap", &bSnapToGrid);
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(3);
 
-    ImGui::PopStyleVar(2);
-    ImGui::Separator();
+    // Subtle bottom border
+    ImVec2 toolbarEnd = ImGui::GetCursorScreenPos();
+    dl->AddLine(ImVec2(toolbarStart.x, toolbarEnd.y + 2), ImVec2(toolbarStart.x + width, toolbarEnd.y + 2), IM_COL32(50, 50, 55, 255), 1.0f);
+    ImGui::Dummy(ImVec2(0, 4));
 }
 
 void SCascadeCurveEditor::RenderCurveList(float width, float height)
 {
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+
+    // Header
+    ImVec2 headerPos = ImGui::GetCursorScreenPos();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.75f, 1.0f));
     ImGui::TextUnformatted("Curves");
-    ImGui::Separator();
+    ImGui::PopStyleColor();
+
+    // Subtle underline
+    float lineY = ImGui::GetCursorScreenPos().y;
+    dl->AddLine(ImVec2(headerPos.x, lineY), ImVec2(headerPos.x + width - 16, lineY), IM_COL32(60, 60, 65, 255), 1.0f);
+    ImGui::Dummy(ImVec2(0, 4));
 
     // Scrollable list of curve entries
     ImGui::BeginChild("CurveList_Scroll", ImVec2(0, 0), false, ImGuiWindowFlags_None);
 
     if (CurveEntries.Num() == 0)
     {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-        ImGui::TextWrapped("No curves to display.\n\nSelect a module with curve properties to see its curves here.");
+        ImGui::Dummy(ImVec2(0, 10));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.45f, 0.45f, 0.5f, 1.0f));
+        ImGui::TextWrapped("No curves available.\n\nSelect a module with curve properties.");
         ImGui::PopStyleColor();
     }
     else
     {
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
+
         for (int32 entryIdx = 0; entryIdx < CurveEntries.Num(); ++entryIdx)
         {
             FCurveEntry& entry = CurveEntries[entryIdx];
             ImGui::PushID(entryIdx);
 
-            // Entry header (module/property name)
+            // Entry header styling
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.2f, 0.22f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.25f, 0.25f, 0.28f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.22f, 0.22f, 0.25f, 1.0f));
+
             bool headerOpen = ImGui::TreeNodeEx(entry.PropertyName.c_str(),
                 ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_AllowItemOverlap);
 
-            // Visibility toggle on the same line
-            ImGui::SameLine(width - 40);
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-            if (ImGui::Checkbox("##vis", &entry.bVisible))
+            ImGui::PopStyleColor(3);
+
+            // Custom visibility toggle (eye icon style)
+            ImGui::SameLine(width - 32);
+            ImVec2 togglePos = ImGui::GetCursorScreenPos();
+            float toggleSize = 12.0f;
+            ImVec2 toggleCenter = ImVec2(togglePos.x + toggleSize * 0.5f, togglePos.y + ImGui::GetTextLineHeight() * 0.5f);
+
+            // Draw eye icon
+            ImU32 eyeColor = entry.bVisible ? IM_COL32(180, 180, 180, 255) : IM_COL32(80, 80, 80, 255);
+            dl->AddCircle(toggleCenter, 5.0f, eyeColor, 0, 1.5f);
+            if (entry.bVisible)
             {
-                // Toggle visibility for all tracks in this entry
+                dl->AddCircleFilled(toggleCenter, 2.0f, eyeColor);
+            }
+            else
+            {
+                // Draw slash through eye when hidden
+                dl->AddLine(ImVec2(toggleCenter.x - 5, toggleCenter.y + 5), ImVec2(toggleCenter.x + 5, toggleCenter.y - 5), eyeColor, 1.5f);
+            }
+
+            // Invisible button for toggle
+            ImGui::SetCursorScreenPos(ImVec2(togglePos.x - 2, togglePos.y - 2));
+            if (ImGui::InvisibleButton("##entryvis", ImVec2(toggleSize + 4, ImGui::GetTextLineHeight())))
+            {
+                entry.bVisible = !entry.bVisible;
                 for (auto& track : entry.Tracks)
                 {
                     track.bVisible = entry.bVisible;
                 }
             }
-            ImGui::PopStyleVar();
+            if (ImGui::IsItemHovered())
+            {
+                dl->AddCircle(toggleCenter, 7.0f, IM_COL32(255, 255, 255, 60), 0, 1.0f);
+                ImGui::SetTooltip(entry.bVisible ? "Hide curve" : "Show curve");
+            }
 
             if (headerOpen)
             {
@@ -245,34 +296,72 @@ void SCascadeCurveEditor::RenderCurveList(float width, float height)
                     FCurveTrack& track = entry.Tracks[trackIdx];
                     ImGui::PushID(trackIdx);
 
-                    // Color indicator
-                    ImVec4 trackColor = ImGui::ColorConvertU32ToFloat4(track.Color);
-                    ImGui::PushStyleColor(ImGuiCol_Text, trackColor);
-
                     bool isSelected = (SelectedEntryIndex == entryIdx && SelectedTrackIndex == trackIdx);
+
+                    // Track row with color indicator
+                    ImVec2 rowStart = ImGui::GetCursorScreenPos();
+
+                    // Selection background
                     if (isSelected)
                     {
-                        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.3f, 0.3f, 0.5f, 1.0f));
+                        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.3f, 0.4f, 1.0f));
+                        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.35f, 0.45f, 1.0f));
                     }
 
-                    if (ImGui::Selectable(track.Name.c_str(), isSelected))
+                    // Color dot before name
+                    ImU32 trackColorU = track.Color;
+
+                    // Draw color dot with proper spacing
+                    ImGui::Dummy(ImVec2(22, 0));  // Space for dot + padding
+                    ImVec2 dotPos = ImGui::GetCursorScreenPos();
+                    dl->AddCircleFilled(ImVec2(rowStart.x + 14, dotPos.y + ImGui::GetTextLineHeight() * 0.5f - 1), 4.0f, trackColorU);
+
+                    ImGui::SameLine(0, 0);
+
+                    // Dim text if track is hidden
+                    if (!track.bVisible)
+                    {
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
+                    }
+
+                    if (ImGui::Selectable(track.Name.c_str(), isSelected, 0, ImVec2(width - 60, 0)))
                     {
                         SelectedEntryIndex = entryIdx;
                         SelectedTrackIndex = trackIdx;
                         SelectedKeyIndex = -1;
                     }
 
-                    if (isSelected)
+                    if (!track.bVisible)
                     {
                         ImGui::PopStyleColor();
                     }
-                    ImGui::PopStyleColor();
 
-                    // Track visibility toggle
-                    ImGui::SameLine(width - 40);
-                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-                    ImGui::Checkbox("##trackvis", &track.bVisible);
-                    ImGui::PopStyleVar();
+                    if (isSelected)
+                    {
+                        ImGui::PopStyleColor(2);
+                    }
+
+                    // Track visibility toggle (small eye)
+                    ImGui::SameLine(width - 32);
+                    ImVec2 trackTogglePos = ImGui::GetCursorScreenPos();
+                    ImVec2 trackToggleCenter = ImVec2(trackTogglePos.x + 6, trackTogglePos.y + ImGui::GetTextLineHeight() * 0.5f - 1);
+
+                    ImU32 trackEyeColor = track.bVisible ? IM_COL32(150, 150, 150, 255) : IM_COL32(70, 70, 70, 255);
+                    dl->AddCircle(trackToggleCenter, 4.0f, trackEyeColor, 0, 1.0f);
+                    if (track.bVisible)
+                    {
+                        dl->AddCircleFilled(trackToggleCenter, 1.5f, trackEyeColor);
+                    }
+
+                    ImGui::SetCursorScreenPos(ImVec2(trackTogglePos.x - 2, trackTogglePos.y - 2));
+                    if (ImGui::InvisibleButton("##trackvis", ImVec2(14, ImGui::GetTextLineHeight())))
+                    {
+                        track.bVisible = !track.bVisible;
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        dl->AddCircle(trackToggleCenter, 6.0f, IM_COL32(255, 255, 255, 50), 0, 1.0f);
+                    }
 
                     ImGui::PopID();
                 }
@@ -281,6 +370,8 @@ void SCascadeCurveEditor::RenderCurveList(float width, float height)
 
             ImGui::PopID();
         }
+
+        ImGui::PopStyleVar(); // ItemSpacing
     }
 
     ImGui::EndChild();
