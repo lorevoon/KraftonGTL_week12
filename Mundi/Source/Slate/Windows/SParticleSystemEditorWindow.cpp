@@ -173,6 +173,49 @@ void SParticleSystemEditorWindow::RenderToolbar()
 
     // File operations - use deferred command pattern
     ImGui::SameLine();
+	RenderFileOperationButtons();
+
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+    // Restart simulation
+	RenderRestartSimulationButton();
+
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+    // Viewport display options
+    RenderViewportControlButtons();
+
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+    // LOD controls
+	RenderLODControlButtons();
+
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+    // LOD editing
+	RenderLODEditingButtons();
+
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(3);
+    ImGui::EndChild();
+}
+
+void SParticleSystemEditorWindow::RenderFileOperationButtons()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
+
     if (IconNew && IconNew->GetShaderResourceView())
     {
         if (ImGui::ImageButton("##Cascade_NewBtn", (void*)IconNew->GetShaderResourceView(), IconSizeVec))
@@ -199,13 +242,12 @@ void SParticleSystemEditorWindow::RenderToolbar()
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Save Particle System");
     }
+}
 
-    // Separator
-    ImGui::SameLine();
-    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-    ImGui::SameLine();
+void SParticleSystemEditorWindow::RenderRestartSimulationButton()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
 
-    // Restart simulation
     if (IconRestart && IconRestart->GetShaderResourceView())
     {
         if (ImGui::ImageButton("##Cascade_RestartBtn", (void*)IconRestart->GetShaderResourceView(), IconSizeVec))
@@ -218,13 +260,12 @@ void SParticleSystemEditorWindow::RenderToolbar()
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restart Simulation");
     }
+}
 
-    // Separator
-    ImGui::SameLine();
-    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-    ImGui::SameLine();
-
-    // Viewport display options
+void SParticleSystemEditorWindow::RenderViewportControlButtons()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
+    
     if (IconBackgroundColor && IconBackgroundColor->GetShaderResourceView())
     {
         if (ImGui::ImageButton("##Cascade_BgColorBtn", (void*)IconBackgroundColor->GetShaderResourceView(), IconSizeVec))
@@ -263,7 +304,7 @@ void SParticleSystemEditorWindow::RenderToolbar()
     ImGui::SameLine();
     if (IconBounds && IconBounds->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_BoundsBtn", (void*)IconBounds->GetShaderResourceView(), IconSizeVec)) { }
+        if (ImGui::ImageButton("##Cascade_BoundsBtn", (void*)IconBounds->GetShaderResourceView(), IconSizeVec)) {}
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Bounds");
     }
     ImGui::SameLine();
@@ -285,64 +326,58 @@ void SParticleSystemEditorWindow::RenderToolbar()
     //     if (ImGui::ImageButton("##Cascade_ParticleBtn", (void*)IconParticle->GetShaderResourceView(), IconSizeVec)) { }
     //     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Particles");
     // }
+}
 
-    // Separator
-    ImGui::SameLine();
-    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-    ImGui::SameLine();
+void SParticleSystemEditorWindow::RenderLODControlButtons()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
 
-    // LOD controls
     if (IconLODFirst && IconLODFirst->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODFirstBtn", (void*)IconLODFirst->GetShaderResourceView(), IconSizeVec)) { }
+        if (ImGui::ImageButton("##Cascade_LODFirstBtn", (void*)IconLODFirst->GetShaderResourceView(), IconSizeVec)) {}
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to First LOD");
     }
     ImGui::SameLine();
     if (IconLODPrev && IconLODPrev->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODPrevBtn", (void*)IconLODPrev->GetShaderResourceView(), IconSizeVec)) { }
+        if (ImGui::ImageButton("##Cascade_LODPrevBtn", (void*)IconLODPrev->GetShaderResourceView(), IconSizeVec)) {}
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Previous LOD");
     }
     ImGui::SameLine();
     if (IconLODNext && IconLODNext->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODNextBtn", (void*)IconLODNext->GetShaderResourceView(), IconSizeVec)) { }
+        if (ImGui::ImageButton("##Cascade_LODNextBtn", (void*)IconLODNext->GetShaderResourceView(), IconSizeVec)) {}
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Next LOD");
     }
     ImGui::SameLine();
     if (IconLODLast && IconLODLast->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODLastBtn", (void*)IconLODLast->GetShaderResourceView(), IconSizeVec)) { }
+        if (ImGui::ImageButton("##Cascade_LODLastBtn", (void*)IconLODLast->GetShaderResourceView(), IconSizeVec)) {}
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to Last LOD");
     }
+}
 
-    // Separator
-    ImGui::SameLine();
-    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-    ImGui::SameLine();
+void SParticleSystemEditorWindow::RenderLODEditingButtons()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
 
-    // LOD editing
     if (IconLODInsertBefore && IconLODInsertBefore->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODInsertBeforeBtn", (void*)IconLODInsertBefore->GetShaderResourceView(), IconSizeVec)) { }
+        if (ImGui::ImageButton("##Cascade_LODInsertBeforeBtn", (void*)IconLODInsertBefore->GetShaderResourceView(), IconSizeVec)) {}
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD Before");
     }
     ImGui::SameLine();
     if (IconLODInsertAfter && IconLODInsertAfter->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODInsertAfterBtn", (void*)IconLODInsertAfter->GetShaderResourceView(), IconSizeVec)) { }
+        if (ImGui::ImageButton("##Cascade_LODInsertAfterBtn", (void*)IconLODInsertAfter->GetShaderResourceView(), IconSizeVec)) {}
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD After");
     }
     ImGui::SameLine();
     if (IconLODDelete && IconLODDelete->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODDeleteBtn", (void*)IconLODDelete->GetShaderResourceView(), IconSizeVec)) { }
+        if (ImGui::ImageButton("##Cascade_LODDeleteBtn", (void*)IconLODDelete->GetShaderResourceView(), IconSizeVec)) {}
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delete LOD");
     }
-
-    ImGui::PopStyleColor(3);
-    ImGui::PopStyleVar(3);
-    ImGui::EndChild();
 }
 
 void SParticleSystemEditorWindow::RenderLeftColumn(float width, float height)
