@@ -24,6 +24,7 @@
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleEventGenerator.h"
 #include "Material.h"
 #include "ResourceManager.h"
+#include "Texture.h"
 #include "ParticleModuleTypeDataRibbon.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSpawnPerUnit.h"
 
@@ -106,6 +107,16 @@ bool SCascadeEmittersPanel::HasAnySoloEmitter() const
     return false;
 }
 
+void SCascadeEmittersPanel::LoadEmitterTypeIcons()
+{
+    if (!IconMeshEmitter)
+        IconMeshEmitter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_MeshEmitter.png");
+    if (!IconRibbonEmitter)
+        IconRibbonEmitter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_RibbonEmitter.png");
+    if (!IconBeamEmitter)
+        IconBeamEmitter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_BeamEmitter.png");
+}
+
 static void DrawCascadePanelHeader(const char* Title, class UTexture* IconTexture)
 {
     ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -162,6 +173,9 @@ void SCascadeEmittersPanel::Render(float width, float height)
     {
         IconPanelEmitters = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_Emitters.png");
     }
+    // Load emitter type icons
+    LoadEmitterTypeIcons();
+
     // Header row styled like a panel title
     DrawCascadePanelHeader("Emitters", IconPanelEmitters);
 
@@ -313,26 +327,75 @@ void SCascadeEmittersPanel::Render(float width, float height)
         float rightSideX = columnWidth - thumbnailSize - 8.0f;
         ImGui::SetCursorPosX(rightSideX);
 
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+        // Determine thumbnail texture based on emitter type
+        UTexture* thumbnailTexture = nullptr;
+        if (Emitter)
+        {
+            UParticleLODLevel* LOD = Emitter->GetDefaultLODLevel();
+            if (LOD)
+            {
+                // Check for TypeDataModule to determine emitter type
+                if (LOD->TypeDataModule)
+                {
+                    // Use emitter type icons for Mesh, Ribbon, Beam
+                    if (LOD->TypeDataModule->IsA<UParticleModuleTypeDataMesh>())
+                    {
+                        thumbnailTexture = IconMeshEmitter;
+                    }
+                    else if (LOD->TypeDataModule->IsA<UParticleModuleTypeDataRibbon>())
+                    {
+                        thumbnailTexture = IconRibbonEmitter;
+                    }
+                    else if (LOD->TypeDataModule->IsA<UParticleModuleTypeDataBeam>())
+                    {
+                        thumbnailTexture = IconBeamEmitter;
+                    }
+                }
+
+                // For sprite emitters (no TypeDataModule) or if type icon not found,
+                // use material's diffuse texture
+                if (!thumbnailTexture && LOD->RequiredModule && LOD->RequiredModule->Material)
+                {
+                    thumbnailTexture = LOD->RequiredModule->Material->GetTexture(EMaterialTextureSlot::Diffuse);
+                }
+            }
+        }
+
         float thumbnailDisplaySize = 36.0f;
-        ImGui::Button("##thumbnail", ImVec2(thumbnailDisplaySize, thumbnailDisplaySize));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+
+        if (thumbnailTexture && thumbnailTexture->GetShaderResourceView())
+        {
+            // Use the determined texture as thumbnail
+            ImVec4 tintColor = isVisible ? ImVec4(1, 1, 1, 1) : ImVec4(0.5f, 0.5f, 0.5f, 0.7f);
+            ImVec4 borderColor(0, 0, 0, 0);
+            ImGui::Image((void*)thumbnailTexture->GetShaderResourceView(),
+                         ImVec2(thumbnailDisplaySize, thumbnailDisplaySize),
+                         ImVec2(0, 0), ImVec2(1, 1), tintColor, borderColor);
+        }
+        else
+        {
+            // Fallback: Draw a simple placeholder
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+            ImGui::Button("##thumbnail", ImVec2(thumbnailDisplaySize, thumbnailDisplaySize));
+            ImGui::PopStyleColor(3);
+
+            // Draw a simple particle sprite representation in the thumbnail
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            ImVec2 thumbMin = ImGui::GetItemRectMin();
+            ImVec2 thumbMax = ImGui::GetItemRectMax();
+            ImVec2 center = ImVec2((thumbMin.x + thumbMax.x) * 0.5f, (thumbMin.y + thumbMax.y) * 0.5f);
+
+            // Dim thumbnail when invisible
+            ImU32 thumbOuterColor = isVisible ? IM_COL32(255, 255, 255, 200) : IM_COL32(150, 150, 150, 150);
+            ImU32 thumbInnerColor = isVisible ? IM_COL32(255, 200, 100, 255) : IM_COL32(150, 120, 80, 200);
+            drawList->AddCircleFilled(center, 6.0f, thumbOuterColor, 8);
+            drawList->AddCircleFilled(center, 4.0f, thumbInnerColor, 8);
+        }
+
         ImGui::PopStyleVar();
-        ImGui::PopStyleColor(3);
-
-        // Draw a simple particle sprite representation in the thumbnail
-        ImDrawList* drawList = ImGui::GetWindowDrawList();
-        ImVec2 thumbMin = ImGui::GetItemRectMin();
-        ImVec2 thumbMax = ImGui::GetItemRectMax();
-        ImVec2 center = ImVec2((thumbMin.x + thumbMax.x) * 0.5f, (thumbMin.y + thumbMax.y) * 0.5f);
-
-        // Dim thumbnail when invisible
-        ImU32 thumbOuterColor = isVisible ? IM_COL32(255, 255, 255, 200) : IM_COL32(150, 150, 150, 150);
-        ImU32 thumbInnerColor = isVisible ? IM_COL32(255, 200, 100, 255) : IM_COL32(150, 120, 80, 200);
-        drawList->AddCircleFilled(center, 6.0f, thumbOuterColor, 8);
-        drawList->AddCircleFilled(center, 4.0f, thumbInnerColor, 8);
 
         ImGui::EndChild();
         ImGui::PopStyleVar();

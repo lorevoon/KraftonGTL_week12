@@ -80,6 +80,14 @@ private:
     // Panel icon
     class UTexture* IconPanelEmitters = nullptr;
 
+    // Emitter type icons for thumbnails
+    class UTexture* IconMeshEmitter = nullptr;
+    class UTexture* IconRibbonEmitter = nullptr;
+    class UTexture* IconBeamEmitter = nullptr;
+
+    // Load emitter type icons
+    void LoadEmitterTypeIcons();
+
     // Reference to curve editor for input coordination
     SCascadeCurveEditor* CurveEditor = nullptr;
 };
