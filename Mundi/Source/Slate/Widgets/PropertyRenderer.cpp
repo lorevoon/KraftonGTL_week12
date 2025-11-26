@@ -2104,6 +2104,14 @@ bool UPropertyRenderer::RenderParticleSystemProperty(const FProperty& Prop, void
 			Context->ViewerType = EViewerType::Particle;
 			Context->ParticleSystem = *PSPtr;  // 포인터 직접 전달 (하드코딩된 ParticleSystem 지원)
 			Context->AssetPath = CurrentPath;  // 경로도 전달 (있으면)
+
+			// 소스 컴포넌트 전달 (다른 이름으로 저장 시 이 컴포넌트의 Template도 업데이트됨)
+			UObject* Object = static_cast<UObject*>(Instance);
+			if (UParticleSystemComponent* PSComp = Cast<UParticleSystemComponent>(Object))
+			{
+				Context->SourceComponent = PSComp;
+			}
+
 			USlateManager::GetInstance().OpenAssetViewer(Context);
 		}
 	}

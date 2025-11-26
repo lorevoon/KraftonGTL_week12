@@ -669,6 +669,14 @@ ViewerState* SParticleSystemEditorWindow::CreateViewerState(const char* Name, UE
             EmittersPanel->SetEditingSystem(PS);
             NewState->LoadedMeshPath = Context->AssetPath;  // 탭 매칭용
         }
+
+        // Scene에서 열린 경우 소스 컴포넌트 추적
+        // 다른 이름으로 저장 시 이 컴포넌트의 Template도 업데이트해야 함
+        SourceSceneComponent = Cast<UParticleSystemComponent>(Context->SourceComponent);
+    }
+    else
+    {
+        SourceSceneComponent = nullptr;
     }
     return NewState;
 }
@@ -1243,12 +1251,35 @@ void SParticleSystemEditorWindow::OnSaveParticleSystem()
 
     // 기존 경로와 비교하여 다른 이름/경로로 저장한 경우 새 파일을 로드하여 ResourceManager에 등록
     FString NormalizedExistingPath = NormalizePath(ExistingPath);
+
     if (NormalizedPath != NormalizedExistingPath)
     {
         // 새로 저장한 파일을 ResourceManager를 통해 로드 (새 객체로 등록됨)
-        UResourceManager::GetInstance().Load<UParticleSystem>(NormalizedPath);
+        UParticleSystem* NewSystem = UResourceManager::GetInstance().Load<UParticleSystem>(NormalizedPath);
+
         // 캐시 갱신 (다음 렌더링 시 새로 빌드됨)
         UPropertyRenderer::ClearResourcesCache();
+
+        // 새로 저장한 ParticleSystem을 현재 Template으로 설정
+        UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+
+        if (PreviewComp && NewSystem)
+        {
+            PreviewComp->SetTemplate(NewSystem);
+
+            // EmittersPanel의 EditingSystem도 업데이트 (PreRenderViewportUpdate에서 덮어쓰기 방지)
+            if (EmittersPanel)
+            {
+                EmittersPanel->SetEditingSystem(NewSystem);
+            }
+
+            // Scene의 소스 컴포넌트 업데이트
+            // Property Window에서 "Cascade Editor" 버튼으로 열린 경우 해당 컴포넌트의 Template도 업데이트
+            if (SourceSceneComponent)
+            {
+                SourceSceneComponent->SetTemplate(NewSystem);
+            }
+        }
     }
     else
     {
