@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "ParticleModuleTypeDataRibbon.h"
 #include "ParticleEmitterInstance.h"
 #include "ParticleTypes.h"
@@ -20,7 +20,7 @@ UParticleModuleTypeDataRibbon::UParticleModuleTypeDataRibbon()
 void UParticleModuleTypeDataRibbon::OnParticleKilled(FParticleEmitterInstance* Owner, int32 DyingDataIndex)
 {
 	if (!Owner)
-		return;
+		return; 
 
 	// 죽는 파티클의 페이로드 가져오기
 	uint8* DyingBytes = Owner->ParticleData + DyingDataIndex * Owner->ParticleStride;

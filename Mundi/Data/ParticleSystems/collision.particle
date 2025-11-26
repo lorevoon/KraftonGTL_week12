@@ -31,7 +31,8 @@
                 "bEnabled" : true,
                 "bFinalUpdateModule" : false,
                 "bSpawnModule" : true,
-                "bUpdateModule" : false
+                "bUpdateModule" : false,
+                "bUseSizeCurve" : false
               }, {
                 "EndColor" : [1.000000, 1.000000, 1.000000, 1.000000],
                 "ModuleName" : "Color",
@@ -40,7 +41,8 @@
                 "bEnabled" : true,
                 "bFinalUpdateModule" : false,
                 "bSpawnModule" : true,
-                "bUpdateModule" : true
+                "bUpdateModule" : true,
+                "bUseCurve" : false
               }, {
                 "ModuleName" : "Velocity",
                 "StartVelocityMax" : [5.000000, 5.000000, 8.000000],
@@ -65,11 +67,12 @@
                 "bEnabled" : true,
                 "bFinalUpdateModule" : false,
                 "bSpawnModule" : false,
-                "bUpdateModule" : true
+                "bUpdateModule" : true,
+                "bUseAccelerationCurve" : false
               }, {
                 "CollisionResponse" : 2,
                 "Friction" : 0.200000,
-                "MaxCollisions" : 3,
+                "MaxCollisions" : 0,
                 "ModuleName" : "Collision",
                 "Resilience" : 0.500000,
                 "Type" : "UParticleModuleCollision",
