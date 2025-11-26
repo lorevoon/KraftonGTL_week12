@@ -2,6 +2,7 @@
 #include "Object.h"
 #include "ImGui/imgui.h"
 
+class UTexture;
 class UParticleModule;
 struct FParticleCurve;
 
@@ -153,4 +154,19 @@ private:
     bool bSnapToGrid = false;
     float GridTimeStep = 0.1f;
     float GridValueStep = 0.1f;
+
+    // Toolbar icons
+    UTexture* IconZoomToFit = nullptr;
+    UTexture* IconHorizontal = nullptr;
+    UTexture* IconVertical = nullptr;
+    UTexture* IconTangentAuto = nullptr;
+    UTexture* IconTangentUser = nullptr;
+    UTexture* IconTangentBreak = nullptr;
+    UTexture* IconTangentLinear = nullptr;
+    UTexture* IconTangentConstant = nullptr;
+    UTexture* IconShowGrid = nullptr;
+    UTexture* IconSnapToGrid = nullptr;
+
+    // Helper to load toolbar icons
+    void LoadToolbarIcons();
 };

@@ -79,7 +79,7 @@ void SParticleSystemEditorWindow::OnRender()
         bIsWindowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
         // Top toolbar area specific to the particle editor
-        ImGui::BeginChild("Cascade_Toolbar", ImVec2(0, 36.0f), false, ImGuiWindowFlags_NoScrollbar);
+        ImGui::BeginChild("Cascade_Toolbar", ImVec2(0, 44.0f), false, ImGuiWindowFlags_NoScrollbar);
         LoadToolbarIcons();
 
         const ImVec2 IconSizeVec(IconSize, IconSize);
@@ -801,7 +801,7 @@ void SParticleSystemEditorWindow::LoadToolbarIcons()
     if (!IconRestart)
         IconRestart = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_Restart.png");
     if (!IconBackgroundColor)
-        IconBackgroundColor = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_BackgroundColor.png");
+        IconBackgroundColor = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_Color_40x.png");
     if (!IconBounds)
         IconBounds = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_Bounds.png");
     if (!IconOriginAxis)
@@ -809,19 +809,19 @@ void SParticleSystemEditorWindow::LoadToolbarIcons()
     if (!IconParticle)
         IconParticle = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_Particle.png");
     if (!IconLODFirst)
-        IconLODFirst = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODFirst.png");
+        IconLODFirst = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_LowestLOD_512x.png");
     if (!IconLODPrev)
-        IconLODPrev = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODPrev.png");
+        IconLODPrev = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_LowerLOD_512x.png");
     if (!IconLODNext)
-        IconLODNext = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODNext.png");
+        IconLODNext = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_HigherLOD_512x.png");
     if (!IconLODLast)
-        IconLODLast = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODLast.png");
+        IconLODLast = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_HighestLOD_512x.png");
     if (!IconLODInsertBefore)
-        IconLODInsertBefore = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODInsertBefore.png");
+        IconLODInsertBefore = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_AddLOD2_512x.png");
     if (!IconLODInsertAfter)
-        IconLODInsertAfter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODInsertAfter.png");
+        IconLODInsertAfter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_AddLOD1_512x.png");
     if (!IconLODDelete)
-        IconLODDelete = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODDelete.png");
+        IconLODDelete = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_DeleteLOD_512x.png");
 
     // Panel icons
     if (!IconPanelDetails)

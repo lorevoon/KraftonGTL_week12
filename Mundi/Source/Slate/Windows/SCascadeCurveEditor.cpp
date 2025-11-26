@@ -3,6 +3,8 @@
 #include "ImGui/imgui.h"
 #include "Source/Runtime/Engine/Particles/ParticleModule.h"
 #include "Source/Runtime/Engine/Particles/Curves/ParticleCurve.h"
+#include "ResourceManager.h"
+#include "Texture.h"
 
 void SCascadeCurveEditor::Render(float width, float height)
 {
@@ -58,66 +60,123 @@ void SCascadeCurveEditor::Render(float width, float height)
     ImGui::PopStyleVar();
 }
 
+void SCascadeCurveEditor::LoadToolbarIcons()
+{
+    if (!IconZoomToFit)
+        IconZoomToFit = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_ZoomToFit_40x.png");
+    if (!IconHorizontal)
+        IconHorizontal = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_Horizontal_40x.png");
+    if (!IconVertical)
+        IconVertical = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_Vertical_40x.png");
+    if (!IconTangentAuto)
+        IconTangentAuto = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_Auto_40x.png");
+    if (!IconTangentUser)
+        IconTangentUser = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_User_40x.png");
+    if (!IconTangentBreak)
+        IconTangentBreak = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_Break_40x.png");
+    if (!IconTangentLinear)
+        IconTangentLinear = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_Linear_40x.png");
+    if (!IconTangentConstant)
+        IconTangentConstant = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_Constant_40x.png");
+    if (!IconShowGrid)
+        IconShowGrid = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_ShowGrid.png");
+    if (!IconSnapToGrid)
+        IconSnapToGrid = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_CurveEditor_SnapToGrid.png");
+}
+
 void SCascadeCurveEditor::RenderToolbar(float width)
 {
+    // Load icons if needed
+    LoadToolbarIcons();
+
     ImDrawList* dl = ImGui::GetWindowDrawList();
     ImVec2 toolbarStart = ImGui::GetCursorScreenPos();
 
+    const float iconSize = 32.0f;
+    const float buttonSize = 36.0f;
+
     // Toolbar styling
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 3));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(3, 0));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 4));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
 
-    // Subtle button colors
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.25f, 0.28f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.35f, 0.38f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.2f, 0.22f, 1.0f));
+    // Subtle button colors (transparent background for icon buttons)
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.4f, 0.4f, 0.45f, 0.6f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.35f, 0.8f));
 
-    // Use smaller font for toolbar
-    float originalFontScale = ImGui::GetFont()->Scale;
-    ImGui::GetFont()->Scale *= 0.9f;
-    ImGui::PushFont(ImGui::GetFont());
+    // Helper lambda for icon buttons
+    auto IconButton = [&](const char* id, UTexture* icon, const char* tooltip) -> bool {
+        bool clicked = false;
+        if (icon && icon->GetShaderResourceView())
+        {
+            clicked = ImGui::ImageButton(id, (void*)icon->GetShaderResourceView(), ImVec2(iconSize, iconSize));
+        }
+        else
+        {
+            // Fallback to text button if icon not loaded
+            clicked = ImGui::Button(id, ImVec2(buttonSize, buttonSize));
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
+        return clicked;
+    };
+
+    // Helper lambda for tangent icon buttons with active state
+    auto TangentIconButton = [&](const char* id, UTexture* icon, int mode, const char* tooltip, bool hasSelectedKey, int32 selectedKeyInterpMode) -> bool {
+        bool isActive = (selectedKeyInterpMode == mode);
+        bool clicked = false;
+
+        if (isActive)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.4f, 0.25f, 0.8f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.5f, 0.3f, 0.9f));
+        }
+
+        if (icon && icon->GetShaderResourceView())
+        {
+            clicked = ImGui::ImageButton(id, (void*)icon->GetShaderResourceView(), ImVec2(iconSize, iconSize));
+        }
+        else
+        {
+            clicked = ImGui::Button(id, ImVec2(buttonSize, buttonSize));
+        }
+
+        if (isActive) ImGui::PopStyleColor(2);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
+        return clicked;
+    };
 
     // Fit buttons
-    if (ImGui::Button("Fit All"))
+    if (IconButton("##ZoomToFit", IconZoomToFit, "Fit view to all curves"))
     {
         ViewMinTime = 0.0f;
         ViewMaxTime = 1.0f;
         ViewMinValue = 0.0f;
         ViewMaxValue = 1.0f;
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fit view to all curves");
 
     ImGui::SameLine();
-    if (ImGui::Button("H"))
+    if (IconButton("##FitH", IconHorizontal, "Fit horizontal (time) axis"))
     {
         ViewMinTime = 0.0f;
         ViewMaxTime = 1.0f;
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fit horizontal (time) axis");
 
     ImGui::SameLine();
-    if (ImGui::Button("V"))
+    if (IconButton("##FitV", IconVertical, "Fit vertical (value) axis"))
     {
         ViewMinValue = 0.0f;
         ViewMaxValue = 1.0f;
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Fit vertical (value) axis");
 
     ImGui::SameLine();
-    ImGui::Dummy(ImVec2(6, 0));
+    ImGui::Dummy(ImVec2(4, 0));
     ImGui::SameLine();
 
     // Vertical separator line
     ImVec2 sepPos = ImGui::GetCursorScreenPos();
-    dl->AddLine(ImVec2(sepPos.x, sepPos.y + 2), ImVec2(sepPos.x, sepPos.y + 16), IM_COL32(80, 80, 80, 255), 1.0f);
-    ImGui::Dummy(ImVec2(8, 0));
-    ImGui::SameLine();
-
-    // Tangent label
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-    ImGui::TextUnformatted("Tangent");
-    ImGui::PopStyleColor();
+    dl->AddLine(ImVec2(sepPos.x, sepPos.y + 2), ImVec2(sepPos.x, sepPos.y + iconSize + 2), IM_COL32(80, 80, 80, 255), 1.0f);
+    ImGui::Dummy(ImVec2(6, 0));
     ImGui::SameLine();
 
     // Check if we have a valid key selected
@@ -132,75 +191,89 @@ void SCascadeCurveEditor::RenderToolbar(float width)
         selectedKeyInterpMode = CurveEntries[SelectedEntryIndex].Tracks[SelectedTrackIndex].Keys[SelectedKeyIndex].InterpMode;
     }
 
-    // Tangent mode button helper
-    auto TangentButton = [&](const char* label, int mode, const char* tooltip) {
-        bool isActive = (selectedKeyInterpMode == mode);
-        if (isActive)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.45f, 0.3f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.5f, 0.35f, 1.0f));
-        }
-        if (ImGui::Button(label))
-        {
-            if (hasSelectedKey)
-            {
-                ApplyTangentModeToSelectedKey(mode);
-            }
-            CurrentTangentMode = static_cast<ETangentMode>(mode);
-        }
-        if (isActive) ImGui::PopStyleColor(2);
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
-        ImGui::SameLine();
-    };
+    // Tangent mode buttons
+    if (TangentIconButton("##TangentAuto", IconTangentAuto, 0, "Auto - smooth curve", hasSelectedKey, selectedKeyInterpMode))
+    {
+        if (hasSelectedKey) ApplyTangentModeToSelectedKey(0);
+        CurrentTangentMode = ETangentMode::Auto;
+    }
 
-    TangentButton("A", 0, "Auto - smooth curve");
-    TangentButton("U", 1, "User - manual tangents");
-    TangentButton("B", 2, "Break - split tangents");
-    TangentButton("L", 3, "Linear - straight line");
-    TangentButton("C", 4, "Constant - step function");
+    ImGui::SameLine();
+    if (TangentIconButton("##TangentUser", IconTangentUser, 1, "User - manual tangents", hasSelectedKey, selectedKeyInterpMode))
+    {
+        if (hasSelectedKey) ApplyTangentModeToSelectedKey(1);
+        CurrentTangentMode = ETangentMode::User;
+    }
 
-    ImGui::Dummy(ImVec2(2, 0));
+    ImGui::SameLine();
+    if (TangentIconButton("##TangentBreak", IconTangentBreak, 2, "Break - split tangents", hasSelectedKey, selectedKeyInterpMode))
+    {
+        if (hasSelectedKey) ApplyTangentModeToSelectedKey(2);
+        CurrentTangentMode = ETangentMode::Break;
+    }
+
+    ImGui::SameLine();
+    if (TangentIconButton("##TangentLinear", IconTangentLinear, 3, "Linear - straight line", hasSelectedKey, selectedKeyInterpMode))
+    {
+        if (hasSelectedKey) ApplyTangentModeToSelectedKey(3);
+        CurrentTangentMode = ETangentMode::Linear;
+    }
+
+    ImGui::SameLine();
+    if (TangentIconButton("##TangentConstant", IconTangentConstant, 4, "Constant - step function", hasSelectedKey, selectedKeyInterpMode))
+    {
+        if (hasSelectedKey) ApplyTangentModeToSelectedKey(4);
+        CurrentTangentMode = ETangentMode::Constant;
+    }
+
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(4, 0));
     ImGui::SameLine();
 
     // Vertical separator
     sepPos = ImGui::GetCursorScreenPos();
-    dl->AddLine(ImVec2(sepPos.x, sepPos.y + 2), ImVec2(sepPos.x, sepPos.y + 16), IM_COL32(80, 80, 80, 255), 1.0f);
-    ImGui::Dummy(ImVec2(8, 0));
+    dl->AddLine(ImVec2(sepPos.x, sepPos.y + 2), ImVec2(sepPos.x, sepPos.y + iconSize + 2), IM_COL32(80, 80, 80, 255), 1.0f);
+    ImGui::Dummy(ImVec2(6, 0));
     ImGui::SameLine();
 
-    // Grid/Snap toggles as small buttons
-    // Store state before button to ensure push/pop match
-    bool wasShowGrid = bShowGrid;
-    if (wasShowGrid)
-    {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.4f, 0.5f, 1.0f));
-    }
-    if (ImGui::Button("Grid"))
+    // Grid/Snap toggles - use icon buttons with toggle styling
+    // Helper lambda for toggle icon buttons
+    auto ToggleIconButton = [&](const char* id, UTexture* icon, bool isActive, const char* tooltip) -> bool {
+        bool clicked = false;
+
+        if (isActive)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.4f, 0.5f, 0.8f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.5f, 0.6f, 0.9f));
+        }
+
+        if (icon && icon->GetShaderResourceView())
+        {
+            clicked = ImGui::ImageButton(id, (void*)icon->GetShaderResourceView(), ImVec2(iconSize, iconSize));
+        }
+        else
+        {
+            clicked = ImGui::Button(id, ImVec2(buttonSize, buttonSize));
+        }
+
+        if (isActive) ImGui::PopStyleColor(2);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", tooltip);
+        return clicked;
+    };
+
+    if (ToggleIconButton("##ShowGrid", IconShowGrid, bShowGrid, "Toggle grid display"))
     {
         bShowGrid = !bShowGrid;
     }
-    if (wasShowGrid) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle grid display");
 
     ImGui::SameLine();
 
-    bool wasSnapToGrid = bSnapToGrid;
-    if (wasSnapToGrid)
-    {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.4f, 0.5f, 1.0f));
-    }
-    if (ImGui::Button("Snap"))
+    if (ToggleIconButton("##SnapToGrid", IconSnapToGrid, bSnapToGrid, "Snap to grid when dragging keys"))
     {
         bSnapToGrid = !bSnapToGrid;
     }
-    if (wasSnapToGrid) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Snap to grid when dragging keys");
 
-    // Restore font
-    ImGui::GetFont()->Scale = originalFontScale;
-    ImGui::PopFont();
-
-    ImGui::PopStyleColor(3);
+    ImGui::PopStyleColor(3); // Icon button colors
     ImGui::PopStyleVar(3);
 
     // Subtle bottom border
