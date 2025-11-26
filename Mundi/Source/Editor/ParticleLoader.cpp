@@ -32,7 +32,7 @@ void FParticleLoader::Preload()
 		std::transform(Extension.begin(), Extension.end(), Extension.begin(),
 					   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-		if (Extension == ".json")
+		if (Extension == ".particle")
 		{
 			FString PathStr = NormalizePath(WideToUTF8(Path.wstring()));
 

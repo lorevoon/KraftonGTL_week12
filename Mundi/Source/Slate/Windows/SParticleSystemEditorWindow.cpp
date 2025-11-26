@@ -1189,8 +1189,8 @@ void SParticleSystemEditorWindow::OnLoadParticleSystem()
 {
     std::filesystem::path FilePath = FPlatformProcess::OpenLoadFileDialog(
         L"Data/ParticleSystems",
-        L".json",
-        L"Particle System (*.json)"
+        L".particle",
+        L"Particle System (*.particle)"
     );
 
     if (FilePath.empty())
@@ -1261,18 +1261,18 @@ void SParticleSystemEditorWindow::OnSaveParticleSystem()
 
     std::filesystem::path FilePath = FPlatformProcess::OpenSaveFileDialog(
         L"Data/ParticleSystems",
-        L".json",
-        L"Particle System (*.json)",
+        L".particle",
+        L"Particle System (*.particle)",
         DefaultFileName
     );
 
     if (FilePath.empty())
         return;
 
-    // Ensure .json extension
-    if (FilePath.extension() != ".json")
+    // Ensure .particle extension
+    if (FilePath.extension() != ".particle")
     {
-        FilePath += ".json";
+        FilePath += ".particle";
     }
 
     FString FilePathStr = FilePath.string();
