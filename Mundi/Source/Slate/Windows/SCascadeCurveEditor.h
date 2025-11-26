@@ -3,6 +3,7 @@
 #include "ImGui/imgui.h"
 
 class UParticleModule;
+struct FParticleCurve;
 
 // Represents a single key point on a curve
 struct FCurveKey
@@ -35,6 +36,8 @@ struct FCurveEntry
     bool bExpanded = true;
     bool bVisible = true;
     UParticleModule* OwnerModule = nullptr;
+    FParticleCurve* SourceCurve = nullptr;  // Direct pointer to the module's curve data
+    bool* bUseCurvePtr = nullptr;           // Pointer to module's bUseCurve flag
 };
 
 // The Cascade-style Curve Editor panel
@@ -60,6 +63,10 @@ public:
     void SetSelectedModule(UParticleModule* Module);
     UParticleModule* GetSelectedModule() const { return SelectedModule; }
 
+    // Check if there are unsaved changes to curve data
+    bool HasPendingChanges() const { return bHasPendingChanges; }
+    void ClearPendingChanges() { bHasPendingChanges = false; }
+
 private:
     // UI Rendering
     void RenderToolbar(float width);
@@ -84,10 +91,19 @@ private:
     float EvaluateCurve(const FCurveTrack& track, float time) const;
     float CubicInterp(float p0, float t0, float p1, float t1, float alpha) const;
 
+    // Write changes back to module's curve data
+    void WriteBackChanges();
+
+    // Load curve data from module's GetCurveProperties
+    void LoadCurvesFromModule();
+
 private:
     // Curve data
     TArray<FCurveEntry> CurveEntries;
     UParticleModule* SelectedModule = nullptr;
+
+    // Dirty flag for pending changes
+    bool bHasPendingChanges = false;
 
     // View state
     float ViewMinTime = 0.0f;

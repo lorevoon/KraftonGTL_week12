@@ -509,6 +509,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleCollision.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleAcceleration.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleEventGenerator.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Curves\ParticleCurve.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleLODLevel.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitter.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleSystem.cpp" />
@@ -993,6 +994,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleCollision.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleAcceleration.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleEventGenerator.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Curves\ParticleCurve.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleLODLevel.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitter.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleSystem.h" />

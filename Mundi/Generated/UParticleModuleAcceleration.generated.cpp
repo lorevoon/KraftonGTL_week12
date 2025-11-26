@@ -38,6 +38,7 @@ const bool UParticleModuleAcceleration::bPropertiesRegistered = []() {
 
 BEGIN_PROPERTIES(UParticleModuleAcceleration)
     ADD_PROPERTY(FVector, Acceleration, "Acceleration", true)
+    ADD_PROPERTY(bool, bUseAccelerationCurve, "Acceleration", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -46,5 +47,7 @@ LUA_BIND_BEGIN(UParticleModuleAcceleration)
 {
     AddProperty<UParticleModuleAcceleration, FVector>(
         T, "Acceleration", &UParticleModuleAcceleration::Acceleration);
+    AddProperty<UParticleModuleAcceleration, bool>(
+        T, "bUseAccelerationCurve", &UParticleModuleAcceleration::bUseAccelerationCurve);
 }
 LUA_BIND_END()

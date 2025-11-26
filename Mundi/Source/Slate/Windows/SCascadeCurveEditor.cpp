@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "SCascadeCurveEditor.h"
 #include "ImGui/imgui.h"
+#include "Source/Runtime/Engine/Particles/ParticleModule.h"
+#include "Source/Runtime/Engine/Particles/Curves/ParticleCurve.h"
 
 void SCascadeCurveEditor::Render(float width, float height)
 {
@@ -687,6 +689,10 @@ void SCascadeCurveEditor::HandleKeySelection(const ImVec2& canvasMin, const ImVe
             SelectedKeyIndex = insertIdx;
             SelectedTangentHandle = -1;
             bIsDraggingTangent = false;
+
+            // Mark as dirty and write back immediately
+            bHasPendingChanges = true;
+            WriteBackChanges();
             return;
         }
     }
@@ -788,6 +794,8 @@ void SCascadeCurveEditor::HandleKeyDragging(const ImVec2& canvasMin, const ImVec
     FCurveTrack& track = CurveEntries[SelectedEntryIndex].Tracks[SelectedTrackIndex];
     if (SelectedKeyIndex >= track.Keys.Num()) return;
 
+    bool wasEditing = bIsDraggingKey || bIsDraggingTangent;
+
     if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsItemActive())
     {
         ImVec2 mousePos = ImGui::GetMousePos();
@@ -821,6 +829,9 @@ void SCascadeCurveEditor::HandleKeyDragging(const ImVec2& canvasMin, const ImVec
                 // Break mode: edit only the selected side
                 if (SelectedTangentHandle == 0) key.ArriveTangent = slope; else key.LeaveTangent = slope;
             }
+
+            // Mark as dirty for live preview
+            bHasPendingChanges = true;
         }
         else
         {
@@ -828,19 +839,34 @@ void SCascadeCurveEditor::HandleKeyDragging(const ImVec2& canvasMin, const ImVec
             bIsDraggingKey = true; bIsDraggingTangent = false;
             float newTime, newValue;
             ScreenToCurve(mousePos, canvasMin, canvasMax, newTime, newValue);
-            
+
             if (bSnapToGrid)
             {
                 newTime = round(newTime / GridTimeStep) * GridTimeStep;
                 newValue = round(newValue / GridValueStep) * GridValueStep;
             }
-            
+
             track.Keys[SelectedKeyIndex].Time = newTime;
             track.Keys[SelectedKeyIndex].Value = newValue;
+
+            // Mark as dirty for live preview
+            bHasPendingChanges = true;
+        }
+
+        // Write back changes immediately for live preview
+        if (bHasPendingChanges)
+        {
+            WriteBackChanges();
+            bHasPendingChanges = true; // Keep dirty until mouse release
         }
     }
     else
     {
+        // Mouse released - finalize changes
+        if (wasEditing && bHasPendingChanges)
+        {
+            WriteBackChanges();
+        }
         bIsDraggingKey = false;
         bIsDraggingTangent = false;
     }
@@ -923,71 +949,133 @@ void SCascadeCurveEditor::SetSelectedModule(UParticleModule* Module)
 {
     if (SelectedModule == Module) return;
 
+    // Write back any pending changes before switching
+    if (bHasPendingChanges)
+    {
+        WriteBackChanges();
+    }
+
     SelectedModule = Module;
     ClearAllCurves();
+    bHasPendingChanges = false;
 
-    // TODO: When a module is selected, extract its curve properties and populate CurveEntries
-    // This will be implemented when we have proper distribution/curve types in modules
-
-    // For now, add some demo curves to show the UI working
     if (Module)
     {
-        // Demo curve entry - this would normally come from the module's properties
-        FCurveEntry demoEntry;
-        demoEntry.ModuleName = "Demo";
-        demoEntry.PropertyName = "Size Over Life";
-        demoEntry.bExpanded = true;
-        demoEntry.bVisible = true;
-        demoEntry.OwnerModule = Module;
-
-        // Add a single track with some demo keys
-        FCurveTrack track;
-        track.Name = "Scale";
-        track.Color = IM_COL32(255, 100, 100, 255);
-        track.bVisible = true;
-
-        FCurveKey key0, key1, key2;
-        key0.Time = 0.0f; key0.Value = 0.5f; key0.LeaveTangent = 1.0f;
-        key1.Time = 0.5f; key1.Value = 1.0f; key1.ArriveTangent = 0.0f; key1.LeaveTangent = 0.0f;
-        key2.Time = 1.0f; key2.Value = 0.0f; key2.ArriveTangent = -1.0f;
-
-        track.Keys.Add(key0);
-        track.Keys.Add(key1);
-        track.Keys.Add(key2);
-
-        demoEntry.Tracks.Add(track);
-        AddCurveEntry(demoEntry);
-
-        // Another demo entry for color
-        FCurveEntry colorEntry;
-        colorEntry.ModuleName = "Demo";
-        colorEntry.PropertyName = "Color Over Life";
-        colorEntry.bExpanded = true;
-        colorEntry.bVisible = true;
-        colorEntry.OwnerModule = Module;
-
-        // RGB tracks
-        FCurveTrack redTrack, greenTrack, blueTrack;
-
-        redTrack.Name = "R";
-        redTrack.Color = IM_COL32(255, 80, 80, 255);
-        greenTrack.Name = "G";
-        greenTrack.Color = IM_COL32(80, 255, 80, 255);
-        blueTrack.Name = "B";
-        blueTrack.Color = IM_COL32(80, 80, 255, 255);
-
-        FCurveKey rk0, rk1; rk0.Time = 0; rk0.Value = 1.0f; rk1.Time = 1.0f; rk1.Value = 0.5f;
-        FCurveKey gk0, gk1; gk0.Time = 0; gk0.Value = 0.5f; gk1.Time = 1.0f; gk1.Value = 1.0f;
-        FCurveKey bk0, bk1; bk0.Time = 0; bk0.Value = 0.2f; bk1.Time = 1.0f; bk1.Value = 0.8f;
-
-        redTrack.Keys.Add(rk0); redTrack.Keys.Add(rk1);
-        greenTrack.Keys.Add(gk0); greenTrack.Keys.Add(gk1);
-        blueTrack.Keys.Add(bk0); blueTrack.Keys.Add(bk1);
-
-        colorEntry.Tracks.Add(redTrack);
-        colorEntry.Tracks.Add(greenTrack);
-        colorEntry.Tracks.Add(blueTrack);
-
-        AddCurveEntry(colorEntry);
+        LoadCurvesFromModule();
     }
+}
+
+void SCascadeCurveEditor::LoadCurvesFromModule()
+{
+    CurveEntries.Empty();
+    SelectedEntryIndex = -1;
+    SelectedTrackIndex = -1;
+    SelectedKeyIndex = -1;
+
+    if (!SelectedModule) return;
+
+    // Get curve properties from the module
+    TArray<FCurvePropertyInfo> CurveProperties;
+    SelectedModule->GetCurveProperties(CurveProperties);
+
+    for (const FCurvePropertyInfo& PropInfo : CurveProperties)
+    {
+        if (!PropInfo.CurvePtr) continue;
+
+        FCurveEntry entry;
+        entry.ModuleName = SelectedModule->ModuleName;
+        entry.PropertyName = PropInfo.PropertyName;
+        entry.bExpanded = true;
+        entry.bVisible = true;
+        entry.OwnerModule = SelectedModule;
+        entry.SourceCurve = PropInfo.CurvePtr;
+        entry.bUseCurvePtr = PropInfo.bUseCurvePtr;
+
+        // Create tracks for each channel
+        for (int32 channelIdx = 0; channelIdx < PropInfo.NumChannels; ++channelIdx)
+        {
+            FCurveTrack track;
+            track.Name = (channelIdx < PropInfo.ChannelNames.Num()) ? PropInfo.ChannelNames[channelIdx] : FString("Channel %d", channelIdx);
+            track.Color = (channelIdx < PropInfo.ChannelColors.Num()) ? PropInfo.ChannelColors[channelIdx] : IM_COL32(255, 255, 255, 255);
+            track.bVisible = true;
+            track.bSelected = false;
+
+            // Read keys from the curve
+            FParticleCurve* Curve = PropInfo.CurvePtr;
+            if (channelIdx < Curve->Channels.Num())
+            {
+                const FParticleCurveChannel& Channel = Curve->Channels[channelIdx];
+                for (const FParticleCurveKey& pk : Channel.Keys)
+                {
+                    FCurveKey key;
+                    key.Time = pk.Time;
+                    key.Value = pk.Value;
+                    key.ArriveTangent = pk.ArriveTangent;
+                    key.LeaveTangent = pk.LeaveTangent;
+                    key.InterpMode = pk.InterpMode;
+                    track.Keys.Add(key);
+                }
+            }
+
+            // If no keys exist, create a default linear curve (0 to 1)
+            if (track.Keys.Num() == 0)
+            {
+                FCurveKey key0, key1;
+                key0.Time = 0.0f; key0.Value = 1.0f; key0.InterpMode = 3; // Linear
+                key1.Time = 1.0f; key1.Value = 1.0f; key1.InterpMode = 3; // Linear
+                track.Keys.Add(key0);
+                track.Keys.Add(key1);
+            }
+
+            entry.Tracks.Add(track);
+        }
+
+        CurveEntries.Add(entry);
+    }
+}
+
+void SCascadeCurveEditor::WriteBackChanges()
+{
+    if (!bHasPendingChanges) return;
+
+    // Write each entry back to its source curve
+    for (const FCurveEntry& entry : CurveEntries)
+    {
+        if (!entry.SourceCurve) continue;
+
+        FParticleCurve* Curve = entry.SourceCurve;
+
+        // Enable curve mode on the module
+        if (entry.bUseCurvePtr)
+        {
+            *entry.bUseCurvePtr = true;
+        }
+
+        // Ensure curve has enough channels
+        while (Curve->Channels.Num() < entry.Tracks.Num())
+        {
+            Curve->Channels.Add(FParticleCurveChannel());
+        }
+
+        // Write each track back to its channel
+        for (int32 trackIdx = 0; trackIdx < entry.Tracks.Num(); ++trackIdx)
+        {
+            const FCurveTrack& track = entry.Tracks[trackIdx];
+            FParticleCurveChannel& Channel = Curve->Channels[trackIdx];
+
+            Channel.Keys.Empty();
+            for (const FCurveKey& key : track.Keys)
+            {
+                FParticleCurveKey pk;
+                pk.Time = key.Time;
+                pk.Value = key.Value;
+                pk.ArriveTangent = key.ArriveTangent;
+                pk.LeaveTangent = key.LeaveTangent;
+                pk.InterpMode = key.InterpMode;
+                Channel.Keys.Add(pk);
+            }
+        }
+    }
+
+    bHasPendingChanges = false;
 }
