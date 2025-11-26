@@ -1,0 +1,122 @@
+{
+    "Emitters" : [{
+        "EmitterName" : "Sample Mesh Emitter",
+        "LODLevels" : [{
+            "DistanceThreshold" : 0.000000,
+            "Level" : 0,
+            "Modules" : [{
+                "DistributionType" : 0,
+                "LocationMax" : [0.000000, 0.000000, 0.000000],
+                "LocationMin" : [0.000000, 0.000000, 0.000000],
+                "ModuleName" : "Spawn",
+                "Type" : "UParticleModuleSpawn",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "LifetimeMax" : 4.000000,
+                "LifetimeMin" : 2.000000,
+                "ModuleName" : "Lifetime",
+                "Type" : "UParticleModuleLifetime",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Size",
+                "StartSizeMax" : [1.000000, 1.000000, 1.000000],
+                "StartSizeMin" : [0.500000, 0.500000, 0.500000],
+                "Type" : "UParticleModuleSize",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false,
+                "bUseSizeCurve" : false
+              }, {
+                "EndColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "ModuleName" : "Color",
+                "StartColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleColor",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseCurve" : false
+              }, {
+                "ModuleName" : "Velocity",
+                "StartVelocityMax" : [5.000000, 5.000000, 8.000000],
+                "StartVelocityMin" : [-5.000000, -5.000000, 2.000000],
+                "Type" : "UParticleModuleVelocity",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Location",
+                "StartLocation" : [0.000000, 0.000000, 0.000000],
+                "Type" : "UParticleModuleLocation",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "Acceleration" : [0.000000, 0.000000, -9.800000],
+                "ModuleName" : "Acceleration",
+                "Type" : "UParticleModuleAcceleration",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : false,
+                "bUpdateModule" : true,
+                "bUseAccelerationCurve" : false
+              }, {
+                "CollisionResponse" : 2,
+                "Friction" : 0.200000,
+                "MaxCollisions" : 0,
+                "ModuleName" : "Collision",
+                "Resilience" : 0.500000,
+                "Type" : "UParticleModuleCollision",
+                "bCollisionEnabled" : true,
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : false,
+                "bUpdateModule" : true
+              }],
+            "RequiredModule" : {
+              "EmitterDuration" : 5.000000,
+              "EmitterLoops" : 0,
+              "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
+              "EmitterRotation" : 0.000000,
+              "Material" : "Shaders/Effects/ParticleMesh.hlsl",
+              "ModuleName" : "Required",
+              "SortMode" : 0,
+              "SpawnRate" : 100.000000,
+              "Type" : "UParticleModuleRequired",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : true,
+              "bUpdateModule" : false,
+              "bUseLocalSpace" : false
+            },
+            "TypeDataModule" : {
+              "Mesh" : "Data/apple_mid.obj",
+              "ModuleName" : "ParticleModule",
+              "Type" : "UParticleModuleTypeDataMesh",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : false,
+              "bUpdateModule" : false,
+              "bUseMeshMaterials" : true
+            }
+          }],
+        "MaxParticleCount" : 1000
+      }],
+    "LODDistanceCheckTime" : 0.250000,
+    "LODDistances" : [0.000000],
+    "LODMethod" : 0,
+    "SystemDuration" : 5.000000,
+    "SystemLoops" : 0,
+    "SystemName" : "Sample Mesh Particle System",
+    "bAutoActivate" : true,
+    "bIsDirty" : false
+  }

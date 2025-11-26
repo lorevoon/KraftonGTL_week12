@@ -141,6 +141,16 @@ void UParticleModule::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                     }
                     break;
                 }
+                case EPropertyType::Enum:
+                {
+                    // Enum은 uint8 기반으로 저장됨 (EParticleCollisionResponse 등)
+                    if (PropValue.JSONType() == JSON::Class::Integral)
+                    {
+                        uint8* Value = Prop.GetValuePtr<uint8>(this);
+                        *Value = static_cast<uint8>(PropValue.ToInt());
+                    }
+                    break;
+                }
                 }
             }
         }
@@ -232,6 +242,13 @@ void UParticleModule::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                     {
                         InOutHandle[Prop.Name] = "";
                     }
+                    break;
+                }
+                case EPropertyType::Enum:
+                {
+                    // Enum은 uint8 기반으로 저장됨 (EParticleCollisionResponse 등)
+                    uint8* Value = Prop.GetValuePtr<uint8>(this);
+                    InOutHandle[Prop.Name] = static_cast<long>(*Value);
                     break;
                 }
                 }

@@ -32,7 +32,7 @@ public:
 
     void FlushRebuild();
 
-    void QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const;
+    void QueryRayClosest(const FRay& Ray, AActor*& OutActor, UPrimitiveComponent*& OutComponent, OUT float& OutBestT) const;
     void QueryFrustum(const FFrustum& InFrustum);
     TArray<UPrimitiveComponent*> QueryIntersectedComponents(const FAABB& InBound) const;
     TArray<UPrimitiveComponent*> QueryIntersectedComponents(const FOBB& InBound) const;

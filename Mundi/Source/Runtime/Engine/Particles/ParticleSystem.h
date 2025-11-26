@@ -60,7 +60,7 @@ public:
     EParticleSystemLODMethod LODMethod;
 
 	// LOD 거리 배열 (각 LOD 레벨로 전환되는 최소 거리)
-    // LODDistances[0] (LOD 0)은 
+    // LODDistances[0] (LOD 0)은 항상 0
     TArray<float> LODDistances;
 
     // 이미터 접근
@@ -75,12 +75,13 @@ public:
 
 	// LOD 거리 설정. 1 ~ N 인덱스만 설정 가능 (LOD 0은 무조건 0.0f. N 입력시 새로 추가)
 	// 설정 성공시 true 반환, 실패시 false 반환
-	bool SetLODDistance(int32 LODIndex, float Distance);
-	bool AddLODDistance(float Distance);
-	bool RemoveLODDistance(int32 LODIndex);
+    bool SetLODDistance(int32 LODIndex, float Distance);
+    bool AddLODDistance(float Distance);
+    bool RemoveLODDistance(int32 LODIndex);
+    bool InsertLODDistance(int32 LODIndex, float Distance);
 
-	EParticleSystemLODMethod GetLODMethod() const { return LODMethod; }
-	void SetLODMethod(EParticleSystemLODMethod InMethod) { LODMethod = InMethod; }
+    EParticleSystemLODMethod GetLODMethod() const { return LODMethod; }
+    void SetLODMethod(EParticleSystemLODMethod InMethod) { LODMethod = InMethod; }
 
 	// Mark dirty to signal preview/components to rebuild
 	inline void MarkDirty() { bIsDirty = true; }
