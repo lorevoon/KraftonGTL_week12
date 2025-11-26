@@ -15,6 +15,7 @@
 #include "ShadowStats.h"
 #include "SkinningStats.h"
 #include "SkinnedMeshComponent.h"
+#include "ParticleStatManager.h"
 
 #pragma comment(lib, "d2d1")
 #pragma comment(lib, "dwrite")
@@ -489,14 +490,31 @@ void UStatsOverlayD2D::Draw()
 		const FTimeProfile& ParticleProfile = FScopeCycleCounter::GetTimeProfile("ParticleSystemComponentTick");
 		const double TotalMs = ParticleProfile.Milliseconds;
 		const uint32 CallCount = ParticleProfile.CallCount;
+		const double AvgMs = (CallCount > 0) ? (TotalMs / static_cast<double>(CallCount)) : 0.0;
 
-		wchar_t Buf[256];
-		swprintf_s(Buf, L"[Particle Stats]\nTotal Tick Time: %.3f ms (Calls: %u)",
+		const FParticleStatManager& ParticleStats = FParticleStatManager::GetInstance();
+		const int32 ActiveEmitters = ParticleStats.GetActiveEmitters();
+		const int32 ActiveParticles = ParticleStats.GetSpawnedParticles();
+		const int32 DrawCalls = ParticleStats.GetDrawCalls();
+
+		wchar_t Buf[512];
+		swprintf_s(Buf,
+			L"[Particle Stats]\n"
+			L"Tick Time: %.3f ms\n"
+			L"Tick Calls: %u\n"
+			L"Avg/Call: %.3f ms\n"
+			L"Active Emitters: %d\n"
+			L"Active Particles: %d\n"
+			L"Draw Calls: %d",
 			TotalMs,
-			CallCount);
+			CallCount,
+			AvgMs,
+			ActiveEmitters,
+			ActiveParticles,
+			DrawCalls);
 
-		const float ParticlePanelHeight = 120.0f;
-		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth * 1.5f, NextY + ParticlePanelHeight);
+		const float ParticlePanelHeight = 160.0f;
+		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth, NextY + ParticlePanelHeight);
 		DrawTextBlock(
 			D2dCtx, CachedBrush, TextFormat, Buf, rc,
 			D2D1::ColorF(0, 0, 0, 0.6f),

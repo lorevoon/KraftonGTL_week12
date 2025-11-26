@@ -32,6 +32,7 @@
 #include "ShapeComponent.h"
 #include "PlayerCameraManager.h"
 #include "Hash.h"
+#include "ParticleStatManager.h"
 
 IMPLEMENT_CLASS(UWorld)
 
@@ -184,6 +185,9 @@ bool UWorld::LoadLevelFromFile(const FWideString& Path)
 // 함수 내부 코드 순서 유지 필요
 void UWorld::Tick(float DeltaSeconds)
 {	
+	// 파티클 통계는 프레임 시작 시점에 초기화
+	FParticleStatManager::GetInstance().ResetFrameStats();
+
 	// GameDelat: Unscaled * finalScale  
 	float UnscaledDeltaSeconds = DeltaSeconds;
 
