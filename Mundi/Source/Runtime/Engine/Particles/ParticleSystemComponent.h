@@ -123,9 +123,6 @@ public:
 	// 수동 LOD 설정 (LODMethod가 DirectSet일 때만 유효)
 	void SetLODIndex(int32 LODIndex);
 
-    // 파티클 업데이트 (외부에서 호출)
-    void UpdateParticles(float DeltaTime);
-
     // 컴포넌트 틱
     void TickComponent(float DeltaTime) override;
 

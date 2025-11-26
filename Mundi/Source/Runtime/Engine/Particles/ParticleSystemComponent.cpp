@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "ParticleSystemComponent.h"
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
@@ -26,6 +26,8 @@ UParticleSystemComponent::UParticleSystemComponent()
 	, AccumLODDistanceCheckTime(0.0f)
 	, bLODUpdatePending(false)
 {
+	bCanEverTick = true;
+    bTickEnabled = true;
 }
 
 UParticleSystemComponent::~UParticleSystemComponent()
@@ -179,30 +181,6 @@ void UParticleSystemComponent::Serialize(const bool bInIsLoading, JSON& InOutHan
     else
     {
         InOutHandle["LODMethod"] = static_cast<long>(LODMethod);
-    }
-}
-
-void UParticleSystemComponent::UpdateParticles(float DeltaTime)
-{
-    if (!bIsActive || !Template)
-    {
-        return;
-    }
-
-    const float EffectiveRate = FMath::Max(CustomPlaybackRate, 0.0f);
-    if (EffectiveRate <= 0.0f)
-    {
-        return;
-    }
-
-    const float ScaledDeltaTime = DeltaTime * EffectiveRate;
-
-    for (FParticleEmitterInstance* Instance : EmitterInstances)
-    {
-        if (Instance)
-        {
-            UpdateEmitterInstance(Instance, ScaledDeltaTime);
-        }
     }
 }
 
