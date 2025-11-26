@@ -970,7 +970,7 @@
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Gamma.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\CollisionParticleActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\ParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Viewer\ParticleSystemEditorBootstrap.cpp" />
@@ -992,7 +992,7 @@
     <ClCompile Include="Generated\UParticleModuleAcceleration.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
-    <ClCompile Include="Generated\ACollisionParticleActor.generated.cpp">
+    <ClCompile Include="Generated\AParticleActor.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
     <ClCompile Include="Generated\UParticleModuleBeamNoise.generated.cpp">
@@ -2067,7 +2067,7 @@
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Gamma.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.h" />
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\CollisionParticleActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\ParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.h" />
     <ClInclude Include="Source\Runtime\Engine\Viewer\ParticleSystemEditorBootstrap.h" />
@@ -2092,7 +2092,7 @@
     <ClInclude Include="Generated\UParticleModuleAcceleration.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
-    <ClInclude Include="Generated\ACollisionParticleActor.generated.h">
+    <ClInclude Include="Generated\AParticleActor.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
     <ClInclude Include="Generated\UParticleModuleBeamNoise.generated.h">

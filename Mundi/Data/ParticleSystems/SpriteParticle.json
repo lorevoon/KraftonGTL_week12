@@ -63,7 +63,10 @@
               "EmitterLoops" : 0,
               "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
               "EmitterRotation" : 0.000000,
-              "Material" : "",
+              "Material" : {
+                "DiffuseTexture" : "Data/Textures/Boom.png",
+                "ShaderPath" : "Shaders/Effects/ParticleSprite.hlsl"
+              },
               "ModuleName" : "Required",
               "SpawnRate" : 15.000000,
               "Type" : "UParticleModuleRequired",

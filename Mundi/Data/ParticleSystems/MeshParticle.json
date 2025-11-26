@@ -1,6 +1,6 @@
 {
     "Emitters" : [{
-        "EmitterName" : "Mesh Emitter",
+        "EmitterName" : "Sample Mesh Emitter",
         "LODLevels" : [{
             "DistanceThreshold" : 0.000000,
             "Level" : 0,
@@ -14,27 +14,10 @@
                 "bSpawnModule" : true,
                 "bUpdateModule" : false
               }, {
-                "LifetimeMax" : 15.000000,
-                "LifetimeMin" : 10.000000,
+                "LifetimeMax" : 4.000000,
+                "LifetimeMin" : 2.000000,
                 "ModuleName" : "Lifetime",
                 "Type" : "UParticleModuleLifetime",
-                "bEnabled" : true,
-                "bFinalUpdateModule" : false,
-                "bSpawnModule" : true,
-                "bUpdateModule" : false
-              }, {
-                "ModuleName" : "Location",
-                "StartLocation" : [0.000000, 0.000000, 0.000000],
-                "Type" : "UParticleModuleLocation",
-                "bEnabled" : true,
-                "bFinalUpdateModule" : false,
-                "bSpawnModule" : true,
-                "bUpdateModule" : false
-              }, {
-                "ModuleName" : "Velocity",
-                "StartVelocityMax" : [2.000000, 2.000000, 15.000000],
-                "StartVelocityMin" : [-2.000000, -2.000000, 10.000000],
-                "Type" : "UParticleModuleVelocity",
                 "bEnabled" : true,
                 "bFinalUpdateModule" : false,
                 "bSpawnModule" : true,
@@ -58,33 +41,34 @@
                 "bSpawnModule" : true,
                 "bUpdateModule" : true
               }, {
-                "Acceleration" : [0.000000, 0.000000, -9.800000],
-                "ModuleName" : "Acceleration",
-                "Type" : "UParticleModuleAcceleration",
+                "ModuleName" : "Velocity",
+                "StartVelocityMax" : [5.000000, 5.000000, 8.000000],
+                "StartVelocityMin" : [-5.000000, -5.000000, 2.000000],
+                "Type" : "UParticleModuleVelocity",
                 "bEnabled" : true,
                 "bFinalUpdateModule" : false,
-                "bSpawnModule" : false,
-                "bUpdateModule" : true
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
               }, {
-                "Friction" : 0.200000,
-                "MaxCollisions" : 2,
-                "ModuleName" : "Collision",
-                "Resilience" : 0.500000,
-                "Type" : "UParticleModuleCollision",
-                "bCollisionEnabled" : true,
+                "ModuleName" : "Location",
+                "StartLocation" : [0.000000, 0.000000, 0.000000],
+                "Type" : "UParticleModuleLocation",
                 "bEnabled" : true,
                 "bFinalUpdateModule" : false,
-                "bSpawnModule" : false,
-                "bUpdateModule" : true
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
               }],
             "RequiredModule" : {
-              "EmitterDuration" : 0.000000,
+              "EmitterDuration" : 5.000000,
               "EmitterLoops" : 0,
               "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
               "EmitterRotation" : 0.000000,
-              "Material" : "",
+              "Material" : {
+                "DiffuseTexture" : "Data/Textures/Default.png",
+                "ShaderPath" : "Shaders/Effects/ParticleMesh.hlsl"
+              },
               "ModuleName" : "Required",
-              "SpawnRate" : 5.000000,
+              "SpawnRate" : 100.000000,
               "Type" : "UParticleModuleRequired",
               "bEnabled" : true,
               "bFinalUpdateModule" : false,
@@ -94,7 +78,7 @@
             },
             "TypeDataModule" : {
               "Mesh" : "Data/apple_mid.obj",
-              "ModuleName" : "TypeData Mesh",
+              "ModuleName" : "ParticleModule",
               "Type" : "UParticleModuleTypeDataMesh",
               "bEnabled" : true,
               "bFinalUpdateModule" : false,
@@ -103,14 +87,14 @@
               "bUseMeshMaterials" : true
             }
           }],
-        "MaxParticleCount" : 100
+        "MaxParticleCount" : 1000
       }],
     "LODDistanceCheckTime" : 0.250000,
     "LODDistances" : [0.000000],
     "LODMethod" : 0,
     "SystemDuration" : 5.000000,
     "SystemLoops" : 0,
-    "SystemName" : "Sample Particle System",
+    "SystemName" : "Sample Mesh Particle System",
     "bAutoActivate" : true,
     "bIsDirty" : false
   }

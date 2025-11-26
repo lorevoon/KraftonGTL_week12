@@ -12,21 +12,21 @@
 #endif
 
 // Define class-specific body macro
-#define A_COLLISION_PARTICLE_ACTOR_BODY \
+#define A_PARTICLE_ACTOR_BODY \
 public: \
     using Super = AActor; \
-    using ThisClass_t = ACollisionParticleActor; \
+    using ThisClass_t = AParticleActor; \
     static UClass* StaticClass() \
     { \
-        static UClass Cls{ "ACollisionParticleActor", AActor::StaticClass(), sizeof(ACollisionParticleActor) }; \
+        static UClass Cls{ "AParticleActor", AActor::StaticClass(), sizeof(AParticleActor) }; \
         static bool bRegistered = (UClass::SignUpClass(&Cls), true); \
         return &Cls; \
     } \
-    virtual UClass* GetClass() const override { return ACollisionParticleActor::StaticClass(); } \
-    ACollisionParticleActor(const ACollisionParticleActor&) = default; \
-    ACollisionParticleActor* Duplicate() const override \
+    virtual UClass* GetClass() const override { return AParticleActor::StaticClass(); } \
+    AParticleActor(const AParticleActor&) = default; \
+    AParticleActor* Duplicate() const override \
     { \
-        ACollisionParticleActor* NewObject = ObjectFactory::DuplicateObject<ACollisionParticleActor>(this); \
+        AParticleActor* NewObject = ObjectFactory::DuplicateObject<AParticleActor>(this); \
         NewObject->DuplicateSubObjects(); \
         NewObject->PostDuplicate(); \
         return NewObject; \
@@ -37,4 +37,4 @@ private: \
 public:
 
 // Redirect generic macro to class-specific one
-#define CURRENT_CLASS_GENERATED_BODY A_COLLISION_PARTICLE_ACTOR_BODY
+#define CURRENT_CLASS_GENERATED_BODY A_PARTICLE_ACTOR_BODY

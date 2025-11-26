@@ -3,7 +3,7 @@
 
 class UParticleSystemComponent;
 
-UCLASS(DisplayName="빔 파티클 액터", Description="빔 파티클 시스템을 생성하는 액터입니다")
+UCLASS(DisplayName="빔 파티클 액터 (샘플)", Description="샘플 빔 파티클 시스템이 설정된 액터입니다")
 class ABeamParticleActor : public AActor
 {
 public:

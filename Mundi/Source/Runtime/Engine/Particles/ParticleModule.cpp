@@ -3,6 +3,7 @@
 #include "Source/Runtime/Core/Object/Property.h"
 #include "ResourceManager.h"
 #include "Material.h"
+#include "Shader.h"
 
 UParticleModule::UParticleModule()
     : bSpawnModule(false)
@@ -87,12 +88,51 @@ void UParticleModule::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                 case EPropertyType::Material:
                 {
                     UMaterialInterface** Value = Prop.GetValuePtr<UMaterialInterface*>(this);
+
+                    // Case 1: 문자열 (기존 방식 - preload된 Material 경로)
                     if (PropValue.JSONType() == JSON::Class::String)
                     {
                         FString MaterialPath = PropValue.ToString();
                         if (!MaterialPath.empty())
                         {
                             *Value = UResourceManager::GetInstance().Load<UMaterial>(MaterialPath);
+                        }
+                        else
+                        {
+                            *Value = nullptr;
+                        }
+                    }
+                    // Case 2: 오브젝트 (Shader/Texture 정보로 Material 재구성)
+                    else if (PropValue.JSONType() == JSON::Class::Object)
+                    {
+                        FString ShaderPath;
+                        FString DiffuseTexture;
+
+                        if (PropValue.hasKey("ShaderPath"))
+                        {
+                            ShaderPath = PropValue.at("ShaderPath").ToString();
+                        }
+                        if (PropValue.hasKey("DiffuseTexture"))
+                        {
+                            DiffuseTexture = PropValue.at("DiffuseTexture").ToString();
+                        }
+
+                        if (!ShaderPath.empty())
+                        {
+                            // ResourceManager를 통해 Material 로드 (캐싱됨)
+                            // UMaterial::Load()는 .hlsl 경로를 받으면 해당 Shader를 로드하여 Material 생성
+                            UMaterial* Mat = UResourceManager::GetInstance().Load<UMaterial>(ShaderPath);
+
+                            // Texture 설정이 필요한 경우
+                            if (Mat && !DiffuseTexture.empty())
+                            {
+                                FMaterialInfo MatInfo = Mat->GetMaterialInfo();
+                                MatInfo.DiffuseTextureFileName = DiffuseTexture;
+                                Mat->SetMaterialInfo(MatInfo);
+                                Mat->ResolveTextures();
+                            }
+
+                            *Value = Mat;
                         }
                         else
                         {
@@ -160,7 +200,33 @@ void UParticleModule::Serialize(const bool bInIsLoading, JSON& InOutHandle)
                     UMaterialInterface** Value = Prop.GetValuePtr<UMaterialInterface*>(this);
                     if (*Value)
                     {
-                        InOutHandle[Prop.Name] = (*Value)->GetFilePath().c_str();
+                        // FilePath가 있으면 기존 방식 (preload된 Material)
+                        FString MatPath = (*Value)->GetFilePath();
+                        if (!MatPath.empty())
+                        {
+                            InOutHandle[Prop.Name] = MatPath.c_str();
+                        }
+                        else
+                        {
+                            // FilePath가 없으면 Shader/Texture 정보를 별도 저장 (NewObject로 생성된 경우)
+                            JSON MatInfo = JSON::Make(JSON::Class::Object);
+
+                            // Shader 경로 저장
+                            UShader* Shader = (*Value)->GetShader();
+                            if (Shader)
+                            {
+                                MatInfo["ShaderPath"] = Shader->GetFilePath().c_str();
+                            }
+
+                            // Texture 경로 저장 (Diffuse)
+                            const FMaterialInfo& MInfo = (*Value)->GetMaterialInfo();
+                            if (!MInfo.DiffuseTextureFileName.empty())
+                            {
+                                MatInfo["DiffuseTexture"] = MInfo.DiffuseTextureFileName.c_str();
+                            }
+
+                            InOutHandle[Prop.Name] = MatInfo;
+                        }
                     }
                     else
                     {
