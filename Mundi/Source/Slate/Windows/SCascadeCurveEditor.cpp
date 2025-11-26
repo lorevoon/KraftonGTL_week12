@@ -5,14 +5,16 @@
 void SCascadeCurveEditor::Render(float width, float height)
 {
     // Main layout: Toolbar at top, then split between curve list and graph
-    const float toolbarHeight = 28.0f;
     const float splitterWidth = 4.0f;
 
-    // Toolbar
+    // Measure toolbar height dynamically
+    ImVec2 startPos = ImGui::GetCursorScreenPos();
+    float startY = startPos.y;
     RenderToolbar(width);
+    float usedToolbar = ImGui::GetCursorScreenPos().y - startY;
 
-    // Calculate remaining height after toolbar
-    float contentHeight = height - toolbarHeight - 8.0f;
+    // Remaining height after toolbar
+    float contentHeight = height - usedToolbar;
     if (contentHeight < 50.0f) contentHeight = 50.0f;
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -53,8 +55,7 @@ void SCascadeCurveEditor::Render(float width, float height)
 
 void SCascadeCurveEditor::RenderToolbar(float width)
 {
-    ImGui::BeginChild("CurveEditor_Toolbar", ImVec2(width, 28.0f), false, ImGuiWindowFlags_NoScrollbar);
-
+    // Inline toolbar (no child), dynamically sized by its contents
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 0));
 
@@ -157,8 +158,6 @@ void SCascadeCurveEditor::RenderToolbar(float width)
     ImGui::Checkbox("Snap", &bSnapToGrid);
 
     ImGui::PopStyleVar(2);
-    ImGui::EndChild();
-
     ImGui::Separator();
 }
 
@@ -607,6 +606,140 @@ void SCascadeCurveEditor::HandleKeySelection(const ImVec2& canvasMin, const ImVe
     ImVec2 mousePos = ImGui::GetMousePos();
     const float hitRadius = 8.0f;
 
+    // Ctrl + Left Click: add a new key on the active (or first visible) track
+    if (ImGui::GetIO().KeyCtrl)
+    {
+        // Don't add if clicking near an existing key (treat as normal selection)
+        for (int32 entryIdx = 0; entryIdx < CurveEntries.Num(); ++entryIdx)
+        {
+            const FCurveEntry& entry = CurveEntries[entryIdx];
+            if (!entry.bVisible) continue;
+            for (int32 trackIdx = 0; trackIdx < entry.Tracks.Num(); ++trackIdx)
+            {
+                const FCurveTrack& track = entry.Tracks[trackIdx];
+                if (!track.bVisible) continue;
+                for (int32 keyIdx = 0; keyIdx < track.Keys.Num(); ++keyIdx)
+                {
+                    ImVec2 p = CurveToScreen(track.Keys[keyIdx].Time, track.Keys[keyIdx].Value, canvasMin, canvasMax);
+                    float dx = mousePos.x - p.x; float dy = mousePos.y - p.y;
+                    if (dx*dx + dy*dy <= hitRadius*hitRadius)
+                    {
+                        // near existing key: fall through to normal selection
+                        goto NORMAL_SELECTION_PATH;
+                    }
+                }
+            }
+        }
+
+        // Choose target track: selected track or first visible
+        int32 targetEntry = SelectedEntryIndex;
+        int32 targetTrack = SelectedTrackIndex;
+        if (targetEntry < 0 || targetEntry >= CurveEntries.Num() ||
+            targetTrack < 0 || targetTrack >= CurveEntries[targetEntry].Tracks.Num() ||
+            !CurveEntries[targetEntry].bVisible || !CurveEntries[targetEntry].Tracks[targetTrack].bVisible)
+        {
+            targetEntry = -1; targetTrack = -1;
+            for (int32 e = 0; e < CurveEntries.Num(); ++e)
+            {
+                const FCurveEntry& entry = CurveEntries[e];
+                if (!entry.bVisible) continue;
+                for (int32 t = 0; t < entry.Tracks.Num(); ++t)
+                {
+                    if (entry.Tracks[t].bVisible)
+                    {
+                        targetEntry = e; targetTrack = t; break;
+                    }
+                }
+                if (targetEntry != -1) break;
+            }
+        }
+
+        if (targetEntry != -1 && targetTrack != -1)
+        {
+            FCurveTrack& track = CurveEntries[targetEntry].Tracks[targetTrack];
+            // Convert mouse to curve space
+            float newTime, newValue;
+            ScreenToCurve(mousePos, canvasMin, canvasMax, newTime, newValue);
+            if (bSnapToGrid)
+            {
+                newTime = round(newTime / GridTimeStep) * GridTimeStep;
+                newValue = round(newValue / GridValueStep) * GridValueStep;
+            }
+
+            // Create key
+            FCurveKey newKey; newKey.Time = newTime; newKey.Value = newValue; newKey.ArriveTangent = 0.0f; newKey.LeaveTangent = 0.0f; newKey.InterpMode = 1; // User
+
+            // Insert sorted by time
+            int32 insertIdx = 0;
+            for (; insertIdx < track.Keys.Num(); ++insertIdx)
+            {
+                if (newTime < track.Keys[insertIdx].Time) break;
+            }
+            // grow and shift
+            track.Keys.Add(FCurveKey());
+            for (int32 i = track.Keys.Num() - 1; i > insertIdx; --i)
+                track.Keys[i] = track.Keys[i - 1];
+            track.Keys[insertIdx] = newKey;
+
+            // Select the new key
+            SelectedEntryIndex = targetEntry;
+            SelectedTrackIndex = targetTrack;
+            SelectedKeyIndex = insertIdx;
+            SelectedTangentHandle = -1;
+            bIsDraggingTangent = false;
+            return;
+        }
+    }
+
+NORMAL_SELECTION_PATH:
+
+    // If a key is already selected, test its tangent handles first
+    if (SelectedKeyIndex >= 0 &&
+        SelectedEntryIndex >= 0 && SelectedEntryIndex < CurveEntries.Num() &&
+        SelectedTrackIndex >= 0 && SelectedTrackIndex < CurveEntries[SelectedEntryIndex].Tracks.Num())
+    {
+        const FCurveTrack& track = CurveEntries[SelectedEntryIndex].Tracks[SelectedTrackIndex];
+        if (SelectedKeyIndex < track.Keys.Num())
+        {
+            const FCurveKey& key = track.Keys[SelectedKeyIndex];
+            ImVec2 keyPos = CurveToScreen(key.Time, key.Value, canvasMin, canvasMax);
+            const float tangentHandleLength = 30.0f;
+
+            // Arrive handle (left)
+            if (SelectedKeyIndex > 0)
+            {
+                float angle = atan(key.ArriveTangent);
+                ImVec2 end = ImVec2(
+                    keyPos.x - tangentHandleLength * cos(angle),
+                    keyPos.y + tangentHandleLength * sin(angle)
+                );
+                float dx = mousePos.x - end.x; float dy = mousePos.y - end.y;
+                if (dx*dx + dy*dy <= hitRadius*hitRadius)
+                {
+                    SelectedTangentHandle = 0; // arrive
+                    bIsDraggingTangent = true;
+                    return;
+                }
+            }
+            // Leave handle (right)
+            if (SelectedKeyIndex < track.Keys.Num() - 1)
+            {
+                float angle = atan(key.LeaveTangent);
+                ImVec2 end = ImVec2(
+                    keyPos.x + tangentHandleLength * cos(angle),
+                    keyPos.y - tangentHandleLength * sin(angle)
+                );
+                float dx = mousePos.x - end.x; float dy = mousePos.y - end.y;
+                if (dx*dx + dy*dy <= hitRadius*hitRadius)
+                {
+                    SelectedTangentHandle = 1; // leave
+                    bIsDraggingTangent = true;
+                    return;
+                }
+            }
+        }
+    }
+
     // Check if clicked on a key
     for (int32 entryIdx = 0; entryIdx < CurveEntries.Num(); ++entryIdx)
     {
@@ -632,6 +765,8 @@ void SCascadeCurveEditor::HandleKeySelection(const ImVec2& canvasMin, const ImVe
                     SelectedEntryIndex = entryIdx;
                     SelectedTrackIndex = trackIdx;
                     SelectedKeyIndex = keyIdx;
+                    SelectedTangentHandle = -1;
+                    bIsDraggingTangent = false;
                     return;
                 }
             }
@@ -640,6 +775,8 @@ void SCascadeCurveEditor::HandleKeySelection(const ImVec2& canvasMin, const ImVe
 
     // Clicked on empty space - deselect key
     SelectedKeyIndex = -1;
+    SelectedTangentHandle = -1;
+    bIsDraggingTangent = false;
 }
 
 void SCascadeCurveEditor::HandleKeyDragging(const ImVec2& canvasMin, const ImVec2& canvasMax)
@@ -653,24 +790,59 @@ void SCascadeCurveEditor::HandleKeyDragging(const ImVec2& canvasMin, const ImVec
 
     if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsItemActive())
     {
-        bIsDraggingKey = true;
-
         ImVec2 mousePos = ImGui::GetMousePos();
-        float newTime, newValue;
-        ScreenToCurve(mousePos, canvasMin, canvasMax, newTime, newValue);
-
-        if (bSnapToGrid)
+        if (SelectedTangentHandle != -1)
         {
-            newTime = round(newTime / GridTimeStep) * GridTimeStep;
-            newValue = round(newValue / GridValueStep) * GridValueStep;
-        }
+            // Dragging tangent handle: update Arrive/LeaveTangent from mouse vector in curve space
+            bIsDraggingTangent = true; bIsDraggingKey = false;
+            float handleTime, handleValue;
+            ScreenToCurve(mousePos, canvasMin, canvasMax, handleTime, handleValue);
+            FCurveKey& key = track.Keys[SelectedKeyIndex];
+            float dt = handleTime - key.Time;
+            float dv = handleValue - key.Value;
+            const float eps = 1e-5f;
+            // Compute slope in curve space
+            if (SelectedTangentHandle == 0) { if (dt >= -eps) dt = -eps; }
+            else { if (dt <= eps) dt = eps; }
+            float slope = dv / dt;
 
-        track.Keys[SelectedKeyIndex].Time = newTime;
-        track.Keys[SelectedKeyIndex].Value = newValue;
+            // Switch to User mode on manual edit (unless explicitly Break)
+            if (key.InterpMode == 0 /*Auto*/ || key.InterpMode == 3 /*Linear*/ || key.InterpMode == 4 /*Constant*/)
+                key.InterpMode = 1; // User
+
+            // If not Break (2), unify tangents (UE-style locked tangents)
+            if (key.InterpMode != 2 /*Break*/)
+            {
+                key.ArriveTangent = slope;
+                key.LeaveTangent = slope;
+            }
+            else
+            {
+                // Break mode: edit only the selected side
+                if (SelectedTangentHandle == 0) key.ArriveTangent = slope; else key.LeaveTangent = slope;
+            }
+        }
+        else
+        {
+            // Dragging key: move time/value
+            bIsDraggingKey = true; bIsDraggingTangent = false;
+            float newTime, newValue;
+            ScreenToCurve(mousePos, canvasMin, canvasMax, newTime, newValue);
+            
+            if (bSnapToGrid)
+            {
+                newTime = round(newTime / GridTimeStep) * GridTimeStep;
+                newValue = round(newValue / GridValueStep) * GridValueStep;
+            }
+            
+            track.Keys[SelectedKeyIndex].Time = newTime;
+            track.Keys[SelectedKeyIndex].Value = newValue;
+        }
     }
     else
     {
         bIsDraggingKey = false;
+        bIsDraggingTangent = false;
     }
 }
 

@@ -99,12 +99,15 @@ private:
     float CurveListWidth = 200.0f;
     bool bIsPanning = false;
     bool bIsDraggingKey = false;
+    bool bIsDraggingTangent = false;
     ImVec2 LastMousePos = ImVec2(0, 0);
 
     // Selection state
     int32 SelectedEntryIndex = -1;
     int32 SelectedTrackIndex = -1;
     int32 SelectedKeyIndex = -1;
+    // -1: none, 0: arrive (left), 1: leave (right)
+    int32 SelectedTangentHandle = -1;
 
     // Tangent editing mode
     enum class ETangentMode { Auto, User, Break, Linear, Constant };

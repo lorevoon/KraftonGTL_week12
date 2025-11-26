@@ -343,8 +343,11 @@ void SParticleSystemEditorWindow::OnRender()
 void SParticleSystemEditorWindow::RenderLeftColumn(float width, float height)
 {
     const float splitter = 4.f;
-    float viewportH = height * LeftRowSplitRatio;
-    float detailsH = height - viewportH - splitter;
+    // Apply a small vertical leeway so the left column contents fit tightly
+    const float leftColumnLeeway = 18.0f;
+    float effectiveH = FMath::Max(height - leftColumnLeeway, 0.0f);
+    float viewportH = effectiveH * LeftRowSplitRatio;
+    float detailsH = effectiveH - viewportH - splitter;
     if (detailsH < 0) detailsH = 0;
 
     // Viewport area (top)
@@ -374,8 +377,11 @@ void SParticleSystemEditorWindow::RenderLeftColumn(float width, float height)
 void SParticleSystemEditorWindow::RenderRightColumn(float width, float height)
 {
     const float splitter = 4.f;
-    float emittersH = height * RightRowSplitRatio;
-    float curvesH = height - emittersH - splitter;
+    // Apply a small vertical leeway so the right column contents fit tightly
+    const float rightColumnLeeway = 18.0f;
+    float effectiveH = FMath::Max(height - rightColumnLeeway, 0.0f);
+    float emittersH = effectiveH * RightRowSplitRatio;
+    float curvesH = effectiveH - emittersH - splitter;
     if (curvesH < 0) curvesH = 0;
 
     // Emitters panel (top)
@@ -401,6 +407,7 @@ void SParticleSystemEditorWindow::RenderRightColumn(float width, float height)
     ImGui::BeginChild("Cascade_Curves", ImVec2(width, curvesH), true, ImGuiWindowFlags_NoScrollbar);
     {
         ImVec2 pos = ImGui::GetCursorScreenPos();
+        float headerStartY = pos.y;
         float fullW = ImGui::GetContentRegionAvail().x;
         const float padX = 10.0f;
         const float padY = 5.0f;
@@ -419,20 +426,28 @@ void SParticleSystemEditorWindow::RenderRightColumn(float width, float height)
         ImGui::PopStyleColor();
         float lineY = chipMax.y + 5.0f;
         dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + fullW, lineY), lineCol, 1.0f);
-        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 6.0f));
-    }
-    if (CurveEditor)
-    {
-        // Sync selected module between emitters panel and curve editor
-        if (EmittersPanel)
+        // Tighter spacing under the header chip
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 2.0f));
+
+        // Compute header height actually used
+        float headerUsed = ImGui::GetCursorScreenPos().y - headerStartY;
+
+        // Render curve editor to the remaining height inside this child
+        if (CurveEditor)
         {
-            UParticleModule* SelectedModule = EmittersPanel->GetSelectedModule();
-            if (CurveEditor->GetSelectedModule() != SelectedModule)
+            // Sync selected module between emitters panel and curve editor
+            if (EmittersPanel)
             {
-                CurveEditor->SetSelectedModule(SelectedModule);
+                UParticleModule* SelectedModule = EmittersPanel->GetSelectedModule();
+                if (CurveEditor->GetSelectedModule() != SelectedModule)
+                {
+                    CurveEditor->SetSelectedModule(SelectedModule);
+                }
             }
+            float editorHeight = curvesH - headerUsed - 17.0f;
+            // if (editorHeight < 50.0f) editorHeight = 50.0f;
+            CurveEditor->Render(width, editorHeight);
         }
-        CurveEditor->Render(width, curvesH);
     }
     ImGui::EndChild();
 }
