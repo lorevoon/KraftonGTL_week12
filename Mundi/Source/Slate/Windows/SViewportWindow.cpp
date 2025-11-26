@@ -445,6 +445,9 @@ void SViewportWindow::LoadToolbarIcons(ID3D11Device* Device)
 	IconGPUSkinning = NewObject<UTexture>();
 	IconGPUSkinning->Load(GDataDir + "/Icon/Viewport_SkinningGPU.png", Device);
 
+	IconParticle = NewObject<UTexture>();
+	IconParticle->Load(GDataDir + "/Icon/Viewport_Particle.png", Device);
+
 	// 뷰포트 레이아웃 전환 아이콘 로드
 	IconSingleToMultiViewport = NewObject<UTexture>();
 	IconSingleToMultiViewport->Load(GDataDir + "/Icon/Viewport_SingleToMultiViewport.png", Device);
@@ -1672,6 +1675,24 @@ void SViewportWindow::RenderShowFlagDropdownMenu()
 		if (ImGui::IsItemHovered())
 		{
 			ImGui::SetTooltip("포그 효과를 표시합니다.");
+		}
+
+		// Particle
+		bool bParticle = RenderSettings.IsShowFlagEnabled(EEngineShowFlags::SF_Particle);
+		if (ImGui::Checkbox("##Particle", &bParticle))
+		{
+			RenderSettings.ToggleShowFlag(EEngineShowFlags::SF_Particle);
+		}
+		ImGui::SameLine();
+		if (IconParticle && IconParticle->GetShaderResourceView())
+		{
+			ImGui::Image((void*)IconParticle->GetShaderResourceView(), IconSize);
+			ImGui::SameLine(0, 4);
+		}
+		ImGui::Text(" 파티클");
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("파티클 시스템 렌더링을 표시합니다.");
 		}
 
 		// Bounds

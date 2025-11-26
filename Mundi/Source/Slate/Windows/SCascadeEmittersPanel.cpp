@@ -659,6 +659,12 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
         Velocity->ModuleName = "Velocity";
         LOD0->AddModule(Velocity);
     }
+    // Initial Size
+    if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())
+    {
+        Size->ModuleName = "Size";
+        LOD0->AddModule(Size);
+    }
     // Initial Color / Color Over Life
     if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
     {
@@ -820,6 +826,12 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultBeamEmitter()
         Velocity->StartVelocityMin = FVector(100.f, 0.f, 0.f);
         Velocity->StartVelocityMax = FVector(200.f, 50.f, 0.f);
         LOD0->AddModule(Velocity);
+    }
+    // Size
+    if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())
+    {
+        Size->ModuleName = "Size";
+        LOD0->AddModule(Size);
     }
     // Color
     if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
