@@ -143,42 +143,41 @@ void FDynamicSpriteEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMateria
     // 4.6. Depth/Stencil 상태 설정 (반투명 파티클: depth test 활성화, depth write 비활성화)
     RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
 
-    // 5. Material 바인딩 (셰이더, 텍스처, 샘플러)
+    // 5. 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (Material과 무관)
+    static UShader* SpriteShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleSprite.hlsl");
+    if (SpriteShader)
+    {
+        RHI->PrepareShader(SpriteShader);
+        UE_LOG("[debug] Shader bound: %s", SpriteShader ? "Valid" : "Null");
+    }
+    else
+    {
+        UE_LOG("[error] Shader is null!");
+    }
+
+    // 6. 텍스처 바인딩 (Material이 있으면 Material에서, 없으면 nullptr)
+    ID3D11ShaderResourceView* DiffuseSRV = nullptr;
     if (Material)
     {
-        // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
-        static UShader* SpriteShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleSprite.hlsl");
-        if (SpriteShader)
-        {
-            RHI->PrepareShader(SpriteShader);
-            UE_LOG("[debug] Shader bound: %s", SpriteShader ? "Valid" : "Null");
-        }
-        else
-        {
-            UE_LOG("[error] Shader is null!");
-        }
-
-        // 텍스처 바인딩
-        ID3D11ShaderResourceView* DiffuseSRV = nullptr;
         if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
         {
             DiffuseSRV = DiffuseTexture->GetShaderResourceView();
-            UE_LOG("[debug] Texture SRV: %s", DiffuseSRV ? "Valid" : "Null");
+            UE_LOG("[debug] Texture SRV from Material: %s", DiffuseSRV ? "Valid" : "Null");
         }
         else
         {
             UE_LOG("[warn] No diffuse texture in material");
         }
-        Context->PSSetShaderResources(0, 1, &DiffuseSRV);
-
-        // 샘플러 바인딩
-        ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
-        Context->PSSetSamplers(0, 1, &DefaultSampler);
     }
     else
     {
-        UE_LOG("[error] Material is null!");
+        UE_LOG("[debug] Material is null, using no texture (will render as white)");
     }
+    Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+
+    // 7. 샘플러 바인딩
+    ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
+    Context->PSSetSamplers(0, 1, &DefaultSampler);
 
     // 6. 버퍼 바인딩
     UINT Strides[2] = { sizeof(FVector2D), sizeof(FParticleSpriteInstance) };
@@ -371,22 +370,23 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     else
     {
         // 파티클 머티리얼 사용 (기존 방식 - 전체 메시 한번에)
-        // 쉐이더는 파티클 전용 쉐이더 강제 사용
+        // 쉐이더는 파티클 전용 쉐이더 강제 사용 (Material과 무관)
         if (MeshShader)
         {
             RHI->PrepareShader(MeshShader);
         }
 
+        // 텍스처 바인딩 (Material이 있으면 Material에서, 없으면 nullptr)
+        ID3D11ShaderResourceView* DiffuseSRV = nullptr;
         if (Material)
         {
-            ID3D11ShaderResourceView* DiffuseSRV = nullptr;
             if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
             {
                 DiffuseSRV = DiffuseTexture->GetShaderResourceView();
             }
-            Context->PSSetShaderResources(0, 1, &DiffuseSRV);
-            Context->PSSetSamplers(0, 1, &DefaultSampler);
         }
+        Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+        Context->PSSetSamplers(0, 1, &DefaultSampler);
 
         UINT IndexCount = ParticleMesh->GetIndexCount();
         Context->DrawIndexedInstanced(IndexCount, InstanceCount, 0, 0, 0);
@@ -582,26 +582,26 @@ void FDynamicBeamEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     RHI->OMSetBlendState(true);
     RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
 
-    // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
+    // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (Material과 무관)
     static UShader* BeamShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleBeam.hlsl");
     if (BeamShader)
     {
         RHI->PrepareShader(BeamShader);
     }
 
+    // 텍스처 바인딩 (Material이 있으면 Material에서, 없으면 nullptr)
+    ID3D11ShaderResourceView* DiffuseSRV = nullptr;
     if (Material)
     {
-        // 텍스처 바인딩
-        ID3D11ShaderResourceView* DiffuseSRV = nullptr;
         if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
         {
             DiffuseSRV = DiffuseTexture->GetShaderResourceView();
         }
-        Context->PSSetShaderResources(0, 1, &DiffuseSRV);
-
-        ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
-        Context->PSSetSamplers(0, 1, &DefaultSampler);
     }
+    Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+
+    ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
+    Context->PSSetSamplers(0, 1, &DefaultSampler);
 
     // 버퍼 바인딩
     UINT Stride = sizeof(FParticleBeamInstance);

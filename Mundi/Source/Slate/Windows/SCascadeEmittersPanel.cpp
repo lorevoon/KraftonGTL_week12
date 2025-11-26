@@ -659,6 +659,12 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
         Velocity->ModuleName = "Velocity";
         LOD0->AddModule(Velocity);
     }
+    // Initial Size
+    if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())
+    {
+        Size->ModuleName = "Size";
+        LOD0->AddModule(Size);
+    }
     // Initial Color / Color Over Life
     if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
     {
