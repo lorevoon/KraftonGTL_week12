@@ -6,6 +6,8 @@
 #include "Source/Runtime/Core/Object/ObjectMacros.h"
 #include "Source/Runtime/Engine/Scripting/LuaBindHelpers.h"
 
+#include "Vector.h"
+
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
 
 // IMPLEMENT_CLASS(UParticleModuleTypeDataBeam) expansion
@@ -42,6 +44,7 @@ BEGIN_PROPERTIES(UParticleModuleTypeDataBeam)
     ADD_PROPERTY(float, Width, "Beam", true)
     ADD_PROPERTY(float, Length, "Beam", true)
     ADD_PROPERTY(float, TaperFactor, "Beam", true)
+    ADD_PROPERTY(FVector, Direction, "Beam", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -58,5 +61,7 @@ LUA_BIND_BEGIN(UParticleModuleTypeDataBeam)
         T, "Length", &UParticleModuleTypeDataBeam::Length);
     AddProperty<UParticleModuleTypeDataBeam, float>(
         T, "TaperFactor", &UParticleModuleTypeDataBeam::TaperFactor);
+    AddProperty<UParticleModuleTypeDataBeam, FVector>(
+        T, "Direction", &UParticleModuleTypeDataBeam::Direction);
 }
 LUA_BIND_END()

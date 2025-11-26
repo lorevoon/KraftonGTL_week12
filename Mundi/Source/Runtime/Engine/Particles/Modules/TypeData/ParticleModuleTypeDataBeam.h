@@ -29,6 +29,7 @@ public:
         , Width(0.05f)    // 5cm
         , Length(3.0f)    // 3m
         , TaperFactor(0.0f)
+        , Direction(FVector(1.0f, 0.0f, 0.0f))
     {}
 
     // 빔 방식 (현재는 Distance만 지원)
@@ -50,4 +51,14 @@ public:
     // 테이퍼 (0 = 균일, 1 = 끝점에서 완전히 가늘어짐)
     UPROPERTY(EditAnywhere, Category="Beam")
     float TaperFactor;
+
+    // 빔 방향 (정규화 벡터)
+    UPROPERTY(EditAnywhere, Category="Beam")
+    FVector Direction;
+
+    // Emitter 타입 반환
+    virtual EDynamicEmitterType GetDynamicEmitterType() const
+    {
+        return EDynamicEmitterType::Beam;
+    }
 };

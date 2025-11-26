@@ -43,10 +43,6 @@ public:
     UPROPERTY(EditAnywhere, Category="Noise")
     bool bSmooth;
 
-    // 지그재그 진동 모드
-    UPROPERTY(EditAnywhere, Category="Noise")
-    bool bOscillate;
-
     // 모듈 인터페이스
     virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
     virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;

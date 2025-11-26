@@ -40,7 +40,6 @@ BEGIN_PROPERTIES(UParticleModuleBeamNoise)
     ADD_PROPERTY(FVector, NoiseRange, "Noise", true)
     ADD_PROPERTY(float, NoiseLockTime, "Noise", true)
     ADD_PROPERTY(bool, bSmooth, "Noise", true)
-    ADD_PROPERTY(bool, bOscillate, "Noise", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -53,7 +52,5 @@ LUA_BIND_BEGIN(UParticleModuleBeamNoise)
         T, "NoiseLockTime", &UParticleModuleBeamNoise::NoiseLockTime);
     AddProperty<UParticleModuleBeamNoise, bool>(
         T, "bSmooth", &UParticleModuleBeamNoise::bSmooth);
-    AddProperty<UParticleModuleBeamNoise, bool>(
-        T, "bOscillate", &UParticleModuleBeamNoise::bOscillate);
 }
 LUA_BIND_END()

@@ -9,7 +9,6 @@ UParticleModuleBeamNoise::UParticleModuleBeamNoise()
     : NoiseRange(FVector(0.2f, 0.2f, 0.0f))  // 20cm
     , NoiseLockTime(0.1f)
     , bSmooth(true)
-    , bOscillate(false)
 {
     bSpawnModule = true;
     bUpdateModule = true;
@@ -130,23 +129,15 @@ void UParticleModuleBeamNoise::GenerateNoisePoints(TArray<FVector>& OutPoints, i
     int32 NoisePointCount = FMath::Max(0, SegmentCount - 1);
     OutPoints.SetNum(NoisePointCount);
 
-    int32 Extreme = -1;
+    auto RandF = []() { return (float)rand() / (float)RAND_MAX * 2.0f - 1.0f; };
+
     for (int32 i = 0; i < NoisePointCount; ++i)
     {
-        if (bOscillate)
-        {
-            Extreme = -Extreme;
-            OutPoints[i] = NoiseRange * (float)Extreme;
-        }
-        else
-        {
-            auto RandF = []() { return (float)rand() / (float)RAND_MAX * 2.0f - 1.0f; };
-            OutPoints[i] = FVector(
-                RandF() * NoiseRange.X,
-                RandF() * NoiseRange.Y,
-                RandF() * NoiseRange.Z
-            );
-        }
+        OutPoints[i] = FVector(
+            RandF() * NoiseRange.X,
+            RandF() * NoiseRange.Y,
+            RandF() * NoiseRange.Z
+        );
     }
 }
 

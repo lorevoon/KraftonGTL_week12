@@ -473,6 +473,13 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
     const FTransform CompTransform = bUseLocalSpace ? Source->GetComponentWorldTransform() : FTransform();
     const FVector CameraPos = View->ViewLocation;
 
+    // TypeData에서 빔 방향 가져오기
+    FVector BeamDirection = TypeDataBeam->Direction.GetSafeNormal();
+    if (BeamDirection.SizeSquared() < 0.001f)
+    {
+        BeamDirection = FVector(1.0f, 0.0f, 0.0f);
+    }
+
     for (int32 p = 0; p < ParticleCount; ++p)
     {
         FBaseParticle* Particle = Source->GetParticle(p);
@@ -489,27 +496,12 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
             StartPos = CompTransform.TransformPosition(Particle->Location);
 
             // 방향 벡터: 회전만 적용 (TransformVector)
-            if (Particle->Velocity.SizeSquared() > 0.001f)
-            {
-                BeamDir = CompTransform.TransformVector(Particle->Velocity).GetSafeNormal();
-            }
-            else
-            {
-                BeamDir = CompTransform.TransformVector(FVector(1.0f, 0.0f, 0.0f)).GetSafeNormal();
-            }
+            BeamDir = CompTransform.TransformVector(BeamDirection).GetSafeNormal();
         }
         else
         {
             StartPos = Particle->Location;
-
-            if (Particle->Velocity.SizeSquared() > 0.001f)
-            {
-                BeamDir = Particle->Velocity.GetSafeNormal();
-            }
-            else
-            {
-                BeamDir = FVector(1.0f, 0.0f, 0.0f);
-            }
+            BeamDir = BeamDirection;
         }
 
         FVector EndPos = StartPos + BeamDir * Length;
