@@ -18,6 +18,7 @@
 #include "Source/Editor/PlatformProcess.h"
 #include "ObjectFactory.h"
 #include "Source/Runtime/Engine/Viewer/EditorAssetPreviewContext.h"
+#include "Source/Runtime/Core/Misc/PathUtils.h"
 
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
@@ -1237,8 +1238,23 @@ void SParticleSystemEditorWindow::OnSaveParticleSystem()
     File << SaveJson.dump(2);
     File.close();
 
-    // Update the system's file path
-    EditingSystem->SetFilePath(FilePathStr);
+    // Update the system's file path (상대 경로로 정규화)
+    FString NormalizedPath = NormalizePath(FilePathStr);
 
-    UE_LOG("[ParticleEditor] Saved particle system to: %s", FilePathStr.c_str());
+    // 기존 경로와 비교하여 다른 이름/경로로 저장한 경우 새 파일을 로드하여 ResourceManager에 등록
+    FString NormalizedExistingPath = NormalizePath(ExistingPath);
+    if (NormalizedPath != NormalizedExistingPath)
+    {
+        // 새로 저장한 파일을 ResourceManager를 통해 로드 (새 객체로 등록됨)
+        UResourceManager::GetInstance().Load<UParticleSystem>(NormalizedPath);
+        // 캐시 갱신 (다음 렌더링 시 새로 빌드됨)
+        UPropertyRenderer::ClearResourcesCache();
+    }
+    else
+    {
+        // 같은 경로로 덮어쓰기한 경우에만 FilePath 업데이트
+        EditingSystem->SetFilePath(NormalizedPath);
+    }
+
+    UE_LOG("[ParticleEditor] Saved particle system to: %s", NormalizedPath.c_str());
 }
