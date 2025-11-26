@@ -2137,8 +2137,8 @@ bool UPropertyRenderer::RenderParticleSystemProperty(const FProperty& Prop, void
 		}
 	}
 
-	// 닫힌 콤보박스에 마우스를 올렸을 때 전체 경로 툴팁
-	if (ImGui::IsItemHovered())
+	// 닫힌 콤보박스에 마우스를 올렸을 때 전체 경로 툴팁 (경로가 있을 때만)
+	if (ImGui::IsItemHovered() && !CurrentPath.empty())
 	{
 		ImGui::BeginTooltip();
 		ImGui::TextUnformatted(CurrentPath.c_str());
