@@ -364,6 +364,7 @@ void UConsoleWidget::ExecCommand(const char* command_line)
 		AddLog("- STAT PICKING");
 		AddLog("- STAT DECAL");
 		AddLog("- STAT SKINNING");
+		AddLog("- STAT PARTICLE");
 		AddLog("- STAT ALL");
 		AddLog("- STAT LIGHT");
 		AddLog("- STAT NONE");
@@ -387,6 +388,11 @@ void UConsoleWidget::ExecCommand(const char* command_line)
 	{
 		UStatsOverlayD2D::Get().ToggleDecal();
 		AddLog("STAT DECAL TOGGLED");
+	}
+	else if (Stricmp(command_line, "STAT PARTICLE") == 0)
+	{
+		UStatsOverlayD2D::Get().ToggleParticle();
+		AddLog("STAT PARTICLE TOGGLED");
 	}
 	else if (Stricmp(command_line, "STAT LIGHT") == 0)
 	{

@@ -264,6 +264,21 @@ void UWorld::Tick(float DeltaSeconds)
 					{
 						Actor->Tick(GetDeltaTime(EDeltaTime::Game) * Actor->GetCustomTimeDillation());
 					}
+
+					// 에디터에서 상시 틱이 도는 컴포넌트 개별 처리
+					else
+					{
+						for (UActorComponent* Component : Actor->GetOwnedComponents())
+						{
+							if (UParticleSystemComponent* ParticleComponent = Cast<UParticleSystemComponent>(Component))
+							{
+								if (ParticleComponent->IsComponentTickEnabled())
+								{
+									ParticleComponent->TickComponent(GetDeltaTime(EDeltaTime::Game));
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -281,29 +296,6 @@ void UWorld::Tick(float DeltaSeconds)
 	if (LuaManager && bPie)
 	{
 		LuaManager->Tick(GetDeltaTime(EDeltaTime::Game));
-	}
-
-	
-	// =======================================
-	// ============= 파티클 전용 틱  =============
-	// ======================================= 
-	if (Level)
-	{
-		TArray<AActor*> LevelActors = Level->GetActors();
-		for (AActor* Actor : LevelActors)
-		{
-			if (Actor && Actor->IsActorActive())
-			{
-				// 액터의 모든 컴포넌트 순회
-				for (UActorComponent* Component : Actor->GetOwnedComponents())
-				{
-					if (UParticleSystemComponent* ParticleComponent = Cast<UParticleSystemComponent>(Component))
-					{
-						ParticleComponent->UpdateParticles(GetDeltaTime(EDeltaTime::Game));
-					}
-				}
-			}
-		}
 	}
 
 	// 지연 삭제 처리

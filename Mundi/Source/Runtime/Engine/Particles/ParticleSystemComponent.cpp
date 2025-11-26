@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "ParticleSystemComponent.h"
 #include "ParticleSystem.h"
 #include "ParticleEmitter.h"
@@ -13,6 +13,7 @@
 #include "PlayerCameraManager.h"
 #include "CameraActor.h"
 #include "CameraComponent.h"
+#include "PlatformTime.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -26,6 +27,8 @@ UParticleSystemComponent::UParticleSystemComponent()
 	, AccumLODDistanceCheckTime(0.0f)
 	, bLODUpdatePending(false)
 {
+	bCanEverTick = true;
+    bTickEnabled = true;
 }
 
 UParticleSystemComponent::~UParticleSystemComponent()
@@ -189,30 +192,6 @@ void UParticleSystemComponent::Serialize(const bool bInIsLoading, JSON& InOutHan
     }
 }
 
-void UParticleSystemComponent::UpdateParticles(float DeltaTime)
-{
-    if (!bIsActive || !Template)
-    {
-        return;
-    }
-
-    const float EffectiveRate = FMath::Max(CustomPlaybackRate, 0.0f);
-    if (EffectiveRate <= 0.0f)
-    {
-        return;
-    }
-
-    const float ScaledDeltaTime = DeltaTime * EffectiveRate;
-
-    for (FParticleEmitterInstance* Instance : EmitterInstances)
-    {
-        if (Instance)
-        {
-            UpdateEmitterInstance(Instance, ScaledDeltaTime);
-        }
-    }
-}
-
 void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
     if (!bIsActive || !Template)
@@ -225,6 +204,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     {
         return;
     }
+
+    TIME_PROFILE(ParticleSystemComponentTick);
 
     const float ScaledDeltaTime = DeltaTime * EffectiveRate;
 
