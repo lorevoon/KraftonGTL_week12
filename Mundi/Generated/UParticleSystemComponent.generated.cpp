@@ -35,6 +35,8 @@ const bool UParticleSystemComponent::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+// Enum values for EParticleSystemLODMethod
+static const char* LODMethod_EnumNames[] = { "Automatic", "DirectSet", "ActivateAutomatic", nullptr };
 
 BEGIN_PROPERTIES(UParticleSystemComponent)
     MARK_AS_COMPONENT("파티클 시스템 컴포넌트", "파티클 시스템을 렌더링하는 컴포넌트입니다")
@@ -43,6 +45,7 @@ BEGIN_PROPERTIES(UParticleSystemComponent)
     ADD_PROPERTY(bool, bIsActive, "", false)
     ADD_PROPERTY(float, CustomPlaybackRate, "ParticleSystem", true)
     ADD_PROPERTY(float, LODDistanceCheckTime, "ParticleSystem", true)
+    ADD_PROPERTY_ENUM(EParticleSystemLODMethod, LODMethod, "ParticleSystem", LODMethod_EnumNames, 3, true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -59,5 +62,7 @@ LUA_BIND_BEGIN(UParticleSystemComponent)
         T, "CustomPlaybackRate", &UParticleSystemComponent::CustomPlaybackRate);
     AddProperty<UParticleSystemComponent, float>(
         T, "LODDistanceCheckTime", &UParticleSystemComponent::LODDistanceCheckTime);
+    AddProperty<UParticleSystemComponent, EParticleSystemLODMethod>(
+        T, "LODMethod", &UParticleSystemComponent::LODMethod);
 }
 LUA_BIND_END()

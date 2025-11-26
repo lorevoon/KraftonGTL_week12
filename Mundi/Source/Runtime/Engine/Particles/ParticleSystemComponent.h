@@ -60,7 +60,8 @@ public:
     float LODDistanceCheckTime;
 
 	// LOD 메소드 (Template의 기본값을 오버라이드)
-	ParticleSystemLODMethod LODMethod;
+	UPROPERTY(EditAnywhere, Category = "ParticleSystem")
+	EParticleSystemLODMethod LODMethod;
 
 public:
     // ========== 이벤트 시스템 (Phase 2) ==========

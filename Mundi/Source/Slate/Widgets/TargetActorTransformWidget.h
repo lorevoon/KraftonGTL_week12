@@ -9,7 +9,6 @@ class AActor;
 class AGizmoActor;
 class USceneComponent;
 class UStaticMeshComponent;   // 추가
-class UParticleSystemComponent;
 
 static const char* kDisplayItems[] = {
 				"Pawn_64x.png",
@@ -70,5 +69,4 @@ private:
 
 	// 헬퍼 메서드
 	void ResetChangeFlags();
-	void RenderParticleSystemComponentControls(UParticleSystemComponent& ParticleComponent);
 };

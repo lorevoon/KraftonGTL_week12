@@ -35,6 +35,8 @@ const bool UParticleSystem::bPropertiesRegistered = []() {
 
 // ===== Property Reflection =====
 
+// Enum values for EParticleSystemLODMethod
+static const char* LODMethod_EnumNames[] = { "Automatic", "DirectSet", "ActivateAutomatic", nullptr };
 
 BEGIN_PROPERTIES(UParticleSystem)
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, Emitters, "Emitters", true)
@@ -44,6 +46,7 @@ BEGIN_PROPERTIES(UParticleSystem)
     ADD_PROPERTY(bool, bAutoActivate, "System", true)
     ADD_PROPERTY(float, LODDistanceCheckTime, "system", true)
     ADD_PROPERTY(bool, bIsDirty, "", false)
+    ADD_PROPERTY_ENUM(EParticleSystemLODMethod, LODMethod, "System", LODMethod_EnumNames, 3, true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -64,5 +67,7 @@ LUA_BIND_BEGIN(UParticleSystem)
         T, "LODDistanceCheckTime", &UParticleSystem::LODDistanceCheckTime);
     AddReadOnlyProperty<UParticleSystem, bool>(
         T, "bIsDirty", &UParticleSystem::bIsDirty);
+    AddProperty<UParticleSystem, EParticleSystemLODMethod>(
+        T, "LODMethod", &UParticleSystem::LODMethod);
 }
 LUA_BIND_END()

@@ -122,7 +122,7 @@ UParticleSystem::UParticleSystem()
     , SystemLoops(0)
     , bAutoActivate(true)
     , LODDistanceCheckTime(0.25f)
-    , LODMethod(ParticleSystemLODMethod::Automatic)
+    , LODMethod(EParticleSystemLODMethod::Automatic)
 {
     // LOD 0은 항상 0.0f
     LODDistances.Add(0.0f);
@@ -193,9 +193,9 @@ void UParticleSystem::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     if (bInIsLoading)
     {
         // UPROPERTY 필드는 자동 직렬화되므로 수동 처리 대상만 별도 처리
-        int32 LODMethodValue = static_cast<int32>(ParticleSystemLODMethod::Automatic);
-        FJsonSerializer::ReadInt32(InOutHandle, "LODMethod", LODMethodValue, static_cast<int32>(ParticleSystemLODMethod::Automatic), false);
-        LODMethod = static_cast<ParticleSystemLODMethod>(LODMethodValue);
+        int32 LODMethodValue = static_cast<int32>(EParticleSystemLODMethod::Automatic);
+        FJsonSerializer::ReadInt32(InOutHandle, "LODMethod", LODMethodValue, static_cast<int32>(EParticleSystemLODMethod::Automatic), false);
+        LODMethod = static_cast<EParticleSystemLODMethod>(LODMethodValue);
 
         // Load LOD distances
         LODDistances.Empty();

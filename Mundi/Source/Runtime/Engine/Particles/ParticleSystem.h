@@ -5,7 +5,7 @@
 #include "UParticleSystem.generated.h"
 
 /** @brief: 파티클의 LOD 계산 방식을 정의합니다.*/
-enum ParticleSystemLODMethod
+enum class EParticleSystemLODMethod : uint8
 {
     Automatic = 0,        // 일정 주기마다(LODDistanceCheckTime) 거리 기반으로 LOD를 자동으로 갱신
     DirectSet = 1,        // 게임 코드에서 LODIndex를 직접 세팅
@@ -56,8 +56,8 @@ public:
 	bool bIsDirty = false;
 
 	// LOD 메소드 기본값 (컴포넌트에서 오버라이드 가능)
-	// enum은 UPROPERTY에서 직접 지원하지 않으므로 직렬화, 디테일패널의 프로퍼티 렌더링 등은 별도 처리 필요.
-    ParticleSystemLODMethod LODMethod;
+	UPROPERTY(EditAnywhere, Category = "System")
+    EParticleSystemLODMethod LODMethod;
 
 	// LOD 거리 배열 (각 LOD 레벨로 전환되는 최소 거리)
     // LODDistances[0] (LOD 0)은 
@@ -79,8 +79,8 @@ public:
 	bool AddLODDistance(float Distance);
 	bool RemoveLODDistance(int32 LODIndex);
 
-	ParticleSystemLODMethod GetLODMethod() const { return LODMethod; }
-	void SetLODMethod(ParticleSystemLODMethod InMethod) { LODMethod = InMethod; }
+	EParticleSystemLODMethod GetLODMethod() const { return LODMethod; }
+	void SetLODMethod(EParticleSystemLODMethod InMethod) { LODMethod = InMethod; }
 
 	// Mark dirty to signal preview/components to rebuild
 	inline void MarkDirty() { bIsDirty = true; }

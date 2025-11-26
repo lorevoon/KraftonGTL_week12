@@ -23,7 +23,7 @@ UParticleSystemComponent::UParticleSystemComponent()
     , CompletedLoops(0)
     , CustomPlaybackRate(1.0f)
     , LODDistanceCheckTime(0.25f)
-    , LODMethod(ParticleSystemLODMethod::Automatic)
+    , LODMethod(EParticleSystemLODMethod::Automatic)
 	, AccumLODDistanceCheckTime(0.0f)
 	, bLODUpdatePending(false)
 {
@@ -43,7 +43,7 @@ void UParticleSystemComponent::OnRegister(UWorld* InWorld)
     if (Template && bAutoActivate)
     {
         AccumLODDistanceCheckTime = 0.0f;
-        bLODUpdatePending = (LODMethod == ParticleSystemLODMethod::ActivateAutomatic);
+        bLODUpdatePending = (LODMethod == EParticleSystemLODMethod::ActivateAutomatic);
 
 		CreateEmitterInstances();
         Activate();
@@ -90,7 +90,7 @@ void UParticleSystemComponent::Activate()
     CompletedLoops = 0;
     AccumLODDistanceCheckTime = 0.0f;
 
-    if (LODMethod == ParticleSystemLODMethod::ActivateAutomatic)
+    if (LODMethod == EParticleSystemLODMethod::ActivateAutomatic)
     {
         bLODUpdatePending = true;
 	}
@@ -150,7 +150,7 @@ void UParticleSystemComponent::SetTemplate(UParticleSystem* NewTemplate)
 
 void UParticleSystemComponent::SetLODIndex(int32 LODIndex)
 {
-    if (LODMethod != ParticleSystemLODMethod::DirectSet)
+    if (LODMethod != EParticleSystemLODMethod::DirectSet)
     {
         UE_LOG("WARNING: SetLODIndex called but LODMethod is not DirectSet.");
         return;
@@ -182,9 +182,9 @@ void UParticleSystemComponent::Serialize(const bool bInIsLoading, JSON& InOutHan
 
     if (bInIsLoading)
     {
-        int32 LODMethodValue = static_cast<int32>(ParticleSystemLODMethod::Automatic);
-        FJsonSerializer::ReadInt32(InOutHandle, "LODMethod", LODMethodValue, static_cast<int32>(ParticleSystemLODMethod::Automatic), false);
-        LODMethod = static_cast<ParticleSystemLODMethod>(LODMethodValue);
+        int32 LODMethodValue = static_cast<int32>(EParticleSystemLODMethod::Automatic);
+        FJsonSerializer::ReadInt32(InOutHandle, "LODMethod", LODMethodValue, static_cast<int32>(EParticleSystemLODMethod::Automatic), false);
+        LODMethod = static_cast<EParticleSystemLODMethod>(LODMethodValue);
     }
     else
     {
@@ -227,7 +227,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
         }
     }
 
-    if (LODMethod == ParticleSystemLODMethod::Automatic)
+    if (LODMethod == EParticleSystemLODMethod::Automatic)
     {
         if (LODDistanceCheckTime > 0.0f)
         {
