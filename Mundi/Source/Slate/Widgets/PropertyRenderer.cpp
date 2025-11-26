@@ -2095,14 +2095,15 @@ bool UPropertyRenderer::RenderParticleSystemProperty(const FProperty& Prop, void
 		}
 	}
 
-	// Cascade Editor 버튼 (SkeletalMesh의 Viewer 버튼 패턴과 동일)
-	if (ImGui::Button("Cascade Editor"))
+	// Cascade Editor 버튼 (Template이 있을 때만 표시)
+	if (*PSPtr)
 	{
-		if (*PSPtr)
+		if (ImGui::Button("Cascade Editor"))
 		{
 			UEditorAssetPreviewContext* Context = NewObject<UEditorAssetPreviewContext>();
 			Context->ViewerType = EViewerType::Particle;
-			Context->AssetPath = CurrentPath;
+			Context->ParticleSystem = *PSPtr;  // 포인터 직접 전달 (하드코딩된 ParticleSystem 지원)
+			Context->AssetPath = CurrentPath;  // 경로도 전달 (있으면)
 			USlateManager::GetInstance().OpenAssetViewer(Context);
 		}
 	}

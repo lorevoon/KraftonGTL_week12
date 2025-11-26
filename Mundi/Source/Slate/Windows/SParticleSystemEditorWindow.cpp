@@ -647,10 +647,22 @@ ViewerState* SParticleSystemEditorWindow::CreateViewerState(const char* Name, UE
     ViewerState* NewState = ParticleSystemEditorBootstrap::CreateViewerState(Name, World, Device);
     if (!NewState) return nullptr;
 
-    // Context->AssetPath가 있으면 해당 ParticleSystem을 로드하여 편집
-    if (Context && !Context->AssetPath.empty())
+    // Context에서 ParticleSystem을 가져와서 편집
+    if (Context)
     {
-        UParticleSystem* PS = UResourceManager::GetInstance().Load<UParticleSystem>(Context->AssetPath);
+        UParticleSystem* PS = nullptr;
+
+        // 포인터가 직접 전달된 경우 우선 사용 (하드코딩된 ParticleSystem 지원)
+        if (Context->ParticleSystem)
+        {
+            PS = Context->ParticleSystem;
+        }
+        // AssetPath가 있으면 로드 (preload된 리소스는 캐시에서 반환)
+        else if (!Context->AssetPath.empty())
+        {
+            PS = UResourceManager::GetInstance().Load<UParticleSystem>(Context->AssetPath);
+        }
+
         if (PS && EmittersPanel)
         {
             EmittersPanel->SetEditingSystem(PS);
