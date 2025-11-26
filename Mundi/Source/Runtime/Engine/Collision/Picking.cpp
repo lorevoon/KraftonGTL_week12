@@ -301,7 +301,8 @@ AActor* CPickingSystem::PerformPicking(const TArray<AActor*>& Actors, ACameraAct
 		if (Actor->GetActorHiddenInEditor()) continue;
 
 		float hitDistance;
-		if (CheckActorPicking(Actor, ray, hitDistance))
+		UPrimitiveComponent* DummyComponent = nullptr;
+		if (CheckActorPicking(Actor, ray, hitDistance, DummyComponent))
 		{
 			if (hitDistance < pickedT)
 			{
@@ -358,7 +359,8 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 		if (Actor->GetActorHiddenInEditor()) continue;
 
 		float hitDistance;
-		if (CheckActorPicking(Actor, ray, hitDistance))
+		UPrimitiveComponent* DummyComponent = nullptr;
+		if (CheckActorPicking(Actor, ray, hitDistance, DummyComponent))
 		{
 			if (hitDistance < pickedT)
 			{
@@ -421,7 +423,8 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 
 	// 베스트 퍼스트 탐색으로 가장 가까운 것을 직접 구한다
 	AActor* PickedActor = nullptr;
-	Partition->RayQueryClosest(ray, PickedActor, PickedT);
+	UPrimitiveComponent* PickedComponent = nullptr;  // 사용하지 않지만 시그니처 맞춤
+	Partition->RayQueryClosest(ray, PickedActor, PickedComponent, PickedT);
 	LastPickTime = static_cast<uint64>(PickCounter.Finish());
 	TotalPickTime += LastPickTime;
 	double Milliseconds = ((double)LastPickTime * FPlatformTime::GetSecondsPerCycle()) * 1000.0f;
@@ -697,11 +700,15 @@ bool CPickingSystem::CheckGizmoComponentPicking(UStaticMeshComponent* Component,
 	return false;
 }
 
-bool CPickingSystem::CheckActorPicking(const AActor* Actor, const FRay& Ray, float& OutDistance)
+bool CPickingSystem::CheckActorPicking(const AActor* Actor, const FRay& Ray, float& OutDistance, UPrimitiveComponent*& OutHitComponent)
 {
 	if (!Actor) return false;
 
-	// 액터의 모든 SceneComponent 순회
+	OutHitComponent = nullptr;
+	float ClosestDistance = FLT_MAX;
+	bool bHasHit = false;
+
+	// 액터의 모든 SceneComponent 순회하여 가장 가까운 충돌 찾기
 	for (auto SceneComponent : Actor->GetSceneComponents())
 	{
 		if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(SceneComponent))
@@ -736,12 +743,22 @@ bool CPickingSystem::CheckActorPicking(const AActor* Actor, const FRay& Ray, flo
 					const FVector4 HitWorld4 = HitLocal4 * WorldMatrix;
 					const FVector HitWorld(HitWorld4.X, HitWorld4.Y, HitWorld4.Z);
 					const float THitWorld = (HitWorld - Ray.Origin).Size();
-					OutDistance = THitWorld;
-					return true;
+
+					// 가장 가까운 충돌만 저장
+					if (THitWorld < ClosestDistance)
+					{
+						ClosestDistance = THitWorld;
+						OutHitComponent = StaticMeshComponent;
+						bHasHit = true;
+					}
 				}
 			}
 		}
 	}
 
-	return false;
+	if (bHasHit)
+	{
+		OutDistance = ClosestDistance;
+	}
+	return bHasHit;
 }

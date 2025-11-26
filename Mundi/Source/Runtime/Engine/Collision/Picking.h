@@ -66,6 +66,8 @@ float DistanceRayToLineSegment(const FRay& Ray,
  * PickingSystem
  * - 액터 피킹 관련 로직을 담당하는 클래스
  */
+class UPrimitiveComponent;
+
 class CPickingSystem
 {
 public:
@@ -93,12 +95,13 @@ public:
                                              const FVector2D& ViewportSize,
                                              const FVector2D& ViewportOffset,FViewport*Viewport,
                                              FVector& OutImpactPoint);
-    
+
     // 기즈모 드래그로 액터를 이동시키는 함수
    // static void DragActorWithGizmo(AActor* Actor, AGizmoActor* GizmoActor, uint32 GizmoAxis, const FVector2D& MouseDelta, const ACameraActor* Camera, EGizmoMode InGizmoMode);
 
     /** === 헬퍼 함수들 === */
-    static bool CheckActorPicking(const AActor* Actor, const FRay& Ray, float& OutDistance);
+    // OutHitComponent: 실제로 레이와 충돌한 컴포넌트를 반환 (파티클 충돌 노말 계산에 필요)
+    static bool CheckActorPicking(const AActor* Actor, const FRay& Ray, float& OutDistance, UPrimitiveComponent*& OutHitComponent);
 
 
     static uint32 GetPickCount() { return TotalPickCount; }

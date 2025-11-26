@@ -401,9 +401,10 @@ int FBVHierarchy::BuildRange(int s, int e)
     return nodeIdx;
 }
 
-void FBVHierarchy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const
+void FBVHierarchy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, UPrimitiveComponent*& OutComponent, OUT float& OutBestT) const
 {
     OutActor = nullptr;
+    OutComponent = nullptr;
     // Respect caller-provided initial cap (e.g., far plane) if valid
     if (!(std::isfinite(OutBestT) && OutBestT > 0.0f))
     {
@@ -456,12 +457,15 @@ void FBVHierarchy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float
                     continue;
 
                 float hitDistance;
-                if (CPickingSystem::CheckActorPicking(Owner, Ray, hitDistance))
+                UPrimitiveComponent* HitComponent = nullptr;
+                if (CPickingSystem::CheckActorPicking(Owner, Ray, hitDistance, HitComponent))
                 {
                     if (hitDistance < OutBestT)
                     {
                         OutBestT = hitDistance;
                         OutActor = Owner;
+                        // 실제로 레이와 충돌한 컴포넌트를 사용 (자식 컴포넌트 충돌 시 정확한 노말 계산에 필요)
+                        OutComponent = HitComponent ? HitComponent : Component;
                         isPick = true;
                     }
                 }

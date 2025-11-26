@@ -501,7 +501,8 @@ void FOctree::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& Out
                 continue;
 
             float hitDistance;
-            if (CPickingSystem::CheckActorPicking(Actor, Ray, hitDistance))
+            UPrimitiveComponent* DummyComponent = nullptr;
+            if (CPickingSystem::CheckActorPicking(Actor, Ray, hitDistance, DummyComponent))
             {
                 if (hitDistance < OutBestT)
                 {

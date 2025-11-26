@@ -184,8 +184,9 @@ bool FAABB::IntersectsRay(const FRay& InRay, float& OutEnterDistance, float& Out
 			}
 		}
 	}
-	// 레이가 박스와 실제로 만나는 구간이다. 
-	OutEnterDistance = (ClosestEnter < 0.0f) ? 0.0f : ClosestEnter;
+	// 레이가 박스와 실제로 만나는 구간이다.
+	// 음수 값도 그대로 반환하여 호출자가 레이 원점이 AABB 내부인지 판단할 수 있게 함
+	OutEnterDistance = ClosestEnter;
 	OutExitDistance = FarthestExit;
 	return true;
 }

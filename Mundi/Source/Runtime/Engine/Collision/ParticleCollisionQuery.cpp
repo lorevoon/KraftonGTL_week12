@@ -46,28 +46,34 @@ namespace ParticleCollision
 		Ray.Direction = Direction;
 
 		// WorldPartitionManager를 통한 레이 쿼리
+		// BVH에서 히트한 Actor와 Component를 직접 반환받음
 		AActor* HitActor = nullptr;
+		UPrimitiveComponent* HitComponent = nullptr;
 		float HitT = 0.0f;
 
-		Partition->RayQueryClosest(Ray, HitActor, HitT);
+		Partition->RayQueryClosest(Ray, HitActor, HitComponent, HitT);
 
 		// 유효한 히트인지 확인 (범위 내)
 		if (HitActor && HitT > 0.0f && HitT <= MaxDistance)
 		{
 			OutHit.bHit = true;
 			OutHit.HitActor = HitActor;
+			OutHit.HitComponent = HitComponent;
 			OutHit.Distance = HitT;
 			OutHit.ImpactPoint = Start + Direction * HitT;
 
-			// 히트 컴포넌트 및 노말 계산
-			// RootComponent가 PrimitiveComponent인 경우 AABB를 통해 노말 계산
-			if (USceneComponent* RootComp = HitActor->GetRootComponent())
+			// HitComponent가 있으면 해당 컴포넌트의 AABB로 노말 계산
+			if (HitComponent)
 			{
+				FAABB WorldAABB = HitComponent->GetWorldAABB();
+				OutHit.ImpactNormal = CalculateAABBNormal(WorldAABB, OutHit.ImpactPoint);
+			}
+			else if (USceneComponent* RootComp = HitActor->GetRootComponent())
+			{
+				// 폴백: RootComponent 사용
 				if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(RootComp))
 				{
 					OutHit.HitComponent = PrimComp;
-
-					// AABB 기반 노말 계산
 					FAABB WorldAABB = PrimComp->GetWorldAABB();
 					OutHit.ImpactNormal = CalculateAABBNormal(WorldAABB, OutHit.ImpactPoint);
 				}

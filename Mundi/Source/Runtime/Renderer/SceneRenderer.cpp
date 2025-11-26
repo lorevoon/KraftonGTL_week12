@@ -1393,6 +1393,72 @@ void FSceneRenderer::RenderDebugPass()
 		}
 	}
 
+	// Component Bounding Boxes 렌더링
+	if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes))
+	{
+		auto DrawAABB = [this](const FAABB& WorldAABB, const FVector4& LineColor)
+		{
+			const FVector Min = WorldAABB.Min;
+			const FVector Max = WorldAABB.Max;
+
+			TArray<FVector> Start;
+			TArray<FVector> End;
+			TArray<FVector4> Color;
+
+			// AABB 8개 정점
+			const FVector v0(Min.X, Min.Y, Min.Z);
+			const FVector v1(Max.X, Min.Y, Min.Z);
+			const FVector v2(Max.X, Max.Y, Min.Z);
+			const FVector v3(Min.X, Max.Y, Min.Z);
+			const FVector v4(Min.X, Min.Y, Max.Z);
+			const FVector v5(Max.X, Min.Y, Max.Z);
+			const FVector v6(Max.X, Max.Y, Max.Z);
+			const FVector v7(Min.X, Max.Y, Max.Z);
+
+			// 바닥면 4개 모서리
+			Start.Add(v0); End.Add(v1); Color.Add(LineColor);
+			Start.Add(v1); End.Add(v2); Color.Add(LineColor);
+			Start.Add(v2); End.Add(v3); Color.Add(LineColor);
+			Start.Add(v3); End.Add(v0); Color.Add(LineColor);
+
+			// 윗면 4개 모서리
+			Start.Add(v4); End.Add(v5); Color.Add(LineColor);
+			Start.Add(v5); End.Add(v6); Color.Add(LineColor);
+			Start.Add(v6); End.Add(v7); Color.Add(LineColor);
+			Start.Add(v7); End.Add(v4); Color.Add(LineColor);
+
+			// 수직 4개 모서리
+			Start.Add(v0); End.Add(v4); Color.Add(LineColor);
+			Start.Add(v1); End.Add(v5); Color.Add(LineColor);
+			Start.Add(v2); End.Add(v6); Color.Add(LineColor);
+			Start.Add(v3); End.Add(v7); Color.Add(LineColor);
+
+			OwnerRenderer->AddLines(Start, End, Color);
+		};
+
+		const FVector4 LineColor(0.0f, 1.0f, 0.0f, 1.0f); // 녹색
+
+		// 모든 액터의 모든 PrimitiveComponent 순회
+		for (AActor* Actor : World->GetLevel()->GetActors())
+		{
+			if (!Actor) 
+			{
+				continue;
+			}
+
+			for (USceneComponent* SceneComp : Actor->GetSceneComponents())
+			{
+				UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SceneComp);
+				if (!PrimComp) 
+				{
+					continue;
+				}
+
+				DrawAABB(PrimComp->GetWorldAABB(), LineColor);
+			}
+		}
+	}
+
 	// 수집된 라인을 출력하고 정리
 	OwnerRenderer->EndLineBatch(FMatrix::Identity());
 }
