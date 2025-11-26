@@ -92,63 +92,96 @@ void SCascadeCurveEditor::RenderToolbar(float width)
     ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
     ImGui::SameLine();
 
-    // Tangent mode buttons
+    // Tangent mode buttons - apply to selected key when clicked
     ImGui::TextUnformatted("Tangent:");
     ImGui::SameLine();
 
-    bool isAuto = (CurrentTangentMode == ETangentMode::Auto);
-    bool isUser = (CurrentTangentMode == ETangentMode::User);
-    bool isBreak = (CurrentTangentMode == ETangentMode::Break);
-    bool isLinear = (CurrentTangentMode == ETangentMode::Linear);
-    bool isConst = (CurrentTangentMode == ETangentMode::Constant);
+    // Check if we have a valid key selected
+    bool hasSelectedKey = (SelectedKeyIndex >= 0 &&
+                           SelectedEntryIndex >= 0 && SelectedEntryIndex < CurveEntries.Num() &&
+                           SelectedTrackIndex >= 0 && SelectedTrackIndex < CurveEntries[SelectedEntryIndex].Tracks.Num() &&
+                           SelectedKeyIndex < CurveEntries[SelectedEntryIndex].Tracks[SelectedTrackIndex].Keys.Num());
+
+    // Get current key's interp mode if selected
+    int32 selectedKeyInterpMode = -1;
+    if (hasSelectedKey)
+    {
+        selectedKeyInterpMode = CurveEntries[SelectedEntryIndex].Tracks[SelectedTrackIndex].Keys[SelectedKeyIndex].InterpMode;
+    }
+
+    bool isAuto = (selectedKeyInterpMode == 0);
+    bool isUser = (selectedKeyInterpMode == 1);
+    bool isBreak = (selectedKeyInterpMode == 2);
+    bool isLinear = (selectedKeyInterpMode == 3);
+    bool isConst = (selectedKeyInterpMode == 4);
 
     if (isAuto) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
     if (ImGui::Button("Auto"))
     {
+        if (hasSelectedKey)
+        {
+            ApplyTangentModeToSelectedKey(0);
+        }
         CurrentTangentMode = ETangentMode::Auto;
     }
     if (isAuto) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Auto tangent mode");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Auto tangent - smooth curve through keys");
 
     ImGui::SameLine();
 
     if (isUser) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
     if (ImGui::Button("User"))
     {
+        if (hasSelectedKey)
+        {
+            ApplyTangentModeToSelectedKey(1);
+        }
         CurrentTangentMode = ETangentMode::User;
     }
     if (isUser) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("User tangent mode");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("User tangent - manually adjust tangent handles");
 
     ImGui::SameLine();
 
     if (isBreak) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
     if (ImGui::Button("Break"))
     {
+        if (hasSelectedKey)
+        {
+            ApplyTangentModeToSelectedKey(2);
+        }
         CurrentTangentMode = ETangentMode::Break;
     }
     if (isBreak) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Break tangents");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Break tangent - separate in/out tangent control");
 
     ImGui::SameLine();
 
     if (isLinear) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
     if (ImGui::Button("Linear"))
     {
+        if (hasSelectedKey)
+        {
+            ApplyTangentModeToSelectedKey(3);
+        }
         CurrentTangentMode = ETangentMode::Linear;
     }
     if (isLinear) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Linear interpolation");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Linear - straight line to next key");
 
     ImGui::SameLine();
 
     if (isConst) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.5f, 0.3f, 1.0f));
     if (ImGui::Button("Const"))
     {
+        if (hasSelectedKey)
+        {
+            ApplyTangentModeToSelectedKey(4);
+        }
         CurrentTangentMode = ETangentMode::Constant;
     }
     if (isConst) ImGui::PopStyleColor();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Constant (step) interpolation");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Constant - hold value until next key (step)");
 
     ImGui::SameLine();
     ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
@@ -522,6 +555,30 @@ void SCascadeCurveEditor::HandleGraphInput(const ImVec2& canvasMin, const ImVec2
     HandleZooming(canvasMin, canvasMax);
     HandleKeySelection(canvasMin, canvasMax);
     HandleKeyDragging(canvasMin, canvasMax);
+
+    // Handle DEL key to delete selected key
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete) && SelectedKeyIndex >= 0)
+    {
+        if (SelectedEntryIndex >= 0 && SelectedEntryIndex < CurveEntries.Num() &&
+            SelectedTrackIndex >= 0 && SelectedTrackIndex < CurveEntries[SelectedEntryIndex].Tracks.Num())
+        {
+            FCurveTrack& track = CurveEntries[SelectedEntryIndex].Tracks[SelectedTrackIndex];
+            if (SelectedKeyIndex < track.Keys.Num() && track.Keys.Num() > 1)
+            {
+                // Remove the key (but keep at least one key)
+                track.Keys.RemoveAt(SelectedKeyIndex);
+
+                // Adjust selection
+                if (SelectedKeyIndex >= track.Keys.Num())
+                {
+                    SelectedKeyIndex = track.Keys.Num() - 1;
+                }
+
+                bHasPendingChanges = true;
+                WriteBackChanges();
+            }
+        }
+    }
 
     LastMousePos = ImGui::GetMousePos();
 }
@@ -901,9 +958,19 @@ float SCascadeCurveEditor::EvaluateCurve(const FCurveTrack& track, float time) c
 
     float alpha = (time - key0.Time) / timeDiff;
 
-    // Hermite interpolation
-    return CubicInterp(key0.Value, key0.LeaveTangent * timeDiff,
-                       key1.Value, key1.ArriveTangent * timeDiff, alpha);
+    // Choose interpolation based on the starting key's InterpMode
+    switch (key0.InterpMode)
+    {
+    case 3: // Linear - straight line interpolation
+        return key0.Value + (key1.Value - key0.Value) * alpha;
+
+    case 4: // Constant - step function, hold value until next key
+        return key0.Value;
+
+    default: // 0=Auto, 1=User, 2=Break - all use Hermite cubic interpolation
+        return CubicInterp(key0.Value, key0.LeaveTangent * timeDiff,
+                           key1.Value, key1.ArriveTangent * timeDiff, alpha);
+    }
 }
 
 float SCascadeCurveEditor::CubicInterp(float p0, float t0, float p1, float t1, float alpha) const
@@ -1031,6 +1098,117 @@ void SCascadeCurveEditor::LoadCurvesFromModule()
         }
 
         CurveEntries.Add(entry);
+    }
+}
+
+void SCascadeCurveEditor::ApplyTangentModeToSelectedKey(int32 Mode)
+{
+    if (SelectedKeyIndex < 0) return;
+    if (SelectedEntryIndex < 0 || SelectedEntryIndex >= CurveEntries.Num()) return;
+    if (SelectedTrackIndex < 0 || SelectedTrackIndex >= CurveEntries[SelectedEntryIndex].Tracks.Num()) return;
+
+    FCurveTrack& track = CurveEntries[SelectedEntryIndex].Tracks[SelectedTrackIndex];
+    if (SelectedKeyIndex >= track.Keys.Num()) return;
+
+    FCurveKey& key = track.Keys[SelectedKeyIndex];
+    key.InterpMode = Mode;
+
+    // Calculate tangents based on mode
+    switch (Mode)
+    {
+    case 0: // Auto - smooth curve through keys
+        CalculateAutoTangent(track, SelectedKeyIndex);
+        break;
+    case 1: // User - keep current tangents, user will adjust manually
+        // Nothing to do, tangents stay as they are
+        break;
+    case 2: // Break - allow separate in/out tangents
+        // Nothing to do, tangents stay as they are but can be edited independently
+        break;
+    case 3: // Linear - straight line to neighbors
+        CalculateLinearTangent(track, SelectedKeyIndex);
+        break;
+    case 4: // Constant - step function, tangents don't matter
+        key.ArriveTangent = 0.0f;
+        key.LeaveTangent = 0.0f;
+        break;
+    }
+
+    bHasPendingChanges = true;
+    WriteBackChanges();
+}
+
+void SCascadeCurveEditor::CalculateAutoTangent(FCurveTrack& Track, int32 KeyIndex)
+{
+    if (KeyIndex < 0 || KeyIndex >= Track.Keys.Num()) return;
+
+    FCurveKey& key = Track.Keys[KeyIndex];
+
+    // Get neighboring keys
+    const FCurveKey* prevKey = (KeyIndex > 0) ? &Track.Keys[KeyIndex - 1] : nullptr;
+    const FCurveKey* nextKey = (KeyIndex < Track.Keys.Num() - 1) ? &Track.Keys[KeyIndex + 1] : nullptr;
+
+    if (prevKey && nextKey)
+    {
+        // Middle key: use Catmull-Rom style tangent (average of slopes to neighbors)
+        float slopeToPrev = (key.Value - prevKey->Value) / (key.Time - prevKey->Time);
+        float slopeToNext = (nextKey->Value - key.Value) / (nextKey->Time - key.Time);
+
+        // Average slope for smooth transition
+        float avgSlope = (slopeToPrev + slopeToNext) * 0.5f;
+        key.ArriveTangent = avgSlope;
+        key.LeaveTangent = avgSlope;
+    }
+    else if (prevKey)
+    {
+        // Last key: slope towards previous
+        float slope = (key.Value - prevKey->Value) / (key.Time - prevKey->Time);
+        key.ArriveTangent = slope;
+        key.LeaveTangent = slope;
+    }
+    else if (nextKey)
+    {
+        // First key: slope towards next
+        float slope = (nextKey->Value - key.Value) / (nextKey->Time - key.Time);
+        key.ArriveTangent = slope;
+        key.LeaveTangent = slope;
+    }
+    else
+    {
+        // Only key: flat tangent
+        key.ArriveTangent = 0.0f;
+        key.LeaveTangent = 0.0f;
+    }
+}
+
+void SCascadeCurveEditor::CalculateLinearTangent(FCurveTrack& Track, int32 KeyIndex)
+{
+    if (KeyIndex < 0 || KeyIndex >= Track.Keys.Num()) return;
+
+    FCurveKey& key = Track.Keys[KeyIndex];
+
+    // Get neighboring keys
+    const FCurveKey* prevKey = (KeyIndex > 0) ? &Track.Keys[KeyIndex - 1] : nullptr;
+    const FCurveKey* nextKey = (KeyIndex < Track.Keys.Num() - 1) ? &Track.Keys[KeyIndex + 1] : nullptr;
+
+    // Arrive tangent points at previous key
+    if (prevKey)
+    {
+        key.ArriveTangent = (key.Value - prevKey->Value) / (key.Time - prevKey->Time);
+    }
+    else
+    {
+        key.ArriveTangent = 0.0f;
+    }
+
+    // Leave tangent points at next key
+    if (nextKey)
+    {
+        key.LeaveTangent = (nextKey->Value - key.Value) / (nextKey->Time - key.Time);
+    }
+    else
+    {
+        key.LeaveTangent = 0.0f;
     }
 }
 

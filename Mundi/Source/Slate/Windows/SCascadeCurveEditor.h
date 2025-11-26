@@ -97,6 +97,15 @@ private:
     // Load curve data from module's GetCurveProperties
     void LoadCurvesFromModule();
 
+    // Apply tangent mode to currently selected key
+    void ApplyTangentModeToSelectedKey(int32 Mode);
+
+    // Calculate auto tangent for a key based on neighboring keys
+    void CalculateAutoTangent(FCurveTrack& Track, int32 KeyIndex);
+
+    // Calculate linear tangent for a key pointing at neighbors
+    void CalculateLinearTangent(FCurveTrack& Track, int32 KeyIndex);
+
 private:
     // Curve data
     TArray<FCurveEntry> CurveEntries;

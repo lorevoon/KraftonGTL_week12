@@ -637,6 +637,70 @@ void SCascadeEmittersPanel::Render(float width, float height)
             if (EditingSystem) EditingSystem->bIsDirty = true;
         }
     }
+
+    // DEL key - delete selected module or emitter
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete))
+    {
+        // First priority: delete selected module (if any)
+        if (SelectedModule)
+        {
+            // Find which emitter/LOD contains this module
+            for (int32 emitterIdx = 0; emitterIdx < EditingSystem->GetEmitterCount(); ++emitterIdx)
+            {
+                UParticleEmitter* Emitter = EditingSystem->GetEmitter(emitterIdx);
+                if (!Emitter) continue;
+
+                UParticleLODLevel* LOD0 = Emitter->GetDefaultLODLevel();
+                if (!LOD0) continue;
+
+                // Check if it's the TypeData module
+                if (LOD0->TypeDataModule == SelectedModule)
+                {
+                    LOD0->TypeDataModule = nullptr;
+                    SelectedModule = nullptr;
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
+                    break;
+                }
+                // Check if it's the EventGenerator module
+                else if (LOD0->EventGenerator == SelectedModule)
+                {
+                    LOD0->EventGenerator = nullptr;
+                    SelectedModule = nullptr;
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
+                    break;
+                }
+                // Check if it's in the regular modules list (skip Required module)
+                else if (LOD0->RequiredModule != SelectedModule)
+                {
+                    const TArray<UParticleModule*>& Modules = LOD0->Modules;
+                    for (int32 modIdx = 0; modIdx < Modules.Num(); ++modIdx)
+                    {
+                        if (Modules[modIdx] == SelectedModule)
+                        {
+                            LOD0->RemoveModule(SelectedModule);
+                            SelectedModule = nullptr;
+                            if (EditingSystem) EditingSystem->bIsDirty = true;
+                            break;
+                        }
+                    }
+                    if (!SelectedModule) break; // Module was deleted
+                }
+            }
+        }
+        // Second priority: delete selected emitter (if no module selected)
+        else if (SelectedEmitterIndex >= 0 && SelectedEmitterIndex < EditingSystem->GetEmitterCount())
+        {
+            UParticleEmitter* ToRemove = EditingSystem->GetEmitter(SelectedEmitterIndex);
+            EditingSystem->RemoveEmitter(ToRemove);
+            if (EditingSystem) EditingSystem->bIsDirty = true;
+
+            // Adjust selection
+            if (SelectedEmitterIndex >= EditingSystem->GetEmitterCount())
+            {
+                SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+            }
+        }
+    }
 }
 
 UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
@@ -815,7 +879,7 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultBeamEmitter()
         TypeDataBeam->Length = 5.0f;     // 5m
         LOD0->TypeDataModule = TypeDataBeam;
 
-        // BeamNoise ¸ðµâ Ãß°¡
+        // BeamNoise ï¿½ï¿½ï¿½ ï¿½ß°ï¿½
         UParticleModuleBeamNoise* BeamNoiseModule = NewObject<UParticleModuleBeamNoise>();
         BeamNoiseModule->NoiseRange = FVector(0.3f, 0.3f, 0.0f);  // 30cm
         BeamNoiseModule->NoiseLockTime = 0.1f;
