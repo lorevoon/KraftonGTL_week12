@@ -486,19 +486,23 @@ void UStatsOverlayD2D::Draw()
 
 	if (bShowParticle)
 	{
-		// TODO: 파티클 통계 표시
-		// 파티클 통계 수집 구현 완료 후 구현.
+		const FTimeProfile& ParticleProfile = FScopeCycleCounter::GetTimeProfile("ParticleSystemComponentTick");
+		const double TotalMs = ParticleProfile.Milliseconds;
+		const uint32 CallCount = ParticleProfile.CallCount;
 
-		wchar_t Buf[128];
-		swprintf_s(Buf, L"Not Implemented");
+		wchar_t Buf[256];
+		swprintf_s(Buf, L"[Particle Stats]\nTotal Tick Time: %.3f ms (Calls: %u)",
+			TotalMs,
+			CallCount);
 
-		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth, NextY + PanelHeight);
+		const float ParticlePanelHeight = 120.0f;
+		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth * 1.5f, NextY + ParticlePanelHeight);
 		DrawTextBlock(
 			D2dCtx, CachedBrush, TextFormat, Buf, rc,
 			D2D1::ColorF(0, 0, 0, 0.6f),
 			D2D1::ColorF(D2D1::ColorF::Yellow));
 
-		NextY += PanelHeight + Space;
+		NextY += ParticlePanelHeight + Space;
 	}
 
 	D2dCtx->EndDraw();

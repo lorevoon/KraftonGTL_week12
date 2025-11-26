@@ -13,6 +13,7 @@
 #include "PlayerCameraManager.h"
 #include "CameraActor.h"
 #include "CameraComponent.h"
+#include "PlatformTime.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -196,6 +197,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
     {
         return;
     }
+
+    TIME_PROFILE(ParticleSystemComponentTick);
 
     const float ScaledDeltaTime = DeltaTime * EffectiveRate;
 
