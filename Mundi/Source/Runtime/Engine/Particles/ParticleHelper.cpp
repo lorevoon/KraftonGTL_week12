@@ -758,79 +758,18 @@ void FDynamicRibbonEmitterData::BuildRibbonVertices(FSceneView* View)
     if (TrailPoints.Num() < 2)
         return;  // 최소 2개 파티클 필요
 
-    // Hermite Curve 보간 + Triangle Strip 생성
-    TArray<FVector> InterpPositions;
-    TArray<FLinearColor> InterpColors;
-    TArray<float> InterpSizes;
-    TArray<FVector> InterpTangents;
+    Vertices.Reserve(TrailPoints.Num() * 2);
 
     float AccumulatedDistance = 0.0f;
 
-    for (int32 i = 0; i < TrailPoints.Num() - 1; ++i)
+    for (int32 i = 0; i < TrailPoints.Num(); ++i)
     {
         const FTrailPoint& Current = TrailPoints[i];
-        const FTrailPoint& Next = TrailPoints[i + 1];
 
-        // 세그먼트 길이
-        FVector SegmentDelta = Next.Position - Current.Position;
-        float SegmentLength = SegmentDelta.Size();
-
-        // Hermite curve용 Tangent (길이 스케일)
-        FVector StartTangent = Current.Tangent * SegmentLength;
-        FVector EndTangent = Next.Tangent * SegmentLength;
-
-        // 테셀레이션 개수 계산
-        int32 InterpCount = 1;
-        if (TessellationStepSize > 0.001f)
-        {
-            InterpCount = FMath::Max(1, (int32)(SegmentLength / TessellationStepSize));
-        }
-
-        // Tangent 각도 차이로 추가 세분화
-        if (bEnableTangentDiffInterpScale)
-        {
-            float TangentDot = FVector::Dot(Current.Tangent, Next.Tangent);
-            TangentDot = FMath::Clamp(TangentDot, -1.0f, 1.0f);
-            float AngleFactor = (1.0f - TangentDot) * 2.0f;  // 0~2 범위
-            InterpCount += (int32)AngleFactor;
-        }
-
-        InterpCount = FMath::Clamp(InterpCount, 1, MaxTessellation);
-
-        // Hermite curve 보간
-        for (int32 Step = 0; Step <= InterpCount; ++Step)
-        {
-            // 마지막 세그먼트의 끝 포인트는 다음 세그먼트 시작에서 처리
-            if (i < TrailPoints.Num() - 2 && Step == InterpCount)
-                continue;
-
-            float Alpha = (float)Step / (float)InterpCount;
-
-            // Hermite Cubic Interpolation
-            FVector InterpPos = CubicInterp(Current.Position, StartTangent, Next.Position, EndTangent, Alpha);
-            FLinearColor InterpColor = FMath::Lerp(Current.Color, Next.Color, Alpha);
-            float InterpSize = FMath::Lerp(Current.Size, Next.Size, Alpha);
-            FVector InterpTangent = FMath::Lerp(Current.Tangent, Next.Tangent, Alpha).GetSafeNormal();
-
-            InterpPositions.Add(InterpPos);
-            InterpColors.Add(InterpColor);
-            InterpSizes.Add(InterpSize);
-            InterpTangents.Add(InterpTangent);
-        }
-    }
-
-    if (InterpPositions.Num() < 2)
-        return;
-
-    // Triangle Strip 버텍스 생성
-    Vertices.Reserve(InterpPositions.Num() * 2);
-
-    for (int32 i = 0; i < InterpPositions.Num(); ++i)
-    {
-        FVector Position = InterpPositions[i];
-        FVector Tangent = InterpTangents[i];
-        FLinearColor Color = InterpColors[i];
-        float Size = InterpSizes[i];
+        FVector Position = Current.Position;
+        FVector Tangent = Current.Tangent;
+        FLinearColor Color = Current.Color;
+        float Size = Current.Size;
 
         // Up 벡터 계산 (RenderAxis에 따라)
         FVector Up;
@@ -861,13 +800,13 @@ void FDynamicRibbonEmitterData::BuildRibbonVertices(FSceneView* View)
         float U = 0.0f;
         if (TilingDistance > 0.001f && i > 0)
         {
-            float Distance = (Position - InterpPositions[i - 1]).Size();
+            float Distance = (Position - TrailPoints[i - 1].Position).Size();
             AccumulatedDistance += Distance;
             U = AccumulatedDistance / TilingDistance;
         }
         else
         {
-            U = (float)i / (float)(InterpPositions.Num() - 1);
+            U = (float)i / (float)(TrailPoints.Num() - 1);
         }
 
         // 양쪽 버텍스 생성
@@ -888,7 +827,7 @@ void FDynamicRibbonEmitterData::BuildRibbonVertices(FSceneView* View)
     }
 
     // Triangle Strip 인덱스 생성
-    int32 SegmentCount = InterpPositions.Num() - 1;
+    int32 SegmentCount = TrailPoints.Num() - 1;
     Indices.Reserve(SegmentCount * 6);
 
     for (int32 i = 0; i < SegmentCount; ++i)

@@ -12,12 +12,14 @@ struct FSpawnPerUnitInstancePayload
 	float AccumulatedDistance;   // 누적 이동 거리
 	bool bFirstUpdate;           // 첫 업데이트 여부
 	int32 HeadParticleDataIndex; // HEAD 파티클 DataIndex (ParticleData 배열의 실제 인덱스, -1이면 없음)
+	FVector LastTangent;         // 이전 이동 방향 (Hermite 보간용)
 
 	FSpawnPerUnitInstancePayload()
 		: PreviousLocation(FVector::Zero())
 		, AccumulatedDistance(0.0f)
 		, bFirstUpdate(true)
 		, HeadParticleDataIndex(-1)
+		, LastTangent(FVector::Zero())
 	{
 	}
 };

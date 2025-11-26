@@ -65,8 +65,8 @@ ARibbonParticleActor::ARibbonParticleActor()
 
 	// Ribbon TypeData 모듈 (TypeDataModule로 설정)
 	UParticleModuleTypeDataRibbon* RibbonModule = NewObject<UParticleModuleTypeDataRibbon>();
-	RibbonModule->Width = 2.0f;                      // 리본 너비 2m
-	RibbonModule->MaxParticleInTrailCount = 200;      // 최대 200개 파티클로 궤적 구성 (긴 궤적)
+	RibbonModule->Width = 0.5f;                      // 리본 너비 2m
+	RibbonModule->MaxParticleInTrailCount = 2000;      // 최대 200개 파티클로 궤적 구성 (긴 궤적)
 	RibbonModule->TilingDistance = 5.0f;             // 5m마다 UV 타일링
 	RibbonModule->RenderAxis = ERibbonRenderAxis::CameraUp;  // 카메라를 향하도록
 	RibbonModule->DistanceTessellationStepSize = 0.5f;       // 0.5m마다 테셀레이션
@@ -84,8 +84,8 @@ ARibbonParticleActor::ARibbonParticleActor()
 
 	// Lifetime 모듈 (긴 수명으로 궤적 유지)
 	UParticleModuleLifetime* LifetimeModule = NewObject<UParticleModuleLifetime>();
-	LifetimeModule->LifetimeMin = 5.0f;
-	LifetimeModule->LifetimeMax = 10.0f;
+	LifetimeModule->LifetimeMin = 2.0f;
+	LifetimeModule->LifetimeMax = 2.0f;
 	LODLevel->AddModule(LifetimeModule);
 
 	// Size 모듈 (리본 크기)

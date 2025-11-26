@@ -85,11 +85,29 @@ void UParticleModuleSpawnPerUnit::SpawnParticlesAlongMovement(FParticleEmitterIn
 	{
 		int32 ActualSpawnCount = std::min((int32)SpawnCount, MaxFrameDistance);
 
-		// 이동 경로를 따라 균등 간격으로 스폰
+		// Hermite 보간용 Tangent 계산
+		FVector CurrentLocation = Owner->GetComponentWorldLocation();
+		FVector CurrentTangent = MovementDelta.GetSafeNormal() * Distance;
+		FVector PreviousTangent = InstanceData->LastTangent;
+
+		// 첫 이동 시 Tangent 초기화
+		if (PreviousTangent.IsZero())
+			PreviousTangent = CurrentTangent;
+
+		// Hermite 보간으로 파티클 스폰
 		for (int32 i = 0; i < ActualSpawnCount; ++i)
 		{
 			float Alpha = (float)(i + 1) / (float)ActualSpawnCount;
-			FVector SpawnLocation = InstanceData->PreviousLocation + MovementDelta * Alpha;
+
+			// Hermite Cubic Interpolation
+			float Alpha2 = Alpha * Alpha;
+			float Alpha3 = Alpha2 * Alpha;
+			float H1 = 2.0f * Alpha3 - 3.0f * Alpha2 + 1.0f;
+			float H2 = Alpha3 - 2.0f * Alpha2 + Alpha;
+			float H3 = -2.0f * Alpha3 + 3.0f * Alpha2;
+			float H4 = Alpha3 - Alpha2;
+
+			FVector SpawnLocation = InstanceData->PreviousLocation * H1 + PreviousTangent * H2 + CurrentLocation * H3 + CurrentTangent * H4;
 
 			// SpawnTrailParticle이 HeadParticleDataIndex를 업데이트함
 			SpawnTrailParticle(Owner, SpawnLocation, Owner->EmitterTime, InstanceData);
@@ -104,6 +122,9 @@ void UParticleModuleSpawnPerUnit::SpawnParticlesAlongMovement(FParticleEmitterIn
 		// 소모한 거리만큼 차감
 		float ConsumedDistance = (ActualSpawnCount * UnitScalar) / SpawnPerUnit;
 		InstanceData->AccumulatedDistance -= ConsumedDistance;
+
+		// Tangent 저장 (다음 프레임용)
+		InstanceData->LastTangent = CurrentTangent;
 	}
 }
 
