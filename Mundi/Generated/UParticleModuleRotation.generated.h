@@ -12,21 +12,21 @@
 #endif
 
 // Define class-specific body macro
-#define A_MESH_PARTICLE_ACTOR_BODY \
+#define U_PARTICLE_MODULE_ROTATION_BODY \
 public: \
-    using Super = AActor; \
-    using ThisClass_t = AMeshParticleActor; \
+    using Super = UParticleModule; \
+    using ThisClass_t = UParticleModuleRotation; \
     static UClass* StaticClass() \
     { \
-        static UClass Cls{ "AMeshParticleActor", AActor::StaticClass(), sizeof(AMeshParticleActor) }; \
+        static UClass Cls{ "UParticleModuleRotation", UParticleModule::StaticClass(), sizeof(UParticleModuleRotation) }; \
         static bool bRegistered = (UClass::SignUpClass(&Cls), true); \
         return &Cls; \
     } \
-    virtual UClass* GetClass() const override { return AMeshParticleActor::StaticClass(); } \
-    AMeshParticleActor(const AMeshParticleActor&) = default; \
-    AMeshParticleActor* Duplicate() const override \
+    virtual UClass* GetClass() const override { return UParticleModuleRotation::StaticClass(); } \
+    UParticleModuleRotation(const UParticleModuleRotation&) = default; \
+    UParticleModuleRotation* Duplicate() const override \
     { \
-        AMeshParticleActor* NewObject = ObjectFactory::DuplicateObject<AMeshParticleActor>(this); \
+        UParticleModuleRotation* NewObject = ObjectFactory::DuplicateObject<UParticleModuleRotation>(this); \
         NewObject->DuplicateSubObjects(); \
         NewObject->PostDuplicate(); \
         return NewObject; \
@@ -37,4 +37,4 @@ private: \
 public:
 
 // Redirect generic macro to class-specific one
-#define CURRENT_CLASS_GENERATED_BODY A_MESH_PARTICLE_ACTOR_BODY
+#define CURRENT_CLASS_GENERATED_BODY U_PARTICLE_MODULE_ROTATION_BODY

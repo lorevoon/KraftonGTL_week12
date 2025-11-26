@@ -14,6 +14,7 @@
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleVelocity.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleColor.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSize.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleRotation.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSizeScaleBySpeed.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataBeam.h"
@@ -487,6 +488,11 @@ void SCascadeEmittersPanel::Render(float width, float height)
         // Empty area popup - Add Module context menu
         if (ImGui::BeginPopupContextWindow("EmitterColumnEmpty", ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight))
         {
+            // 이미터 타입 체크
+            bool bIsBeam = Cast<UParticleModuleTypeDataBeam>(LOD0->TypeDataModule) != nullptr;
+            bool bIsRibbon = Cast<UParticleModuleTypeDataRibbon>(LOD0->TypeDataModule) != nullptr;
+            bool bIsSpriteOrMesh = !bIsBeam && !bIsRibbon;
+
             ImGui::TextUnformatted("Add Module");
             ImGui::Separator();
 
@@ -512,7 +518,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 }
             }
 
-            if (ImGui::MenuItem("Initial Location"))
+            if (bIsSpriteOrMesh && ImGui::MenuItem("Initial Location"))
             {
                 UParticleModuleLocation* NewModule = NewObject<UParticleModuleLocation>();
                 if (NewModule)
@@ -523,7 +529,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 }
             }
 
-            if (ImGui::MenuItem("Initial Velocity"))
+            if (bIsSpriteOrMesh && ImGui::MenuItem("Initial Velocity"))
             {
                 UParticleModuleVelocity* NewModule = NewObject<UParticleModuleVelocity>();
                 if (NewModule)
@@ -556,7 +562,18 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 }
             }
 
-            if (ImGui::MenuItem("Size Scale By Speed"))
+            if (bIsSpriteOrMesh && ImGui::MenuItem("Rotation"))
+            {
+                UParticleModuleRotation* NewModule = NewObject<UParticleModuleRotation>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Rotation";
+                    LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
+                }
+            }
+
+            if (bIsSpriteOrMesh && ImGui::MenuItem("Size Scale By Speed"))
             {
                 UParticleModuleSizeScaleBySpeed* NewModule = NewObject<UParticleModuleSizeScaleBySpeed>();
                 if (NewModule)
@@ -567,7 +584,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 }
             }
 
-            if (ImGui::MenuItem("Collision"))
+            if (bIsSpriteOrMesh && ImGui::MenuItem("Collision"))
             {
                 UParticleModuleCollision* NewModule = NewObject<UParticleModuleCollision>();
                 if (NewModule)
@@ -577,13 +594,37 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 }
             }
 
-            if (ImGui::MenuItem("Acceleration"))
+            if (bIsSpriteOrMesh && ImGui::MenuItem("Acceleration"))
             {
                 UParticleModuleAcceleration* NewModule = NewObject<UParticleModuleAcceleration>();
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Acceleration";
                     LOD0->AddModule(NewModule);
+                }
+            }
+
+            // Beam 전용 모듈
+            if (bIsBeam && ImGui::MenuItem("Beam Noise"))
+            {
+                UParticleModuleBeamNoise* NewModule = NewObject<UParticleModuleBeamNoise>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "BeamNoise";
+                    LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
+                }
+            }
+
+            // Ribbon 전용 모듈
+            if (bIsRibbon && ImGui::MenuItem("Spawn Per Unit"))
+            {
+                UParticleModuleSpawnPerUnit* NewModule = NewObject<UParticleModuleSpawnPerUnit>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "SpawnPerUnit";
+                    LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
@@ -986,20 +1027,6 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultBeamEmitter()
         Lifetime->LifetimeMax = 2.0f;
         LOD0->AddModule(Lifetime);
     }
-    // Location
-    if (UParticleModuleLocation* Location = NewObject<UParticleModuleLocation>())
-    {
-        Location->ModuleName = "Location";
-        LOD0->AddModule(Location);
-    }
-    // Velocity - beam direction
-    if (UParticleModuleVelocity* Velocity = NewObject<UParticleModuleVelocity>())
-    {
-        Velocity->ModuleName = "Velocity";
-        Velocity->StartVelocityMin = FVector(100.f, 0.f, 0.f);
-        Velocity->StartVelocityMax = FVector(200.f, 50.f, 0.f);
-        LOD0->AddModule(Velocity);
-    }
     // Size
     if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())
     {
@@ -1074,20 +1101,6 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultRibbonEmitter()
         Lifetime->LifetimeMin = 2.0f;
         Lifetime->LifetimeMax = 2.0f;
         LOD0->AddModule(Lifetime);
-    }
-    // Location
-    if (UParticleModuleLocation* Location = NewObject<UParticleModuleLocation>())
-    {
-        Location->ModuleName = "Location";
-        LOD0->AddModule(Location);
-    }
-    // Velocity (궤적 생성을 위한 움직임)
-    if (UParticleModuleVelocity* Velocity = NewObject<UParticleModuleVelocity>())
-    {
-        Velocity->ModuleName = "Velocity";
-        Velocity->StartVelocityMin = FVector(2.0f, 0.f, 0.5f);
-        Velocity->StartVelocityMax = FVector(2.0f, 0.f, 1.0f);
-        LOD0->AddModule(Velocity);
     }
     // Size
     if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())

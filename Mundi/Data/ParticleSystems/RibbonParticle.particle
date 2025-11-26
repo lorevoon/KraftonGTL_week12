@@ -1,0 +1,95 @@
+{
+    "Emitters" : [{
+        "EmitterName" : "Ribbon Emitter",
+        "LODLevels" : [{
+            "DistanceThreshold" : 0.000000,
+            "Level" : 0,
+            "Modules" : [{
+                "MaxFrameDistance" : 200,
+                "ModuleName" : "SpawnPerUnit",
+                "SpawnPerUnit" : 20.000000,
+                "Type" : "UParticleModuleSpawnPerUnit",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bSpawnOnMovementStart" : true,
+                "bUpdateModule" : true
+              }, {
+                "LifetimeMax" : 2.000000,
+                "LifetimeMin" : 2.000000,
+                "ModuleName" : "Lifetime",
+                "Type" : "UParticleModuleLifetime",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Location",
+                "StartLocation" : [0.000000, 0.000000, 0.000000],
+                "Type" : "UParticleModuleLocation",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Size",
+                "StartSizeMax" : [1.000000, 1.000000, 1.000000],
+                "StartSizeMin" : [1.000000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleSize",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseSizeCurve" : false
+              }, {
+                "EndColor" : [1.000000, 0.800000, 0.200000, 0.000000],
+                "ModuleName" : "Color",
+                "StartColor" : [1.000000, 0.500000, 0.200000, 1.000000],
+                "Type" : "UParticleModuleColor",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseCurve" : false
+              }],
+            "RequiredModule" : {
+              "EmitterDuration" : 0.000000,
+              "EmitterLoops" : 0,
+              "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
+              "EmitterRotation" : 0.000000,
+              "Material" : "",
+              "ModuleName" : "Required",
+              "SortMode" : 0,
+              "SpawnRate" : 0.000000,
+              "Type" : "UParticleModuleRequired",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : true,
+              "bUpdateModule" : false,
+              "bUseLocalSpace" : false
+            },
+            "TypeDataModule" : {
+              "MaxParticleInTrailCount" : 2000,
+              "MaxTrailCount" : 1,
+              "ModuleName" : "Ribbon",
+              "RenderAxis" : 0,
+              "TilingDistance" : 5.000000,
+              "Type" : "UParticleModuleTypeDataRibbon",
+              "Width" : 0.500000,
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : false,
+              "bUpdateModule" : false
+            }
+          }],
+        "MaxParticleCount" : 2000
+      }],
+    "LODDistanceCheckTime" : 0.250000,
+    "LODDistances" : [0.000000],
+    "LODMethod" : 0,
+    "SystemDuration" : 10.000000,
+    "SystemLoops" : 0,
+    "SystemName" : "Sample Beam Particle System",
+    "bAutoActivate" : true,
+    "bIsDirty" : false
+  }
