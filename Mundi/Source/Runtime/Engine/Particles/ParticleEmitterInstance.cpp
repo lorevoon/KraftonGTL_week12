@@ -467,6 +467,15 @@ FVector FParticleEmitterInstance::GetComponentWorldLocation() const
     return FVector::Zero();
 }
 
+FTransform FParticleEmitterInstance::GetComponentWorldTransform() const
+{
+    if (Component)
+    {
+        return Component->GetWorldTransform();
+    }
+    return FTransform();
+}
+
 void* FParticleEmitterInstance::GetModuleInstanceData(UParticleModule* Module)
 {
     if (!ModuleInstanceData || !Module)

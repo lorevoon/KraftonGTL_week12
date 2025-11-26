@@ -61,15 +61,15 @@ bool UParticleModuleCollision::PerformCollisionCheck(FParticleEmitterInstance* O
 		ParticleBytes + sizeof(FBaseParticle)
 	);
 
-	// 로컬 공간 → 월드 공간 변환
+	// 로컬 공간 → 월드 공간 변환 (위치 + 회전 + 스케일)
 	FVector WorldOldLocation = Particle->OldLocation;
 	FVector WorldLocation = Particle->Location;
 
 	if (Owner->UseLocalSpace())
 	{
-		FVector ComponentLocation = Owner->GetComponentWorldLocation();
-		WorldOldLocation = WorldOldLocation + ComponentLocation;
-		WorldLocation = WorldLocation + ComponentLocation;
+		FTransform CompTransform = Owner->GetComponentWorldTransform();
+		WorldOldLocation = CompTransform.TransformPosition(Particle->OldLocation);
+		WorldLocation = CompTransform.TransformPosition(Particle->Location);
 	}
 
 	// 월드 가져오기
@@ -89,7 +89,7 @@ bool UParticleModuleCollision::PerformCollisionCheck(FParticleEmitterInstance* O
 		Particle->Flags |= EParticleFlags::Collided;
 
 		// 충돌 반응 적용
-		ApplyCollisionResponse(Particle, HitResult, Payload->CollisionCount);
+		ApplyCollisionResponse(Owner, Particle, HitResult, Payload->CollisionCount);
 
 		// 최대 충돌 횟수 체크 (이벤트 생성 전에 Dead 플래그 설정)
 		if (MaxCollisions > 0 && Payload->CollisionCount >= MaxCollisions)
@@ -148,10 +148,14 @@ bool UParticleModuleCollision::PerformCollisionCheck(FParticleEmitterInstance* O
 	return false;
 }
 
-void UParticleModuleCollision::ApplyCollisionResponse(FBaseParticle* Particle, const FParticleHitResult& HitResult, int32& CollisionCount)
+void UParticleModuleCollision::ApplyCollisionResponse(FParticleEmitterInstance* Owner, FBaseParticle* Particle, const FParticleHitResult& HitResult, int32& CollisionCount)
 {
 	// 충돌 횟수 증가
 	++CollisionCount;
+
+	const bool bUseLocalSpace = Owner->UseLocalSpace();
+	const FTransform CompTransform = bUseLocalSpace ? Owner->GetComponentWorldTransform() : FTransform();
+	const FTransform InvTransform = bUseLocalSpace ? CompTransform.Inverse() : FTransform();
 
 	switch (CollisionResponse)
 	{
@@ -163,13 +167,38 @@ void UParticleModuleCollision::ApplyCollisionResponse(FBaseParticle* Particle, c
 
 	case EParticleCollisionResponse::Bounce:
 		{
-			// 반사 벡터 계산 및 적용
-			FVector ReflectedVelocity = CalculateReflectedVelocity(Particle->Velocity, HitResult.ImpactNormal);
-			Particle->Velocity = ReflectedVelocity;
-			Particle->BaseVelocity = ReflectedVelocity;
+			// 월드 좌표계에서 속도 가져오기 (Local Space면 변환 필요)
+			FVector WorldVelocity = Particle->Velocity;
+			if (bUseLocalSpace)
+			{
+				WorldVelocity = CompTransform.TransformVector(Particle->Velocity);
+			}
+
+			// 반사 벡터 계산 (월드 좌표계)
+			FVector ReflectedVelocity = CalculateReflectedVelocity(WorldVelocity, HitResult.ImpactNormal);
+
+			// Local Space면 로컬 좌표계로 변환
+			if (bUseLocalSpace)
+			{
+				Particle->Velocity = InvTransform.TransformVector(ReflectedVelocity);
+				Particle->BaseVelocity = InvTransform.TransformVector(ReflectedVelocity);
+			}
+			else
+			{
+				Particle->Velocity = ReflectedVelocity;
+				Particle->BaseVelocity = ReflectedVelocity;
+			}
 
 			// 충돌 지점으로 위치 조정 (약간의 오프셋 추가하여 재충돌 방지)
-			Particle->Location = HitResult.ImpactPoint + HitResult.ImpactNormal * 0.1f;
+			FVector NewWorldLocation = HitResult.ImpactPoint + HitResult.ImpactNormal * 0.1f;
+			if (bUseLocalSpace)
+			{
+				Particle->Location = InvTransform.TransformPosition(NewWorldLocation);
+			}
+			else
+			{
+				Particle->Location = NewWorldLocation;
+			}
 		}
 		break;
 
@@ -179,7 +208,15 @@ void UParticleModuleCollision::ApplyCollisionResponse(FBaseParticle* Particle, c
 		Particle->BaseVelocity = FVector::Zero();
 
 		// 충돌 지점에 정지
-		Particle->Location = HitResult.ImpactPoint + HitResult.ImpactNormal * 0.1f;
+		FVector NewWorldLocation = HitResult.ImpactPoint + HitResult.ImpactNormal * 0.1f;
+		if (bUseLocalSpace)
+		{
+			Particle->Location = InvTransform.TransformPosition(NewWorldLocation);
+		}
+		else
+		{
+			Particle->Location = NewWorldLocation;
+		}
 
 		// 이후 충돌 검사 무시
 		Particle->Flags |= EParticleFlags::IgnoreCollision;
