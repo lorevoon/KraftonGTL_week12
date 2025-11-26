@@ -6,6 +6,9 @@
 
 void SCascadeCurveEditor::Render(float width, float height)
 {
+    // Reset per-frame state
+    bDeleteKeyConsumed = false;
+
     // Main layout: Toolbar at top, then split between curve list and graph
     const float splitterWidth = 4.0f;
 
@@ -576,6 +579,9 @@ void SCascadeCurveEditor::HandleGraphInput(const ImVec2& canvasMin, const ImVec2
 
                 bHasPendingChanges = true;
                 WriteBackChanges();
+
+                // Mark that we consumed the DEL key
+                bDeleteKeyConsumed = true;
             }
         }
     }

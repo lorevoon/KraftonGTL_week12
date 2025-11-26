@@ -5,6 +5,7 @@
 class UParticleSystem;
 class UParticleEmitter;
 class UParticleLODLevel;
+class SCascadeCurveEditor;
 
 // Emitter editor render mode (how particles are displayed in the editor viewport)
 enum class EEmitterEditorRenderMode : uint8
@@ -41,6 +42,9 @@ public:
     UParticleModule* GetSelectedModule() const { return SelectedModule; }
     void SetSelectedModule(UParticleModule* Module) { SelectedModule = Module; }
 
+    // Set curve editor reference (for input coordination)
+    void SetCurveEditor(SCascadeCurveEditor* InCurveEditor) { CurveEditor = InCurveEditor; }
+
     // Editor state accessors
     FEmitterEditorState& GetEmitterEditorState(int32 EmitterIndex);
     bool IsEmitterVisibleInEditor(int32 EmitterIndex) const;
@@ -75,5 +79,8 @@ private:
 
     // Panel icon
     class UTexture* IconPanelEmitters = nullptr;
+
+    // Reference to curve editor for input coordination
+    SCascadeCurveEditor* CurveEditor = nullptr;
 };
 

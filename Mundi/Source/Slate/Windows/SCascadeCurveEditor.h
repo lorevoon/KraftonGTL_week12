@@ -67,6 +67,13 @@ public:
     bool HasPendingChanges() const { return bHasPendingChanges; }
     void ClearPendingChanges() { bHasPendingChanges = false; }
 
+    // Check if a curve key is currently selected (for input priority)
+    bool HasSelectedKey() const { return SelectedKeyIndex >= 0; }
+
+    // Check if DEL key was consumed by the curve editor this frame
+    bool WasDeleteKeyConsumed() const { return bDeleteKeyConsumed; }
+    void ClearDeleteKeyConsumed() { bDeleteKeyConsumed = false; }
+
 private:
     // UI Rendering
     void RenderToolbar(float width);
@@ -113,6 +120,9 @@ private:
 
     // Dirty flag for pending changes
     bool bHasPendingChanges = false;
+
+    // Flag to indicate DEL key was consumed this frame
+    bool bDeleteKeyConsumed = false;
 
     // View state
     float ViewMinTime = 0.0f;

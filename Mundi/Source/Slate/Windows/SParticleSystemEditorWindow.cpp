@@ -26,6 +26,9 @@ SParticleSystemEditorWindow::SParticleSystemEditorWindow()
     CenterRect = FRect(0, 0, 0, 0);
     EmittersPanel = new SCascadeEmittersPanel();
     CurveEditor = new SCascadeCurveEditor();
+
+    // Set curve editor reference for input coordination
+    EmittersPanel->SetCurveEditor(CurveEditor);
 }
 
 SParticleSystemEditorWindow::~SParticleSystemEditorWindow()

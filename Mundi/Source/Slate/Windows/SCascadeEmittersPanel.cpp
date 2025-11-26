@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "SCascadeEmittersPanel.h"
+#include "SCascadeCurveEditor.h"
 #include "ImGui/imgui.h"
 
 #include "Source/Runtime/Engine/Particles/ParticleSystem.h"
@@ -651,7 +652,9 @@ void SCascadeEmittersPanel::Render(float width, float height)
     }
 
     // DEL key - delete selected module or emitter
-    if (ImGui::IsKeyPressed(ImGuiKey_Delete))
+    // Skip if curve editor has a selected key (curve editor takes priority)
+    bool bCurveEditorHasSelectedKey = CurveEditor && CurveEditor->HasSelectedKey();
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete) && !bCurveEditorHasSelectedKey)
     {
         // First priority: delete selected module (if any)
         if (SelectedModule)
