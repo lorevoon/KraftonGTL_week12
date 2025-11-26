@@ -57,10 +57,11 @@ private:
 	bool PerformCollisionCheck(FParticleEmitterInstance* Owner, int32 ActiveIndex, float DeltaTime);
 
 	// 충돌 반응 적용
+	// @param Owner 이미터 인스턴스
 	// @param Particle 파티클 포인터
 	// @param HitResult 충돌 결과
 	// @param CollisionCount 현재 충돌 횟수 (페이로드)
-	void ApplyCollisionResponse(FBaseParticle* Particle, const FParticleHitResult& HitResult, int32& CollisionCount);
+	void ApplyCollisionResponse(FParticleEmitterInstance* Owner, FBaseParticle* Particle, const FParticleHitResult& HitResult, int32& CollisionCount);
 
 	// 반사 벡터 계산
 	// @param Velocity 입사 속도
