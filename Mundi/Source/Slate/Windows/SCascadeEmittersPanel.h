@@ -42,6 +42,10 @@ public:
     UParticleModule* GetSelectedModule() const { return SelectedModule; }
     void SetSelectedModule(UParticleModule* Module) { SelectedModule = Module; }
 
+    // Active LOD index shown in the panel
+    int32 GetActiveLODIndex() const { return ActiveLODIndex; }
+    void SetActiveLODIndex(int32 InIndex) { ActiveLODIndex = InIndex; }
+
     // Set curve editor reference (for input coordination)
     void SetCurveEditor(SCascadeCurveEditor* InCurveEditor) { CurveEditor = InCurveEditor; }
 
@@ -66,6 +70,7 @@ private:
     UParticleSystem* EditingSystem = nullptr; // temporary, in-memory
     int32 SelectedEmitterIndex = -1;
     UParticleModule* SelectedModule = nullptr; // Currently selected module for details panel
+    int32 ActiveLODIndex = 0;
 
     // Per-emitter editor state (visibility, render mode, solo)
     TArray<FEmitterEditorState> EmitterEditorStates;

@@ -320,6 +320,35 @@ bool UParticleSystem::AddLODDistance(float Distance)
     return SetLODDistance(LODDistances.Num(), Distance);
 }
 
+bool UParticleSystem::InsertLODDistance(int32 LODIndex, float Distance)
+{
+    // 유효 범위: 1 ~ Num (LODIndex == Num이면 push-back과 동일)
+    if (LODIndex <= 0 || LODIndex > LODDistances.Num())
+    {
+        return false;
+    }
+
+    // 정렬 제약 확인: 이전/다음 거리 사이인지 검사
+    const float PrevDistance = (LODIndex - 1 < LODDistances.Num()) ? LODDistances[LODIndex - 1] : 0.0f;
+    const float NextDistance = (LODIndex < LODDistances.Num()) ? LODDistances[LODIndex] : std::numeric_limits<float>::infinity();
+    if (Distance < PrevDistance || Distance > NextDistance)
+    {
+        return false;
+    }
+
+    // 삽입
+    LODDistances.Insert(Distance, LODIndex);
+
+    // 모든 이미터의 LODLevels 갱신
+    const int32 TargetLODCount = LODDistances.Num();
+    for (UParticleEmitter* Emitter : Emitters)
+    {
+        EnsureEmitterLODCount(Emitter, TargetLODCount, LODDistances);
+    }
+
+    return true;
+}
+
 bool UParticleSystem::RemoveLODDistance(int32 LODIndex)
 {
     // LOD 0 제거는 허용하지 않음

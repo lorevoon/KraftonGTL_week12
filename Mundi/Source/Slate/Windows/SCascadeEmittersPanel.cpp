@@ -168,6 +168,13 @@ void SCascadeEmittersPanel::Render(float width, float height)
 {
     EnsureEditingSystem();
 
+    // Clamp active LOD to valid range
+    if (EditingSystem)
+    {
+        int32 MaxLOD = FMath::Max(EditingSystem->GetLODLevelCount() - 1, 0);
+        ActiveLODIndex = FMath::Clamp(ActiveLODIndex, 0, MaxLOD);
+    }
+
     // Load panel icon once
     if (!IconPanelEmitters)
     {
@@ -484,17 +491,22 @@ void SCascadeEmittersPanel::Render(float width, float height)
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::BeginChild("EmitterModules", ImVec2(columnWidth, 0), true, ImGuiWindowFlags_NoScrollbar);
 
-        UParticleLODLevel* LOD0 = Emitter ? Emitter->GetDefaultLODLevel() : nullptr;
-        if (LOD0)
+        UParticleLODLevel* LOD = Emitter ? Emitter->GetLODLevel(ActiveLODIndex) : nullptr;
+        if (!LOD)
+        {
+            LOD = Emitter ? Emitter->GetDefaultLODLevel() : nullptr;
+        }
+
+        if (LOD)
         {
             // Required module - YELLOW, NO CHECKBOX (not draggable)
-            if (LOD0->RequiredModule)
+            if (LOD->RequiredModule)
             {
-                const char* reqName = LOD0->RequiredModule->ModuleName.c_str();
+                const char* reqName = LOD->RequiredModule->ModuleName.c_str();
                 if (reqName)
                 {
-                    RenderModuleCard(LOD0->RequiredModule,
-                                   LOD0,
+                    RenderModuleCard(LOD->RequiredModule,
+                                   LOD,
                                    -1, // -1 indicates not draggable (required module)
                                    reqName,
                                    ImVec4(0.6f, 0.5f, 0.2f, 1.0f), // Yellow
@@ -503,13 +515,13 @@ void SCascadeEmittersPanel::Render(float width, float height)
             }
 
             // TypeData module - PURPLE (special module, not draggable)
-            if (LOD0->TypeDataModule)
+            if (LOD->TypeDataModule)
             {
-                const char* typeName = LOD0->TypeDataModule->ModuleName.c_str();
+                const char* typeName = LOD->TypeDataModule->ModuleName.c_str();
                 if (typeName)
                 {
-                    RenderModuleCard(LOD0->TypeDataModule,
-                                   LOD0,
+                    RenderModuleCard(LOD->TypeDataModule,
+                                   LOD,
                                    -2, // -2 indicates TypeData module
                                    typeName,
                                    ImVec4(0.4f, 0.2f, 0.5f, 1.0f), // Purple
@@ -518,13 +530,13 @@ void SCascadeEmittersPanel::Render(float width, float height)
             }
 
             // EventGenerator module - TEAL (event-related)
-            if (LOD0->EventGenerator)
+            if (LOD->EventGenerator)
             {
-                const char* eventGenName = LOD0->EventGenerator->ModuleName.c_str();
+                const char* eventGenName = LOD->EventGenerator->ModuleName.c_str();
                 if (eventGenName)
                 {
-                    RenderModuleCard(LOD0->EventGenerator,
-                                   LOD0,
+                    RenderModuleCard(LOD->EventGenerator,
+                                   LOD,
                                    -3, // -3 indicates EventGenerator module
                                    eventGenName,
                                    ImVec4(0.2f, 0.5f, 0.6f, 1.0f), // Teal
@@ -533,7 +545,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             }
 
             // Other modules
-            const TArray<UParticleModule*>& Modules = LOD0->Modules;
+            const TArray<UParticleModule*>& Modules = LOD->Modules;
             for (int m = 0; m < Modules.Num(); ++m)
             {
                 if (UParticleModule* Mod = Modules[m])
@@ -542,7 +554,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                     if (modName)
                     {
                         ImVec4 moduleColor = GetModuleColor(Mod->ModuleName);
-                        RenderModuleCard(Mod, LOD0, m, modName, moduleColor, columnWidth, moduleHeight, true); // With checkbox
+                        RenderModuleCard(Mod, LOD, m, modName, moduleColor, columnWidth, moduleHeight, true); // With checkbox
                     }
                 }
             }
@@ -552,8 +564,8 @@ void SCascadeEmittersPanel::Render(float width, float height)
         if (ImGui::BeginPopupContextWindow("EmitterColumnEmpty", ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight))
         {
             // 이미터 타입 체크
-            bool bIsBeam = Cast<UParticleModuleTypeDataBeam>(LOD0->TypeDataModule) != nullptr;
-            bool bIsRibbon = Cast<UParticleModuleTypeDataRibbon>(LOD0->TypeDataModule) != nullptr;
+            bool bIsBeam = LOD && Cast<UParticleModuleTypeDataBeam>(LOD->TypeDataModule) != nullptr;
+            bool bIsRibbon = LOD && Cast<UParticleModuleTypeDataRibbon>(LOD->TypeDataModule) != nullptr;
             bool bIsSpriteOrMesh = !bIsBeam && !bIsRibbon;
 
             ImGui::TextUnformatted("Add Module");
@@ -565,7 +577,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Spawn";
-                    LOD0->AddModule(NewModule);
+                    if (LOD) LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
@@ -576,29 +588,29 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Lifetime";
-                    LOD0->AddModule(NewModule);
+                    if (LOD) LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
-            if (bIsSpriteOrMesh && ImGui::MenuItem("Initial Location"))
+            if (LOD && bIsSpriteOrMesh && ImGui::MenuItem("Initial Location"))
             {
                 UParticleModuleLocation* NewModule = NewObject<UParticleModuleLocation>();
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Location";
-                    LOD0->AddModule(NewModule);
+                    LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
-            if (bIsSpriteOrMesh && ImGui::MenuItem("Initial Velocity"))
+            if (LOD && bIsSpriteOrMesh && ImGui::MenuItem("Initial Velocity"))
             {
                 UParticleModuleVelocity* NewModule = NewObject<UParticleModuleVelocity>();
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Velocity";
-                    LOD0->AddModule(NewModule);
+                    LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
@@ -609,7 +621,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Size";
-                    LOD0->AddModule(NewModule);
+                    if (LOD) LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
@@ -620,73 +632,73 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Color";
-                    LOD0->AddModule(NewModule);
+                    if (LOD) LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
-            if (bIsSpriteOrMesh && ImGui::MenuItem("Rotation"))
+            if (LOD && bIsSpriteOrMesh && ImGui::MenuItem("Rotation"))
             {
                 UParticleModuleRotation* NewModule = NewObject<UParticleModuleRotation>();
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Rotation";
-                    LOD0->AddModule(NewModule);
+                    LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
-            if (bIsSpriteOrMesh && ImGui::MenuItem("Size Scale By Speed"))
+            if (LOD && bIsSpriteOrMesh && ImGui::MenuItem("Size Scale By Speed"))
             {
                 UParticleModuleSizeScaleBySpeed* NewModule = NewObject<UParticleModuleSizeScaleBySpeed>();
                 if (NewModule)
                 {
                     NewModule->ModuleName = "SizeScaleBySpeed";
-                    LOD0->AddModule(NewModule);
+                    LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
-            if (bIsSpriteOrMesh && ImGui::MenuItem("Collision"))
+            if (LOD && bIsSpriteOrMesh && ImGui::MenuItem("Collision"))
             {
                 UParticleModuleCollision* NewModule = NewObject<UParticleModuleCollision>();
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Collision";
-                    LOD0->AddModule(NewModule);
+                    LOD->AddModule(NewModule);
                 }
             }
 
-            if (bIsSpriteOrMesh && ImGui::MenuItem("Acceleration"))
+            if (LOD && bIsSpriteOrMesh && ImGui::MenuItem("Acceleration"))
             {
                 UParticleModuleAcceleration* NewModule = NewObject<UParticleModuleAcceleration>();
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Acceleration";
-                    LOD0->AddModule(NewModule);
+                    LOD->AddModule(NewModule);
                 }
             }
 
             // Beam 전용 모듈
-            if (bIsBeam && ImGui::MenuItem("Beam Noise"))
+            if (LOD && bIsBeam && ImGui::MenuItem("Beam Noise"))
             {
                 UParticleModuleBeamNoise* NewModule = NewObject<UParticleModuleBeamNoise>();
                 if (NewModule)
                 {
                     NewModule->ModuleName = "BeamNoise";
-                    LOD0->AddModule(NewModule);
+                    LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
 
             // Ribbon 전용 모듈
-            if (bIsRibbon && ImGui::MenuItem("Spawn Per Unit"))
+            if (LOD && bIsRibbon && ImGui::MenuItem("Spawn Per Unit"))
             {
                 UParticleModuleSpawnPerUnit* NewModule = NewObject<UParticleModuleSpawnPerUnit>();
                 if (NewModule)
                 {
                     NewModule->ModuleName = "SpawnPerUnit";
-                    LOD0->AddModule(NewModule);
+                    LOD->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
@@ -697,7 +709,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "EventGenerator";
-                    LOD0->EventGenerator = NewModule;
+                    if (LOD) LOD->EventGenerator = NewModule;
                 }
             }
 
@@ -710,7 +722,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "TypeData Mesh";
-                    LOD0->TypeDataModule = NewModule;
+                    if (LOD) LOD->TypeDataModule = NewModule;
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
@@ -721,7 +733,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "TypeData Beam";
-                    LOD0->TypeDataModule = NewModule;
+                    if (LOD) LOD->TypeDataModule = NewModule;
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
             }
@@ -833,34 +845,35 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 UParticleEmitter* Emitter = EditingSystem->GetEmitter(emitterIdx);
                 if (!Emitter) continue;
 
-                UParticleLODLevel* LOD0 = Emitter->GetDefaultLODLevel();
-                if (!LOD0) continue;
+                UParticleLODLevel* LOD = Emitter->GetLODLevel(ActiveLODIndex);
+                if (!LOD) LOD = Emitter->GetDefaultLODLevel();
+                if (!LOD) continue;
 
                 // Check if it's the TypeData module
-                if (LOD0->TypeDataModule == SelectedModule)
+                if (LOD->TypeDataModule == SelectedModule)
                 {
-                    LOD0->TypeDataModule = nullptr;
+                    LOD->TypeDataModule = nullptr;
                     SelectedModule = nullptr;
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                     break;
                 }
                 // Check if it's the EventGenerator module
-                else if (LOD0->EventGenerator == SelectedModule)
+                else if (LOD->EventGenerator == SelectedModule)
                 {
-                    LOD0->EventGenerator = nullptr;
+                    LOD->EventGenerator = nullptr;
                     SelectedModule = nullptr;
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                     break;
                 }
                 // Check if it's in the regular modules list (skip Required module)
-                else if (LOD0->RequiredModule != SelectedModule)
+                else if (LOD->RequiredModule != SelectedModule)
                 {
-                    const TArray<UParticleModule*>& Modules = LOD0->Modules;
+                    const TArray<UParticleModule*>& Modules = LOD->Modules;
                     for (int32 modIdx = 0; modIdx < Modules.Num(); ++modIdx)
                     {
                         if (Modules[modIdx] == SelectedModule)
                         {
-                            LOD0->RemoveModule(SelectedModule);
+                            LOD->RemoveModule(SelectedModule);
                             SelectedModule = nullptr;
                             if (EditingSystem) EditingSystem->bIsDirty = true;
                             break;
