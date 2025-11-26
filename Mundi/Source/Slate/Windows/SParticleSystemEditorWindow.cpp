@@ -5,6 +5,7 @@
 #include "Source/Runtime/Renderer/FViewport.h"
 #include "ResourceManager.h"
 #include "SCascadeEmittersPanel.h"
+#include "SCascadeCurveEditor.h"
 #include "Source/Runtime/Engine/Particles/ParticleModule.h"
 #include "Source/Runtime/Engine/Particles/ParticleSystem.h"
 #include "Source/Runtime/Engine/Particles/ParticleEmitter.h"
@@ -24,11 +25,13 @@ SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
     CenterRect = FRect(0, 0, 0, 0);
     EmittersPanel = new SCascadeEmittersPanel();
+    CurveEditor = new SCascadeCurveEditor();
 }
 
 SParticleSystemEditorWindow::~SParticleSystemEditorWindow()
 {
     if (EmittersPanel) { delete EmittersPanel; EmittersPanel = nullptr; }
+    if (CurveEditor) { delete CurveEditor; CurveEditor = nullptr; }
     for (int i = 0; i < Tabs.Num(); ++i)
     {
         ViewerState* State = Tabs[i];
@@ -418,7 +421,19 @@ void SParticleSystemEditorWindow::RenderRightColumn(float width, float height)
         dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + fullW, lineY), lineCol, 1.0f);
         ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 6.0f));
     }
-    ImGui::TextUnformatted("(Curve editor placeholder)");
+    if (CurveEditor)
+    {
+        // Sync selected module between emitters panel and curve editor
+        if (EmittersPanel)
+        {
+            UParticleModule* SelectedModule = EmittersPanel->GetSelectedModule();
+            if (CurveEditor->GetSelectedModule() != SelectedModule)
+            {
+                CurveEditor->SetSelectedModule(SelectedModule);
+            }
+        }
+        CurveEditor->Render(width, curvesH);
+    }
     ImGui::EndChild();
 }
 
@@ -1262,35 +1277,35 @@ void SParticleSystemEditorWindow::OnSaveParticleSystem()
     File << SaveJson.dump(2);
     File.close();
 
-    // Update the system's file path (��� ��η� ����ȭ)
+    // Update the system's file path (상대 경로로 정규화)
     FString NormalizedPath = NormalizePath(FilePathStr);
 
-    // ���� ��ο� ���Ͽ� �ٸ� �̸�/��η� ������ ��� �� ������ �ε��Ͽ� ResourceManager�� ���
+    // 기존 경로와 비교하여 다른 이름/경로로 저장한 경우 새 파일을 로드하여 ResourceManager에 등록
     FString NormalizedExistingPath = NormalizePath(ExistingPath);
 
     if (NormalizedPath != NormalizedExistingPath)
     {
-        // ���� ������ ������ ResourceManager�� ���� �ε� (�� ��ü�� ��ϵ�)
+        // 새로 저장한 파일을 ResourceManager를 통해 로드 (새 객체로 등록됨)
         UParticleSystem* NewSystem = UResourceManager::GetInstance().Load<UParticleSystem>(NormalizedPath);
 
-        // ĳ�� ���� (���� ������ �� ���� �����)
+        // 캐시 갱신 (다음 렌더링 시 새로 빌드됨)
         UPropertyRenderer::ClearResourcesCache();
 
-        // ���� ������ ParticleSystem�� ���� Template���� ����
+        // 새로 저장한 ParticleSystem을 현재 Template으로 설정
         UParticleSystemComponent* PreviewComp = GetPreviewComponent();
 
         if (PreviewComp && NewSystem)
         {
             PreviewComp->SetTemplate(NewSystem);
 
-            // EmittersPanel�� EditingSystem�� ������Ʈ (PreRenderViewportUpdate���� ����� ����)
+            // EmittersPanel의 EditingSystem도 업데이트 (PreRenderViewportUpdate에서 덮어쓰기 방지)
             if (EmittersPanel)
             {
                 EmittersPanel->SetEditingSystem(NewSystem);
             }
 
-            // Scene�� �ҽ� ������Ʈ ������Ʈ
-            // Property Window���� "Cascade Editor" ��ư���� ���� ��� �ش� ������Ʈ�� Template�� ������Ʈ
+            // Scene의 소스 컴포넌트 업데이트
+            // Property Window에서 "Cascade Editor" 버튼으로 열린 경우 해당 컴포넌트의 Template도 업데이트
             if (SourceSceneComponent)
             {
                 SourceSceneComponent->SetTemplate(NewSystem);
@@ -1299,7 +1314,7 @@ void SParticleSystemEditorWindow::OnSaveParticleSystem()
     }
     else
     {
-        // ���� ��η� ������� ��쿡�� FilePath ������Ʈ
+        // 같은 경로로 덮어쓰기한 경우에만 FilePath 업데이트
         EditingSystem->SetFilePath(NormalizedPath);
     }
 
