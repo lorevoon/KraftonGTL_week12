@@ -39,6 +39,7 @@ const bool UParticleModuleSize::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UParticleModuleSize)
     ADD_PROPERTY(FVector, StartSizeMin, "Size", true)
     ADD_PROPERTY(FVector, StartSizeMax, "Size", true)
+    ADD_PROPERTY(bool, bUseSizeCurve, "Size", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -49,5 +50,7 @@ LUA_BIND_BEGIN(UParticleModuleSize)
         T, "StartSizeMin", &UParticleModuleSize::StartSizeMin);
     AddProperty<UParticleModuleSize, FVector>(
         T, "StartSizeMax", &UParticleModuleSize::StartSizeMax);
+    AddProperty<UParticleModuleSize, bool>(
+        T, "bUseSizeCurve", &UParticleModuleSize::bUseSizeCurve);
 }
 LUA_BIND_END()

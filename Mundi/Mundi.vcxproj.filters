@@ -176,6 +176,9 @@
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleEventGenerator.cpp">
       <Filter>Source\Runtime\Engine\Particles\Modules</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Particles\Curves\ParticleCurve.cpp">
+      <Filter>Source\Runtime\Engine\Particles\Curves</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimationRuntime.cpp">
       <Filter>Source\Runtime\Engine\Animation</Filter>
     </ClCompile>
@@ -1171,6 +1174,9 @@
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleEventGenerator.h">
       <Filter>Source\Runtime\Engine\Particles\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Particles\Curves\ParticleCurve.h">
+      <Filter>Source\Runtime\Engine\Particles\Curves</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationAsset.h">
       <Filter>Source\Runtime\Engine\Animation</Filter>
@@ -2238,6 +2244,9 @@
     </Filter>
     <Filter Include="Source\Runtime\Engine\Particles\Modules">
       <UniqueIdentifier>{dfac1771-383c-4e8c-b1b9-12b9df630648}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Engine\Particles\Curves">
+      <UniqueIdentifier>{a8e5c3f2-7d4b-4e9a-b6c1-2d3f8a9b0c1e}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Runtime\Engine\Particles\Modules\TypeData">
       <UniqueIdentifier>{58194c64-4970-4d49-80ed-dfd14bfd6373}</UniqueIdentifier>

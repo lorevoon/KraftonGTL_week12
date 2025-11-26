@@ -72,5 +72,8 @@ private:
 
     // Frame-local click tracking (reset each frame in Render)
     bool bClickedOnItemThisFrame = false;
+
+    // Panel icon
+    class UTexture* IconPanelEmitters = nullptr;
 };
 

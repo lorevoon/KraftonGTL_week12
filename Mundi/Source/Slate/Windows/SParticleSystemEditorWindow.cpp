@@ -1,10 +1,11 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "SParticleSystemEditorWindow.h"
 #include "SlateManager.h"
 #include "Source/Runtime/Engine/Viewer/ParticleSystemEditorBootstrap.h"
 #include "Source/Runtime/Renderer/FViewport.h"
 #include "ResourceManager.h"
 #include "SCascadeEmittersPanel.h"
+#include "SCascadeCurveEditor.h"
 #include "Source/Runtime/Engine/Particles/ParticleModule.h"
 #include "Source/Runtime/Engine/Particles/ParticleSystem.h"
 #include "Source/Runtime/Engine/Particles/ParticleEmitter.h"
@@ -24,11 +25,13 @@ SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
     CenterRect = FRect(0, 0, 0, 0);
     EmittersPanel = new SCascadeEmittersPanel();
+    CurveEditor = new SCascadeCurveEditor();
 }
 
 SParticleSystemEditorWindow::~SParticleSystemEditorWindow()
 {
     if (EmittersPanel) { delete EmittersPanel; EmittersPanel = nullptr; }
+    if (CurveEditor) { delete CurveEditor; CurveEditor = nullptr; }
     for (int i = 0; i < Tabs.Num(); ++i)
     {
         ViewerState* State = Tabs[i];
@@ -340,8 +343,11 @@ void SParticleSystemEditorWindow::OnRender()
 void SParticleSystemEditorWindow::RenderLeftColumn(float width, float height)
 {
     const float splitter = 4.f;
-    float viewportH = height * LeftRowSplitRatio;
-    float detailsH = height - viewportH - splitter;
+    // Apply a small vertical leeway so the left column contents fit tightly
+    const float leftColumnLeeway = 18.0f;
+    float effectiveH = FMath::Max(height - leftColumnLeeway, 0.0f);
+    float viewportH = effectiveH * LeftRowSplitRatio;
+    float detailsH = effectiveH - viewportH - splitter;
     if (detailsH < 0) detailsH = 0;
 
     // Viewport area (top)
@@ -371,8 +377,11 @@ void SParticleSystemEditorWindow::RenderLeftColumn(float width, float height)
 void SParticleSystemEditorWindow::RenderRightColumn(float width, float height)
 {
     const float splitter = 4.f;
-    float emittersH = height * RightRowSplitRatio;
-    float curvesH = height - emittersH - splitter;
+    // Apply a small vertical leeway so the right column contents fit tightly
+    const float rightColumnLeeway = 18.0f;
+    float effectiveH = FMath::Max(height - rightColumnLeeway, 0.0f);
+    float emittersH = effectiveH * RightRowSplitRatio;
+    float curvesH = effectiveH - emittersH - splitter;
     if (curvesH < 0) curvesH = 0;
 
     // Emitters panel (top)
@@ -398,22 +407,48 @@ void SParticleSystemEditorWindow::RenderRightColumn(float width, float height)
     ImGui::BeginChild("Cascade_Curves", ImVec2(width, curvesH), true, ImGuiWindowFlags_NoScrollbar);
     {
         ImVec2 pos = ImGui::GetCursorScreenPos();
+        float headerStartY = pos.y;
         float fullW = ImGui::GetContentRegionAvail().x;
-        const float headerH = 28.0f;
+        const float padX = 10.0f;
+        const float padY = 5.0f;
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        ImU32 bg = ImGui::GetColorU32(ImVec4(0.14f, 0.14f, 0.18f, 1.0f));
-        ImU32 top = ImGui::GetColorU32(ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
-        ImU32 border = ImGui::GetColorU32(ImVec4(0.35f, 0.35f, 0.40f, 1.0f));
-        dl->AddRectFilled(pos, ImVec2(pos.x + fullW, pos.y + headerH), bg, 5.0f);
-        dl->AddLine(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y), top, 1.0f);
-        dl->AddRect(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y + headerH), border, 5.0f);
-        ImGui::SetCursorScreenPos(ImVec2(pos.x + 10.0f, pos.y + 5.0f));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
+        ImVec2 ts = ImGui::CalcTextSize("Curve Editor");
+        ImVec2 chipMin = pos;
+        float chipW = ts.x + padX * 2.0f; const float iconSize = 20.0f; bool hasIcon = (IconPanelCurves && IconPanelCurves->GetShaderResourceView()); if (hasIcon) chipW += iconSize + 6.0f; ImVec2 chipMax = ImVec2(pos.x + chipW, pos.y + ts.y + padY * 2.0f);
+        ImU32 chipBg = ImGui::GetColorU32(ImVec4(0.18f, 0.19f, 0.23f, 1.0f));
+        ImU32 chipBorder = ImGui::GetColorU32(ImVec4(0.36f, 0.40f, 0.48f, 1.0f));
+        ImU32 lineCol = ImGui::GetColorU32(ImVec4(0.18f, 0.18f, 0.20f, 1.0f));
+        dl->AddRectFilled(chipMin, chipMax, chipBg, 6.0f);
+        dl->AddRect(chipMin, chipMax, chipBorder, 6.0f, 0, 1.0f);
+        ImVec2 cur = ImVec2(pos.x + padX, pos.y + padY); ImGui::SetCursorScreenPos(cur); if (hasIcon) { ImGui::Image((void*)IconPanelCurves->GetShaderResourceView(), ImVec2(iconSize, iconSize)); ImGui::SameLine(); cur.x += iconSize + 6.0f; } ImGui::SetCursorScreenPos(cur);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.94f, 0.95f, 1.00f, 1.0f));
         ImGui::TextUnformatted("Curve Editor");
         ImGui::PopStyleColor();
-        ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + headerH + 6.0f));
+        float lineY = chipMax.y + 5.0f;
+        dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + fullW, lineY), lineCol, 1.0f);
+        // Tighter spacing under the header chip
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 2.0f));
+
+        // Compute header height actually used
+        float headerUsed = ImGui::GetCursorScreenPos().y - headerStartY;
+
+        // Render curve editor to the remaining height inside this child
+        if (CurveEditor)
+        {
+            // Sync selected module between emitters panel and curve editor
+            if (EmittersPanel)
+            {
+                UParticleModule* SelectedModule = EmittersPanel->GetSelectedModule();
+                if (CurveEditor->GetSelectedModule() != SelectedModule)
+                {
+                    CurveEditor->SetSelectedModule(SelectedModule);
+                }
+            }
+            float editorHeight = curvesH - headerUsed - 17.0f;
+            // if (editorHeight < 50.0f) editorHeight = 50.0f;
+            CurveEditor->Render(width, editorHeight);
+        }
     }
-    ImGui::TextUnformatted("(Curve editor placeholder)");
     ImGui::EndChild();
 }
 
@@ -784,27 +819,38 @@ void SParticleSystemEditorWindow::LoadToolbarIcons()
         IconLODInsertAfter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODInsertAfter.png");
     if (!IconLODDelete)
         IconLODDelete = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODDelete.png");
+
+    // Panel icons
+    if (!IconPanelDetails)
+        IconPanelDetails = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_Details.png");
+    if (!IconPanelCurves)
+        IconPanelCurves = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_CurveEditor.png");
 }
 
 void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
 {
-    // Styled header bar for Details
+    // Chip-style header for Details
     {
         ImVec2 pos = ImGui::GetCursorScreenPos();
         float fullW = ImGui::GetContentRegionAvail().x;
-        const float headerH = 28.0f;
+        const float padX = 10.0f;
+        const float padY = 5.0f;
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        ImU32 bg = ImGui::GetColorU32(ImVec4(0.14f, 0.14f, 0.18f, 1.0f));
-        ImU32 top = ImGui::GetColorU32(ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
-        ImU32 border = ImGui::GetColorU32(ImVec4(0.35f, 0.35f, 0.40f, 1.0f));
-        dl->AddRectFilled(pos, ImVec2(pos.x + fullW, pos.y + headerH), bg, 5.0f);
-        dl->AddLine(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y), top, 1.0f);
-        dl->AddRect(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y + headerH), border, 5.0f);
-        ImGui::SetCursorScreenPos(ImVec2(pos.x + 10.0f, pos.y + 5.0f));
+        ImVec2 ts = ImGui::CalcTextSize("Details");
+        ImVec2 chipMin = pos;
+        float chipW = ts.x + padX * 2.0f; const float iconSize = 20.0f; bool hasIcon = (IconPanelDetails && IconPanelDetails->GetShaderResourceView()); if (hasIcon) chipW += iconSize + 6.0f; ImVec2 chipMax = ImVec2(pos.x + chipW, pos.y + ts.y + padY * 2.0f);
+        ImU32 chipBg = ImGui::GetColorU32(ImVec4(0.18f, 0.19f, 0.23f, 1.0f));
+        ImU32 chipBorder = ImGui::GetColorU32(ImVec4(0.36f, 0.40f, 0.48f, 1.0f));
+        ImU32 lineCol = ImGui::GetColorU32(ImVec4(0.18f, 0.18f, 0.20f, 1.0f));
+        dl->AddRectFilled(chipMin, chipMax, chipBg, 6.0f);
+        dl->AddRect(chipMin, chipMax, chipBorder, 6.0f, 0, 1.0f);
+        ImVec2 cur = ImVec2(pos.x + padX, pos.y + padY); ImGui::SetCursorScreenPos(cur); if (hasIcon) { ImGui::Image((void*)IconPanelDetails->GetShaderResourceView(), ImVec2(iconSize, iconSize)); ImGui::SameLine(); cur.x += iconSize + 6.0f; } ImGui::SetCursorScreenPos(cur);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
         ImGui::TextUnformatted("Details");
         ImGui::PopStyleColor();
-        ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + headerH + 6.0f));
+        float lineY = chipMax.y + 5.0f;
+        dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + fullW, lineY), lineCol, 1.0f);
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 6.0f));
     }
 
     if (!EmittersPanel)

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "SCascadeEmittersPanel.h"
 #include "ImGui/imgui.h"
 
@@ -104,34 +104,64 @@ bool SCascadeEmittersPanel::HasAnySoloEmitter() const
     return false;
 }
 
-static void DrawCascadePanelHeader(const char* Title)
+static void DrawCascadePanelHeader(const char* Title, class UTexture* IconTexture)
 {
     ImVec2 pos = ImGui::GetCursorScreenPos();
     float fullW = ImGui::GetContentRegionAvail().x;
-    const float headerH = 28.0f;
+
+    // Title chip metrics
+    const float padX = 10.0f;
+    const float padY = 5.0f;
+    ImVec2 textSize = ImGui::CalcTextSize(Title);
+    ImVec2 chipMin = pos;
+    float chipW = textSize.x + padX * 2.0f;
+    const float iconSize = 20.0f;
+    bool hasIcon = (IconTexture && IconTexture->GetShaderResourceView());
+    if (hasIcon) chipW += iconSize + 6.0f;
+    ImVec2 chipMax = ImVec2(pos.x + chipW, pos.y + textSize.y + padY * 2.0f);
 
     ImDrawList* dl = ImGui::GetWindowDrawList();
-    ImU32 bg = ImGui::GetColorU32(ImVec4(0.14f, 0.14f, 0.18f, 1.0f));
-    ImU32 top = ImGui::GetColorU32(ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
-    ImU32 border = ImGui::GetColorU32(ImVec4(0.35f, 0.35f, 0.40f, 1.0f));
+    ImU32 chipBg = ImGui::GetColorU32(ImVec4(0.18f, 0.19f, 0.23f, 1.0f));
+    ImU32 chipBorder = ImGui::GetColorU32(ImVec4(0.36f, 0.40f, 0.48f, 1.0f));
+    ImU32 lineCol = ImGui::GetColorU32(ImVec4(0.18f, 0.18f, 0.20f, 1.0f));
 
-    dl->AddRectFilled(pos, ImVec2(pos.x + fullW, pos.y + headerH), bg, 5.0f);
-    dl->AddLine(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y), top, 1.0f);
-    dl->AddRect(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y + headerH), border, 5.0f);
+    // Chip behind the title
+    dl->AddRectFilled(chipMin, chipMax, chipBg, 6.0f);
+    dl->AddRect(chipMin, chipMax, chipBorder, 6.0f, 0, 1.0f);
 
-    ImGui::SetCursorScreenPos(ImVec2(pos.x + 10.0f, pos.y + 5.0f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
+    // Title content: optional icon + text
+    ImGui::SetCursorScreenPos(ImVec2(pos.x + padX, pos.y + padY));
+    float contentStartX = pos.x + padX;
+    if (hasIcon)
+    {
+        ImGui::Image((void*)IconTexture->GetShaderResourceView(), ImVec2(iconSize, iconSize));
+        ImGui::SameLine();
+        contentStartX += iconSize + 6.0f;
+    }
+    ImGui::SetCursorScreenPos(ImVec2(contentStartX, pos.y + padY));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.94f, 0.95f, 1.00f, 1.0f));
     ImGui::TextUnformatted(Title);
     ImGui::PopStyleColor();
-    ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + headerH + 6.0f));
+
+    // Subtle separator line under the chip
+    float lineY = chipMax.y + 5.0f;
+    dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + fullW, lineY), lineCol, 1.0f);
+
+    // Advance cursor below header
+    ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 6.0f));
 }
 
 void SCascadeEmittersPanel::Render(float width, float height)
 {
     EnsureEditingSystem();
 
+    // Load panel icon once
+    if (!IconPanelEmitters)
+    {
+        IconPanelEmitters = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_Emitters.png");
+    }
     // Header row styled like a panel title
-    DrawCascadePanelHeader("Emitters");
+    DrawCascadePanelHeader("Emitters", IconPanelEmitters);
 
     // Reset frame-local click tracking
     bClickedOnItemThisFrame = false;
@@ -144,7 +174,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
     const float thumbnailSize = 36.0f;
     const float moduleHeight = 24.0f;
     const float columnSpacing = 10.0f;
-    const float iconSize = 16.0f;
+    const float iconSize = 20.0f;
 
     int count = EditingSystem->GetEmitterCount();
     for (int i = 0; i < count; ++i)
@@ -619,6 +649,70 @@ void SCascadeEmittersPanel::Render(float width, float height)
             if (EditingSystem) EditingSystem->bIsDirty = true;
         }
     }
+
+    // DEL key - delete selected module or emitter
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete))
+    {
+        // First priority: delete selected module (if any)
+        if (SelectedModule)
+        {
+            // Find which emitter/LOD contains this module
+            for (int32 emitterIdx = 0; emitterIdx < EditingSystem->GetEmitterCount(); ++emitterIdx)
+            {
+                UParticleEmitter* Emitter = EditingSystem->GetEmitter(emitterIdx);
+                if (!Emitter) continue;
+
+                UParticleLODLevel* LOD0 = Emitter->GetDefaultLODLevel();
+                if (!LOD0) continue;
+
+                // Check if it's the TypeData module
+                if (LOD0->TypeDataModule == SelectedModule)
+                {
+                    LOD0->TypeDataModule = nullptr;
+                    SelectedModule = nullptr;
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
+                    break;
+                }
+                // Check if it's the EventGenerator module
+                else if (LOD0->EventGenerator == SelectedModule)
+                {
+                    LOD0->EventGenerator = nullptr;
+                    SelectedModule = nullptr;
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
+                    break;
+                }
+                // Check if it's in the regular modules list (skip Required module)
+                else if (LOD0->RequiredModule != SelectedModule)
+                {
+                    const TArray<UParticleModule*>& Modules = LOD0->Modules;
+                    for (int32 modIdx = 0; modIdx < Modules.Num(); ++modIdx)
+                    {
+                        if (Modules[modIdx] == SelectedModule)
+                        {
+                            LOD0->RemoveModule(SelectedModule);
+                            SelectedModule = nullptr;
+                            if (EditingSystem) EditingSystem->bIsDirty = true;
+                            break;
+                        }
+                    }
+                    if (!SelectedModule) break; // Module was deleted
+                }
+            }
+        }
+        // Second priority: delete selected emitter (if no module selected)
+        else if (SelectedEmitterIndex >= 0 && SelectedEmitterIndex < EditingSystem->GetEmitterCount())
+        {
+            UParticleEmitter* ToRemove = EditingSystem->GetEmitter(SelectedEmitterIndex);
+            EditingSystem->RemoveEmitter(ToRemove);
+            if (EditingSystem) EditingSystem->bIsDirty = true;
+
+            // Adjust selection
+            if (SelectedEmitterIndex >= EditingSystem->GetEmitterCount())
+            {
+                SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+            }
+        }
+    }
 }
 
 UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
@@ -803,7 +897,7 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultBeamEmitter()
         TypeDataBeam->Length = 5.0f;     // 5m
         LOD0->TypeDataModule = TypeDataBeam;
 
-        // BeamNoise 모듈 추가
+        // BeamNoise ��� �߰�
         UParticleModuleBeamNoise* BeamNoiseModule = NewObject<UParticleModuleBeamNoise>();
         BeamNoiseModule->NoiseRange = FVector(0.3f, 0.3f, 0.0f);  // 30cm
         BeamNoiseModule->NoiseLockTime = 0.1f;
