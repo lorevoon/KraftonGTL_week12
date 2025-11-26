@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SParticleSystemEditorWindow.h"
 #include "SlateManager.h"
 #include "Source/Runtime/Engine/Viewer/ParticleSystemEditorBootstrap.h"
@@ -9,6 +9,7 @@
 #include "Source/Runtime/Engine/Particles/ParticleModule.h"
 #include "Source/Runtime/Engine/Particles/ParticleSystem.h"
 #include "Source/Runtime/Engine/Particles/ParticleEmitter.h"
+#include "Source/Runtime/Engine/Particles/ParticleEmitterInstance.h"
 #include "Source/Runtime/Core/Object/Property.h"
 #include "Source/Runtime/Core/Misc/JsonSerializer.h"
 #include "FViewportClient.h"
@@ -207,6 +208,13 @@ void SParticleSystemEditorWindow::RenderToolbar()
     // LOD editing
 	RenderLODEditingButtons();
 
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+	RenderLODStatus();
+
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(3);
     ImGui::EndChild();
@@ -378,6 +386,56 @@ void SParticleSystemEditorWindow::RenderLODEditingButtons()
         if (ImGui::ImageButton("##Cascade_LODDeleteBtn", (void*)IconLODDelete->GetShaderResourceView(), IconSizeVec)) {}
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delete LOD");
     }
+}
+
+void SParticleSystemEditorWindow::RenderLODStatus()
+{
+    int32 CurrentLOD = -1;
+    int32 MaxLOD = -1;
+
+    // Prefer the editing system for the maximum LOD count
+    UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+    if (EditingSystem)
+    {
+        MaxLOD = FMath::Max(EditingSystem->GetLODLevelCount() - 1, 0);
+    }
+
+    // Read current LOD from the preview component's first valid emitter instance
+    if (UParticleSystemComponent* PreviewComp = GetPreviewComponent())
+    {
+        for (FParticleEmitterInstance* Instance : PreviewComp->EmitterInstances)
+        {
+            if (Instance && Instance->CurrentLODLevel)
+            {
+                CurrentLOD = Instance->CurrentLODLevel->Level;
+                break;
+            }
+        }
+
+        // Fallback for max LOD using the preview template
+        if (MaxLOD < 0 && PreviewComp->Template)
+        {
+            MaxLOD = FMath::Max(PreviewComp->Template->GetLODLevelCount() - 1, 0);
+        }
+    }
+
+    // Graceful defaults if data is missing
+    if (CurrentLOD < 0)
+        CurrentLOD = 0;
+    if (MaxLOD < 0)
+        MaxLOD = 0;
+
+    // Right-align inside the remaining toolbar space
+    char LODLabel[64];
+    sprintf_s(LODLabel, sizeof(LODLabel), "Current LOD: %d (Max: %d)", CurrentLOD, MaxLOD);
+
+    ImVec2 textSize = ImGui::CalcTextSize(LODLabel);
+    float availX = ImGui::GetContentRegionAvail().x;
+    ImVec2 cursor = ImGui::GetCursorPos();
+    float centeredY = (ImGui::GetWindowSize().y - textSize.y) * 0.5f;
+    ImGui::SetCursorPos(ImVec2(cursor.x + FMath::Max(availX - textSize.x, 0.0f), centeredY));
+
+    ImGui::TextUnformatted(LODLabel);
 }
 
 void SParticleSystemEditorWindow::RenderLeftColumn(float width, float height)

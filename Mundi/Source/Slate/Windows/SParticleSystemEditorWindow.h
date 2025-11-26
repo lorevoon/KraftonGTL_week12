@@ -40,6 +40,7 @@ private:
 	void RenderViewportControlButtons();
     void RenderLODControlButtons();
 	void RenderLODEditingButtons();
+    void RenderLODStatus();
 
     // Panels
     void RenderLeftColumn(float width, float height);
