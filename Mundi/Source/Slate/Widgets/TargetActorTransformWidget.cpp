@@ -519,6 +519,13 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails(UActorComponent
 		UPropertyRenderer::RenderAllPropertiesWithInheritance(SelectedComponent);
 	}
 
+	// 파티클 시스템 컴포넌트는 별도의 제어용 UI 제공
+	if (UParticleSystemComponent* ParticleComponent = Cast<UParticleSystemComponent>(SelectedComponent))
+	{
+		ImGui::Separator();
+		RenderParticleSystemComponentControls(*ParticleComponent);
+	}
+
 }
 
 void UTargetActorTransformWidget::UpdateTransformFromComponent(USceneComponent* SelectedComponent)
@@ -538,4 +545,17 @@ void UTargetActorTransformWidget::ResetChangeFlags()
 	bPositionChanged = false;
 	bRotationChanged = false;
 	bScaleChanged = false;
+}
+
+void UTargetActorTransformWidget::RenderParticleSystemComponentControls(UParticleSystemComponent& ParticleComponent)
+{
+	ImGui::TextUnformatted("파티클 시스템 제어");
+	ImGui::Spacing();
+
+	if (ImGui::Button("Reset Particle System"))
+	{
+		ParticleComponent.ResetToDefaultState();
+	}
+
+	ImGui::Spacing();
 }
