@@ -827,6 +827,12 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultBeamEmitter()
         Velocity->StartVelocityMax = FVector(200.f, 50.f, 0.f);
         LOD0->AddModule(Velocity);
     }
+    // Size
+    if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())
+    {
+        Size->ModuleName = "Size";
+        LOD0->AddModule(Size);
+    }
     // Color
     if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
     {
