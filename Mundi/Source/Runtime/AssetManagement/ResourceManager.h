@@ -95,7 +95,8 @@ public:
 	const TArray<UStaticMesh*>& GetStaticMeshs() { return StaticMeshs; }
 	const TArray<UAnimSequence*>& GetAnimations() { return Animations; }
 
-	void SetAudioFiles();  
+	void SetAudioFiles();
+	void SetParticleSystems();
 
 	// --- Deprecated (향후 제거될 함수들) ---
 	TArray<UStaticMesh*> GetAllStaticMeshes() { return GetAll<UStaticMesh>(); }
@@ -124,6 +125,7 @@ protected:
 	TArray<UAnimSequence*> Animations;
 
 	TArray<USound*> Sounds;
+	TArray<UParticleSystem*> ParticleSystems;
 
 	// Deprecated
 	TMap<FString, FResourceData*> ResourceMap;

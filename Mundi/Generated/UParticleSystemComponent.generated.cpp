@@ -38,7 +38,7 @@ const bool UParticleSystemComponent::bPropertiesRegistered = []() {
 
 BEGIN_PROPERTIES(UParticleSystemComponent)
     MARK_AS_COMPONENT("파티클 시스템 컴포넌트", "파티클 시스템을 렌더링하는 컴포넌트입니다")
-    ADD_PROPERTY(UParticleSystem*, Template, "ParticleSystem", true)
+    ADD_PROPERTY_PARTICLESYSTEM(UParticleSystem*, Template, "ParticleSystem", true)
     ADD_PROPERTY(bool, bAutoActivate, "ParticleSystem", true)
     ADD_PROPERTY(bool, bIsActive, "", false)
     ADD_PROPERTY(float, CustomPlaybackRate, "ParticleSystem", true)

@@ -1109,7 +1109,7 @@ void SParticleSystemEditorWindow::OnLoadParticleSystem()
 {
     std::filesystem::path FilePath = FPlatformProcess::OpenLoadFileDialog(
         L"Data/ParticleSystems",
-        L"*.json",
+        L".json",
         L"Particle System (*.json)"
     );
 
@@ -1181,7 +1181,7 @@ void SParticleSystemEditorWindow::OnSaveParticleSystem()
 
     std::filesystem::path FilePath = FPlatformProcess::OpenSaveFileDialog(
         L"Data/ParticleSystems",
-        L"*.json",
+        L".json",
         L"Particle System (*.json)",
         DefaultFileName
     );

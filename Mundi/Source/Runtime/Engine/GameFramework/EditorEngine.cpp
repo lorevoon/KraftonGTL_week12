@@ -6,6 +6,7 @@
 #include "FbxLoader.h"
 #include "PlatformCrashHandler.h"
 #include <ObjManager.h>
+#include "ParticleLoader.h"
 
 float UEditorEngine::ClientWidth = 1024.0f;
 float UEditorEngine::ClientHeight = 1024.0f;
@@ -192,8 +193,9 @@ bool UEditorEngine::Startup(HINSTANCE hInstance)
     UI.Initialize(HWnd, RHIDevice.GetDevice(), RHIDevice.GetDeviceContext());
     INPUT.Initialize(HWnd);
 
-    FObjManager::Preload(); 
+    FObjManager::Preload();
     UFbxLoader::PreLoad();
+    FParticleLoader::Preload();
 
     FAudioDevice::Preload();
 

@@ -677,6 +677,9 @@
     <ClCompile Include="Source\Editor\ObjManager.cpp">
       <Filter>Source\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Editor\ParticleLoader.cpp">
+      <Filter>Source\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Editor\SelectionManager.cpp">
       <Filter>Source\Editor</Filter>
     </ClCompile>
@@ -1680,6 +1683,9 @@
       <Filter>Source\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\ObjManager.h">
+      <Filter>Source\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\ParticleLoader.h">
       <Filter>Source\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\SelectionManager.h">

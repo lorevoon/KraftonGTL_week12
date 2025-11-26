@@ -456,6 +456,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Editor\Gizmo\GizmoScaleComponent.cpp" />
     <ClCompile Include="Source\Editor\Grid\GridActor.cpp" />
     <ClCompile Include="Source\Editor\ObjManager.cpp" />
+    <ClCompile Include="Source\Editor\ParticleLoader.cpp" />
     <ClCompile Include="Source\Editor\SelectionManager.cpp" />
     <ClCompile Include="Source\Runtime\AssetManagement\DynamicMesh.cpp" />
     <ClCompile Include="Source\Runtime\AssetManagement\Line.cpp" />
@@ -924,6 +925,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Editor\Grid\GridActor.h" />
     <ClInclude Include="Source\Editor\ImGuiConsole.h" />
     <ClInclude Include="Source\Editor\ObjManager.h" />
+    <ClInclude Include="Source\Editor\ParticleLoader.h" />
     <ClInclude Include="Source\Editor\SelectionManager.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\Cube.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\DynamicMesh.h" />
