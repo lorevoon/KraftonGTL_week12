@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "SCascadeEmittersPanel.h"
+#include "SCascadeCurveEditor.h"
 #include "ImGui/imgui.h"
 
 #include "Source/Runtime/Engine/Particles/ParticleSystem.h"
@@ -23,6 +24,7 @@
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleEventGenerator.h"
 #include "Material.h"
 #include "ResourceManager.h"
+#include "Texture.h"
 #include "ParticleModuleTypeDataRibbon.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSpawnPerUnit.h"
 
@@ -105,6 +107,16 @@ bool SCascadeEmittersPanel::HasAnySoloEmitter() const
     return false;
 }
 
+void SCascadeEmittersPanel::LoadEmitterTypeIcons()
+{
+    if (!IconMeshEmitter)
+        IconMeshEmitter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_MeshEmitter.png");
+    if (!IconRibbonEmitter)
+        IconRibbonEmitter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_RibbonEmitter.png");
+    if (!IconBeamEmitter)
+        IconBeamEmitter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_BeamEmitter.png");
+}
+
 static void DrawCascadePanelHeader(const char* Title, class UTexture* IconTexture)
 {
     ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -168,6 +180,9 @@ void SCascadeEmittersPanel::Render(float width, float height)
     {
         IconPanelEmitters = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_Emitters.png");
     }
+    // Load emitter type icons
+    LoadEmitterTypeIcons();
+
     // Header row styled like a panel title
     DrawCascadePanelHeader("Emitters", IconPanelEmitters);
 
@@ -198,32 +213,58 @@ void SCascadeEmittersPanel::Render(float width, float height)
 
         // ===== HEADER SECTION =====
         bool selected = (i == SelectedEmitterIndex);
+        FEmitterEditorState& EditorState = GetEmitterEditorState(i);
+        // Use IsEmitterVisibleInEditor to account for solo mode
+        bool isVisible = IsEmitterVisibleInEditor(i);
 
-        // Header background
-        ImVec4 headerBgColor = selected ? ImVec4(0.25f, 0.25f, 0.25f, 1.0f) : ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+        // Header background - dim when invisible
+        ImVec4 headerBgColor;
+        if (!isVisible)
+        {
+            headerBgColor = selected ? ImVec4(0.18f, 0.15f, 0.15f, 1.0f) : ImVec4(0.12f, 0.10f, 0.10f, 1.0f);
+        }
+        else
+        {
+            headerBgColor = selected ? ImVec4(0.25f, 0.25f, 0.25f, 1.0f) : ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+        }
         ImGui::PushStyleColor(ImGuiCol_ChildBg, headerBgColor);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
+
+        // Get header position before BeginChild for overlay drawing
+        ImVec2 headerStartPos = ImGui::GetCursorScreenPos();
+
         ImGui::BeginChild("EmitterHeader", ImVec2(columnWidth, headerHeight), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
         // Left side: Name and control buttons
         ImGui::BeginGroup();
 
-        // First row: Emitter name
+        // First row: Emitter name (dim text when invisible)
+        if (!isVisible)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+        }
         ImGui::TextUnformatted(Name.c_str());
+        if (!isVisible)
+        {
+            ImGui::PopStyleColor();
+        }
 
-        // Second row: Control icons (horizontal layout)
+        // Second row: Control icons (horizontal layout) - small buttons
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 2));
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 1));  // Wider padding, minimal vertical
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 
-        const float iconButtonWidth = 20.0f;
-        const float iconButtonHeight = 20.0f;
-        FEmitterEditorState& EditorState = GetEmitterEditorState(i);
+        const float iconButtonSize = 14.0f;
 
-        // Visibility toggle (V)
-        ImVec4 visButtonColor = EditorState.bIsVisible ? ImVec4(0.2f, 0.5f, 0.2f, 1.0f) : ImVec4(0.5f, 0.2f, 0.2f, 1.0f);
+        // Use smaller font scale for these buttons
+        float originalFontScale = ImGui::GetFont()->Scale;
+        ImGui::GetFont()->Scale *= 0.85f;
+        ImGui::PushFont(ImGui::GetFont());
+
+        // Visibility toggle (V) - use isVisible which accounts for solo mode
+        ImVec4 visButtonColor = isVisible ? ImVec4(0.25f, 0.5f, 0.25f, 1.0f) : ImVec4(0.5f, 0.25f, 0.25f, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_Button, visButtonColor);
-        if (ImGui::Button("V##vis", ImVec2(iconButtonWidth, iconButtonHeight)))
+        if (ImGui::Button("V##vis", ImVec2(iconButtonSize, iconButtonSize)))
         {
             EditorState.bIsVisible = !EditorState.bIsVisible;
             if (EditingSystem) EditingSystem->bIsDirty = true;
@@ -231,7 +272,14 @@ void SCascadeEmittersPanel::Render(float width, float height)
         ImGui::PopStyleColor();
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("Toggle Visibility (%s)", EditorState.bIsVisible ? "Visible" : "Hidden");
+            if (HasAnySoloEmitter() && !EditorState.bIsSolo)
+            {
+                ImGui::SetTooltip("Hidden (another emitter is solo)");
+            }
+            else
+            {
+                ImGui::SetTooltip("Toggle Visibility (%s)", EditorState.bIsVisible ? "Visible" : "Hidden");
+            }
         }
 
         ImGui::SameLine();
@@ -244,7 +292,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
             ? ImVec4(0.3f, 0.3f, 0.3f, 1.0f)
             : ImVec4(0.4f, 0.3f, 0.2f, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_Button, renderButtonColor);
-        if (ImGui::Button(renderModeLabels[renderModeIndex], ImVec2(iconButtonWidth, iconButtonHeight)))
+        if (ImGui::Button(renderModeLabels[renderModeIndex], ImVec2(iconButtonSize, iconButtonSize)))
         {
             // Cycle to next render mode
             renderModeIndex = (renderModeIndex + 1) % 4;
@@ -262,7 +310,7 @@ void SCascadeEmittersPanel::Render(float width, float height)
         // Solo toggle (S)
         ImVec4 soloButtonColor = EditorState.bIsSolo ? ImVec4(0.6f, 0.5f, 0.1f, 1.0f) : ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
         ImGui::PushStyleColor(ImGuiCol_Button, soloButtonColor);
-        if (ImGui::Button("S##solo", ImVec2(iconButtonWidth, iconButtonHeight)))
+        if (ImGui::Button("S##solo", ImVec2(iconButtonSize, iconButtonSize)))
         {
             EditorState.bIsSolo = !EditorState.bIsSolo;
             if (EditingSystem) EditingSystem->bIsDirty = true;
@@ -273,6 +321,10 @@ void SCascadeEmittersPanel::Render(float width, float height)
             ImGui::SetTooltip("Solo Mode (%s)", EditorState.bIsSolo ? "Solo" : "Off");
         }
 
+        // Restore font scale
+        ImGui::GetFont()->Scale = originalFontScale;
+        ImGui::PopFont();
+
         ImGui::PopStyleVar(3);
 
         ImGui::EndGroup();
@@ -282,26 +334,102 @@ void SCascadeEmittersPanel::Render(float width, float height)
         float rightSideX = columnWidth - thumbnailSize - 8.0f;
         ImGui::SetCursorPosX(rightSideX);
 
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
-        float thumbnailDisplaySize = 36.0f;
-        ImGui::Button("##thumbnail", ImVec2(thumbnailDisplaySize, thumbnailDisplaySize));
-        ImGui::PopStyleVar();
-        ImGui::PopStyleColor(3);
+        // Determine thumbnail texture based on emitter type
+        UTexture* thumbnailTexture = nullptr;
+        if (Emitter)
+        {
+            UParticleLODLevel* LOD = Emitter->GetDefaultLODLevel();
+            if (LOD)
+            {
+                // Check for TypeDataModule to determine emitter type
+                if (LOD->TypeDataModule)
+                {
+                    // Use emitter type icons for Mesh, Ribbon, Beam
+                    if (LOD->TypeDataModule->IsA<UParticleModuleTypeDataMesh>())
+                    {
+                        thumbnailTexture = IconMeshEmitter;
+                    }
+                    else if (LOD->TypeDataModule->IsA<UParticleModuleTypeDataRibbon>())
+                    {
+                        thumbnailTexture = IconRibbonEmitter;
+                    }
+                    else if (LOD->TypeDataModule->IsA<UParticleModuleTypeDataBeam>())
+                    {
+                        thumbnailTexture = IconBeamEmitter;
+                    }
+                }
 
-        // Draw a simple particle sprite representation in the thumbnail
-        ImDrawList* drawList = ImGui::GetWindowDrawList();
-        ImVec2 thumbMin = ImGui::GetItemRectMin();
-        ImVec2 thumbMax = ImGui::GetItemRectMax();
-        ImVec2 center = ImVec2((thumbMin.x + thumbMax.x) * 0.5f, (thumbMin.y + thumbMax.y) * 0.5f);
-        drawList->AddCircleFilled(center, 6.0f, IM_COL32(255, 255, 255, 200), 8);
-        drawList->AddCircleFilled(center, 4.0f, IM_COL32(255, 200, 100, 255), 8);
+                // For sprite emitters (no TypeDataModule) or if type icon not found,
+                // use material's diffuse texture
+                if (!thumbnailTexture && LOD->RequiredModule && LOD->RequiredModule->Material)
+                {
+                    thumbnailTexture = LOD->RequiredModule->Material->GetTexture(EMaterialTextureSlot::Diffuse);
+                }
+            }
+        }
+
+        float thumbnailDisplaySize = 36.0f;
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+
+        if (thumbnailTexture && thumbnailTexture->GetShaderResourceView())
+        {
+            // Use the determined texture as thumbnail
+            ImVec4 tintColor = isVisible ? ImVec4(1, 1, 1, 1) : ImVec4(0.5f, 0.5f, 0.5f, 0.7f);
+            ImVec4 borderColor(0, 0, 0, 0);
+            ImGui::Image((void*)thumbnailTexture->GetShaderResourceView(),
+                         ImVec2(thumbnailDisplaySize, thumbnailDisplaySize),
+                         ImVec2(0, 0), ImVec2(1, 1), tintColor, borderColor);
+        }
+        else
+        {
+            // Fallback: Draw a simple placeholder
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+            ImGui::Button("##thumbnail", ImVec2(thumbnailDisplaySize, thumbnailDisplaySize));
+            ImGui::PopStyleColor(3);
+
+            // Draw a simple particle sprite representation in the thumbnail
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+            ImVec2 thumbMin = ImGui::GetItemRectMin();
+            ImVec2 thumbMax = ImGui::GetItemRectMax();
+            ImVec2 center = ImVec2((thumbMin.x + thumbMax.x) * 0.5f, (thumbMin.y + thumbMax.y) * 0.5f);
+
+            // Dim thumbnail when invisible
+            ImU32 thumbOuterColor = isVisible ? IM_COL32(255, 255, 255, 200) : IM_COL32(150, 150, 150, 150);
+            ImU32 thumbInnerColor = isVisible ? IM_COL32(255, 200, 100, 255) : IM_COL32(150, 120, 80, 200);
+            drawList->AddCircleFilled(center, 6.0f, thumbOuterColor, 8);
+            drawList->AddCircleFilled(center, 4.0f, thumbInnerColor, 8);
+        }
+
+        ImGui::PopStyleVar();
 
         ImGui::EndChild();
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
+
+        // Draw diagonal stripes overlay when invisible (like Unreal's noise pattern)
+        if (!isVisible)
+        {
+            ImVec2 headerEndPos = ImVec2(headerStartPos.x + columnWidth, headerStartPos.y + headerHeight);
+            ImDrawList* overlayDL = ImGui::GetWindowDrawList();
+
+            // Clip to header region
+            overlayDL->PushClipRect(headerStartPos, headerEndPos, true);
+
+            // Draw diagonal lines
+            const float stripeSpacing = 6.0f;
+            const ImU32 stripeColor = IM_COL32(0, 0, 0, 40);
+
+            for (float offset = -headerHeight; offset < columnWidth + headerHeight; offset += stripeSpacing)
+            {
+                ImVec2 p1 = ImVec2(headerStartPos.x + offset, headerStartPos.y);
+                ImVec2 p2 = ImVec2(headerStartPos.x + offset + headerHeight, headerStartPos.y + headerHeight);
+                overlayDL->AddLine(p1, p2, stripeColor, 1.0f);
+            }
+
+            overlayDL->PopClipRect();
+        }
 
         // Check if this item (the header child) is being interacted with
         bool isItemActive = ImGui::IsItemActive();
@@ -704,7 +832,9 @@ void SCascadeEmittersPanel::Render(float width, float height)
     }
 
     // DEL key - delete selected module or emitter
-    if (ImGui::IsKeyPressed(ImGuiKey_Delete))
+    // Skip if curve editor has a selected key (curve editor takes priority)
+    bool bCurveEditorHasSelectedKey = CurveEditor && CurveEditor->HasSelectedKey();
+    if (ImGui::IsKeyPressed(ImGuiKey_Delete) && !bCurveEditorHasSelectedKey)
     {
         // First priority: delete selected module (if any)
         if (SelectedModule)
@@ -1071,82 +1201,136 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
 {
     if (!module)
     {
-        // Safety check: render a placeholder if module is null
         ImGui::TextUnformatted("(Invalid module)");
         return;
     }
 
-    // Use module pointer as unique ID
     ImGui::PushID(module);
 
-    // Highlight if this module is selected
     bool isSelected = (module == SelectedModule);
-    ImVec4 finalBackgroundColor = backgroundColor;
+    bool isEnabled = module->bEnabled;
+
+    // Compute final background color
+    ImVec4 baseBg = backgroundColor;
+    if (!isEnabled)
+    {
+        baseBg = ImVec4(baseBg.x * 0.5f, baseBg.y * 0.5f, baseBg.z * 0.5f, baseBg.w * 0.7f);
+    }
     if (isSelected)
     {
-        // Add a bright border/highlight effect for selected module
-        finalBackgroundColor = ImVec4(backgroundColor.x * 1.3f, backgroundColor.y * 1.3f, backgroundColor.z * 1.3f, backgroundColor.w);
+        baseBg = ImVec4(baseBg.x * 1.3f, baseBg.y * 1.3f, baseBg.z * 1.3f, baseBg.w);
     }
 
-    ImGui::PushStyleColor(ImGuiCol_Button, finalBackgroundColor);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(finalBackgroundColor.x * 1.1f, finalBackgroundColor.y * 1.1f, finalBackgroundColor.z * 1.1f, finalBackgroundColor.w));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(finalBackgroundColor.x * 0.9f, finalBackgroundColor.y * 0.9f, finalBackgroundColor.z * 0.9f, finalBackgroundColor.w));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 3));
+    // Style for rounded buttons
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6, 4));
+    ImGui::PushStyleColor(ImGuiCol_Button, baseBg);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(baseBg.x * 1.15f, baseBg.y * 1.15f, baseBg.z * 1.15f, baseBg.w));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(baseBg.x * 0.9f, baseBg.y * 0.9f, baseBg.z * 0.9f, baseBg.w));
 
-    // Create a horizontal layout with checkbox (if needed) and button
+    // Selection border color
+    if (isSelected)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.47f, 0.67f, 1.0f, 0.8f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
+    }
+
     ImGui::BeginGroup();
 
     if (showCheckbox)
     {
-        // Render checkbox for enable/disable
-        bool enabled = module->bEnabled;
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-        if (ImGui::Checkbox("##enabled", &enabled))
+        // Custom toggle button instead of checkbox
+        ImVec4 toggleCol = isEnabled
+            ? ImVec4(0.3f, 0.65f, 0.3f, 1.0f)
+            : ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, toggleCol);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(toggleCol.x * 1.2f, toggleCol.y * 1.2f, toggleCol.z * 1.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(toggleCol.x * 0.8f, toggleCol.y * 0.8f, toggleCol.z * 0.8f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+
+        const char* toggleLabel = isEnabled ? "##on" : "##off";
+        if (ImGui::Button(toggleLabel, ImVec2(20, height)))
         {
-            module->bEnabled = enabled;
+            module->bEnabled = !module->bEnabled;
             if (EditingSystem) EditingSystem->bIsDirty = true;
         }
-        ImGui::PopStyleVar();
-        ImGui::SameLine();
 
-        // Button takes remaining width
+        // Draw checkmark or dash inside toggle
+        ImVec2 toggleMin = ImGui::GetItemRectMin();
+        ImVec2 toggleMax = ImGui::GetItemRectMax();
+        ImVec2 toggleCenter = ImVec2((toggleMin.x + toggleMax.x) * 0.5f, (toggleMin.y + toggleMax.y) * 0.5f);
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        if (isEnabled)
+        {
+            // Checkmark
+            dl->AddLine(ImVec2(toggleCenter.x - 4, toggleCenter.y), ImVec2(toggleCenter.x - 1, toggleCenter.y + 3), IM_COL32(255, 255, 255, 255), 2.0f);
+            dl->AddLine(ImVec2(toggleCenter.x - 1, toggleCenter.y + 3), ImVec2(toggleCenter.x + 5, toggleCenter.y - 3), IM_COL32(255, 255, 255, 255), 2.0f);
+        }
+        else
+        {
+            // Dash
+            dl->AddLine(ImVec2(toggleCenter.x - 4, toggleCenter.y), ImVec2(toggleCenter.x + 4, toggleCenter.y), IM_COL32(150, 150, 150, 255), 2.0f);
+        }
+
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip(isEnabled ? "Disable module" : "Enable module");
+        }
+
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine(0, 4);
+
+        // Module name button
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
-        if (ImGui::Button(moduleName, ImVec2(width - 30, height)))
+        if (ImGui::Button(moduleName, ImVec2(width - 32, height)))
         {
             SelectedModule = module;
             bClickedOnItemThisFrame = true;
         }
         ImGui::PopStyleVar();
-
-        // Context menu on the button
-        if (ImGui::BeginPopupContextItem())
+    }
+    else
+    {
+        // Required module - no toggle, just the button
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+        if (ImGui::Button(moduleName, ImVec2(width - 8, height)))
         {
-            ImGui::TextUnformatted(moduleName);
-            ImGui::Separator();
+            SelectedModule = module;
+            bClickedOnItemThisFrame = true;
+        }
+        ImGui::PopStyleVar();
+    }
 
-            // Toggle enable/disable
-            bool isEnabled = module->bEnabled;
-            if (ImGui::MenuItem("Enable/Disable", nullptr, &isEnabled))
+    bool isItemActive = ImGui::IsItemActive();
+
+    // Context menu
+    if (ImGui::BeginPopupContextItem("##cardcontext"))
+    {
+        ImGui::TextUnformatted(moduleName);
+        ImGui::Separator();
+
+        if (showCheckbox)
+        {
+            if (ImGui::MenuItem(isEnabled ? "Disable" : "Enable"))
             {
-                module->bEnabled = isEnabled;
+                module->bEnabled = !module->bEnabled;
+                if (EditingSystem) EditingSystem->bIsDirty = true;
             }
 
             if (ImGui::MenuItem("Delete"))
             {
                 if (parentLOD)
                 {
-                    // Clear selection if we're deleting the selected module
                     if (SelectedModule == module)
                     {
                         SelectedModule = nullptr;
                     }
-                    // TypeData module (moduleIndex == -2) has special handling
                     if (moduleIndex == -2)
                     {
                         parentLOD->TypeDataModule = nullptr;
                     }
-                    // EventGenerator module (moduleIndex == -3) has special handling
                     else if (moduleIndex == -3)
                     {
                         parentLOD->EventGenerator = nullptr;
@@ -1163,73 +1347,37 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
             {
                 if (parentLOD && module)
                 {
-                    // Duplicate the module
                     UParticleModule* ClonedModule = static_cast<UParticleModule*>(module->Duplicate());
                     if (ClonedModule)
                     {
-                        // Add it to the parent LOD level
                         parentLOD->AddModule(ClonedModule);
                         if (EditingSystem) EditingSystem->bIsDirty = true;
                     }
                 }
             }
-
-            ImGui::EndPopup();
         }
-    }
-    else
-    {
-        // No checkbox for Required module, just the button with left padding
-        char buttonLabel[128];
-        sprintf_s(buttonLabel, "     %s", moduleName);
-        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
-        if (ImGui::Button(buttonLabel, ImVec2(width, height)))
+        else
         {
-            SelectedModule = module;
-            bClickedOnItemThisFrame = true;
+            ImGui::TextDisabled("(Required module)");
         }
-        ImGui::PopStyleVar();
 
-        // Context menu on the button (Required module)
-        if (ImGui::BeginPopupContextItem())
-        {
-            ImGui::TextUnformatted(moduleName);
-            ImGui::Separator();
-
-            // Required module cannot be deleted
-            ImGui::TextDisabled("(Required modules cannot be deleted)");
-
-            if (ImGui::MenuItem("Duplicate"))
-            {
-                if (parentLOD && module)
-                {
-                    // Duplicate the required module and add it as a regular module
-                    UParticleModule* ClonedModule = static_cast<UParticleModule*>(module->Duplicate());
-                    if (ClonedModule)
-                    {
-                        // Add it to the parent LOD level as a regular module
-                        parentLOD->AddModule(ClonedModule);
-                        if (EditingSystem) EditingSystem->bIsDirty = true;
-                    }
-                }
-            }
-
-            ImGui::EndPopup();
-        }
+        ImGui::EndPopup();
     }
 
     ImGui::EndGroup();
 
-    // Check if the group item is being interacted with
-    bool isItemActive = ImGui::IsItemActive();
+    if (isSelected)
+    {
+        ImGui::PopStyleVar(); // FrameBorderSize
+        ImGui::PopStyleColor(); // Border
+    }
 
-    ImGui::PopStyleVar(2);
-    ImGui::PopStyleColor(3);
+    ImGui::PopStyleColor(3); // Button colors
+    ImGui::PopStyleVar(2); // FrameRounding, FramePadding
 
     // Drag-and-drop for module reordering (only for non-required modules)
     if (moduleIndex >= 0 && showCheckbox && isItemActive)
     {
-        // Drag source
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
         {
             ImGui::SetDragDropPayload("MODULE_REORDER", &moduleIndex, sizeof(int32));
@@ -1238,7 +1386,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
         }
     }
 
-    // Drop target (can accept drops even when not active)
+    // Drop target
     if (moduleIndex >= 0 && showCheckbox)
     {
         if (ImGui::BeginDragDropTarget())
@@ -1256,7 +1404,7 @@ void SCascadeEmittersPanel::RenderModuleCard(UParticleModule* module, UParticleL
         }
     }
 
-    ImGui::PopID(); // Pop the unique ID
+    ImGui::PopID();
 }
 
 ImVec4 SCascadeEmittersPanel::GetModuleColor(const FString& moduleName)

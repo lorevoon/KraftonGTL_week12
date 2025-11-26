@@ -75,7 +75,7 @@ private:
     UTexture* IconPanelDetails = nullptr;
     UTexture* IconPanelCurves = nullptr;
 
-    float IconSize = 24.0f;
+    float IconSize = 32.0f;
 
     // Panels
     SCascadeEmittersPanel* EmittersPanel = nullptr;
