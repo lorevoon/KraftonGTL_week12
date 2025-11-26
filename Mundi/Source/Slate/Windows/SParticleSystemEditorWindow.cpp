@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "SParticleSystemEditorWindow.h"
 #include "SlateManager.h"
 #include "Source/Runtime/Engine/Viewer/ParticleSystemEditorBootstrap.h"
@@ -399,19 +399,24 @@ void SParticleSystemEditorWindow::RenderRightColumn(float width, float height)
     {
         ImVec2 pos = ImGui::GetCursorScreenPos();
         float fullW = ImGui::GetContentRegionAvail().x;
-        const float headerH = 28.0f;
+        const float padX = 10.0f;
+        const float padY = 5.0f;
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        ImU32 bg = ImGui::GetColorU32(ImVec4(0.14f, 0.14f, 0.18f, 1.0f));
-        ImU32 top = ImGui::GetColorU32(ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
-        ImU32 border = ImGui::GetColorU32(ImVec4(0.35f, 0.35f, 0.40f, 1.0f));
-        dl->AddRectFilled(pos, ImVec2(pos.x + fullW, pos.y + headerH), bg, 5.0f);
-        dl->AddLine(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y), top, 1.0f);
-        dl->AddRect(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y + headerH), border, 5.0f);
-        ImGui::SetCursorScreenPos(ImVec2(pos.x + 10.0f, pos.y + 5.0f));
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
+        ImVec2 ts = ImGui::CalcTextSize("Curve Editor");
+        ImVec2 chipMin = pos;
+        float chipW = ts.x + padX * 2.0f; const float iconSize = 20.0f; bool hasIcon = (IconPanelCurves && IconPanelCurves->GetShaderResourceView()); if (hasIcon) chipW += iconSize + 6.0f; ImVec2 chipMax = ImVec2(pos.x + chipW, pos.y + ts.y + padY * 2.0f);
+        ImU32 chipBg = ImGui::GetColorU32(ImVec4(0.18f, 0.19f, 0.23f, 1.0f));
+        ImU32 chipBorder = ImGui::GetColorU32(ImVec4(0.36f, 0.40f, 0.48f, 1.0f));
+        ImU32 lineCol = ImGui::GetColorU32(ImVec4(0.18f, 0.18f, 0.20f, 1.0f));
+        dl->AddRectFilled(chipMin, chipMax, chipBg, 6.0f);
+        dl->AddRect(chipMin, chipMax, chipBorder, 6.0f, 0, 1.0f);
+        ImVec2 cur = ImVec2(pos.x + padX, pos.y + padY); ImGui::SetCursorScreenPos(cur); if (hasIcon) { ImGui::Image((void*)IconPanelCurves->GetShaderResourceView(), ImVec2(iconSize, iconSize)); ImGui::SameLine(); cur.x += iconSize + 6.0f; } ImGui::SetCursorScreenPos(cur);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.94f, 0.95f, 1.00f, 1.0f));
         ImGui::TextUnformatted("Curve Editor");
         ImGui::PopStyleColor();
-        ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + headerH + 6.0f));
+        float lineY = chipMax.y + 5.0f;
+        dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + fullW, lineY), lineCol, 1.0f);
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 6.0f));
     }
     ImGui::TextUnformatted("(Curve editor placeholder)");
     ImGui::EndChild();
@@ -784,27 +789,38 @@ void SParticleSystemEditorWindow::LoadToolbarIcons()
         IconLODInsertAfter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODInsertAfter.png");
     if (!IconLODDelete)
         IconLODDelete = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODDelete.png");
+
+    // Panel icons
+    if (!IconPanelDetails)
+        IconPanelDetails = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_Details.png");
+    if (!IconPanelCurves)
+        IconPanelCurves = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_CurveEditor.png");
 }
 
 void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
 {
-    // Styled header bar for Details
+    // Chip-style header for Details
     {
         ImVec2 pos = ImGui::GetCursorScreenPos();
         float fullW = ImGui::GetContentRegionAvail().x;
-        const float headerH = 28.0f;
+        const float padX = 10.0f;
+        const float padY = 5.0f;
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        ImU32 bg = ImGui::GetColorU32(ImVec4(0.14f, 0.14f, 0.18f, 1.0f));
-        ImU32 top = ImGui::GetColorU32(ImVec4(0.22f, 0.22f, 0.28f, 1.0f));
-        ImU32 border = ImGui::GetColorU32(ImVec4(0.35f, 0.35f, 0.40f, 1.0f));
-        dl->AddRectFilled(pos, ImVec2(pos.x + fullW, pos.y + headerH), bg, 5.0f);
-        dl->AddLine(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y), top, 1.0f);
-        dl->AddRect(ImVec2(pos.x, pos.y), ImVec2(pos.x + fullW, pos.y + headerH), border, 5.0f);
-        ImGui::SetCursorScreenPos(ImVec2(pos.x + 10.0f, pos.y + 5.0f));
+        ImVec2 ts = ImGui::CalcTextSize("Details");
+        ImVec2 chipMin = pos;
+        float chipW = ts.x + padX * 2.0f; const float iconSize = 20.0f; bool hasIcon = (IconPanelDetails && IconPanelDetails->GetShaderResourceView()); if (hasIcon) chipW += iconSize + 6.0f; ImVec2 chipMax = ImVec2(pos.x + chipW, pos.y + ts.y + padY * 2.0f);
+        ImU32 chipBg = ImGui::GetColorU32(ImVec4(0.18f, 0.19f, 0.23f, 1.0f));
+        ImU32 chipBorder = ImGui::GetColorU32(ImVec4(0.36f, 0.40f, 0.48f, 1.0f));
+        ImU32 lineCol = ImGui::GetColorU32(ImVec4(0.18f, 0.18f, 0.20f, 1.0f));
+        dl->AddRectFilled(chipMin, chipMax, chipBg, 6.0f);
+        dl->AddRect(chipMin, chipMax, chipBorder, 6.0f, 0, 1.0f);
+        ImVec2 cur = ImVec2(pos.x + padX, pos.y + padY); ImGui::SetCursorScreenPos(cur); if (hasIcon) { ImGui::Image((void*)IconPanelDetails->GetShaderResourceView(), ImVec2(iconSize, iconSize)); ImGui::SameLine(); cur.x += iconSize + 6.0f; } ImGui::SetCursorScreenPos(cur);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
         ImGui::TextUnformatted("Details");
         ImGui::PopStyleColor();
-        ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + headerH + 6.0f));
+        float lineY = chipMax.y + 5.0f;
+        dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + fullW, lineY), lineCol, 1.0f);
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 6.0f));
     }
 
     if (!EmittersPanel)
@@ -1246,35 +1262,35 @@ void SParticleSystemEditorWindow::OnSaveParticleSystem()
     File << SaveJson.dump(2);
     File.close();
 
-    // Update the system's file path (상대 경로로 정규화)
+    // Update the system's file path (��� ��η� ����ȭ)
     FString NormalizedPath = NormalizePath(FilePathStr);
 
-    // 기존 경로와 비교하여 다른 이름/경로로 저장한 경우 새 파일을 로드하여 ResourceManager에 등록
+    // ���� ��ο� ���Ͽ� �ٸ� �̸�/��η� ������ ��� �� ������ �ε��Ͽ� ResourceManager�� ���
     FString NormalizedExistingPath = NormalizePath(ExistingPath);
 
     if (NormalizedPath != NormalizedExistingPath)
     {
-        // 새로 저장한 파일을 ResourceManager를 통해 로드 (새 객체로 등록됨)
+        // ���� ������ ������ ResourceManager�� ���� �ε� (�� ��ü�� ��ϵ�)
         UParticleSystem* NewSystem = UResourceManager::GetInstance().Load<UParticleSystem>(NormalizedPath);
 
-        // 캐시 갱신 (다음 렌더링 시 새로 빌드됨)
+        // ĳ�� ���� (���� ������ �� ���� �����)
         UPropertyRenderer::ClearResourcesCache();
 
-        // 새로 저장한 ParticleSystem을 현재 Template으로 설정
+        // ���� ������ ParticleSystem�� ���� Template���� ����
         UParticleSystemComponent* PreviewComp = GetPreviewComponent();
 
         if (PreviewComp && NewSystem)
         {
             PreviewComp->SetTemplate(NewSystem);
 
-            // EmittersPanel의 EditingSystem도 업데이트 (PreRenderViewportUpdate에서 덮어쓰기 방지)
+            // EmittersPanel�� EditingSystem�� ������Ʈ (PreRenderViewportUpdate���� ����� ����)
             if (EmittersPanel)
             {
                 EmittersPanel->SetEditingSystem(NewSystem);
             }
 
-            // Scene의 소스 컴포넌트 업데이트
-            // Property Window에서 "Cascade Editor" 버튼으로 열린 경우 해당 컴포넌트의 Template도 업데이트
+            // Scene�� �ҽ� ������Ʈ ������Ʈ
+            // Property Window���� "Cascade Editor" ��ư���� ���� ��� �ش� ������Ʈ�� Template�� ������Ʈ
             if (SourceSceneComponent)
             {
                 SourceSceneComponent->SetTemplate(NewSystem);
@@ -1283,7 +1299,7 @@ void SParticleSystemEditorWindow::OnSaveParticleSystem()
     }
     else
     {
-        // 같은 경로로 덮어쓰기한 경우에만 FilePath 업데이트
+        // ���� ��η� ������� ��쿡�� FilePath ������Ʈ
         EditingSystem->SetFilePath(NormalizedPath);
     }
 

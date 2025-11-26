@@ -60,6 +60,10 @@ private:
     UTexture* IconLODInsertAfter = nullptr;
     UTexture* IconLODDelete = nullptr;
 
+    // Panel icons
+    UTexture* IconPanelDetails = nullptr;
+    UTexture* IconPanelCurves = nullptr;
+
     float IconSize = 24.0f;
 
     // Panels
