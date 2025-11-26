@@ -13,6 +13,7 @@
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleVelocity.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleColor.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSize.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleRotation.h"
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSizeScaleBySpeed.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Source/Runtime/Engine/Particles/Modules/TypeData/ParticleModuleTypeDataBeam.h"
@@ -486,6 +487,17 @@ void SCascadeEmittersPanel::Render(float width, float height)
                 if (NewModule)
                 {
                     NewModule->ModuleName = "Color";
+                    LOD0->AddModule(NewModule);
+                    if (EditingSystem) EditingSystem->bIsDirty = true;
+                }
+            }
+
+            if (ImGui::MenuItem("Rotation"))
+            {
+                UParticleModuleRotation* NewModule = NewObject<UParticleModuleRotation>();
+                if (NewModule)
+                {
+                    NewModule->ModuleName = "Rotation";
                     LOD0->AddModule(NewModule);
                     if (EditingSystem) EditingSystem->bIsDirty = true;
                 }
