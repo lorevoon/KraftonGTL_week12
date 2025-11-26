@@ -13,6 +13,7 @@
 #include "PlayerCameraManager.h"
 #include "CameraActor.h"
 #include "CameraComponent.h"
+#include "ParticleModuleTypeDataRibbon.h"
 #include "PlatformTime.h"
 #include "ParticleStatManager.h"
 
@@ -177,22 +178,6 @@ void UParticleSystemComponent::SetLODIndex(int32 LODIndex)
     }
 }
 
-void UParticleSystemComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
-{
-    Super::Serialize(bInIsLoading, InOutHandle);
-
-    if (bInIsLoading)
-    {
-        int32 LODMethodValue = static_cast<int32>(EParticleSystemLODMethod::Automatic);
-        FJsonSerializer::ReadInt32(InOutHandle, "LODMethod", LODMethodValue, static_cast<int32>(EParticleSystemLODMethod::Automatic), false);
-        LODMethod = static_cast<EParticleSystemLODMethod>(LODMethodValue);
-    }
-    else
-    {
-        InOutHandle["LODMethod"] = static_cast<long>(LODMethod);
-    }
-}
-
 void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
     if (!bIsActive || !Template)
@@ -315,12 +300,8 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
 
         UParticleModuleRequired* RequiredModule = Instance->CurrentLODLevel->RequiredModule;
 
-        // Material이 없으면 렌더링 불가 (단, 메시 파티클이 bUseMeshMaterials 사용 시 예외)
-        UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(Instance->CurrentLODLevel->TypeDataModule);
-        bool bMeshUsesMeshMaterials = MeshTypeData && MeshTypeData->bUseMeshMaterials && MeshTypeData->Mesh;
-
-        if (!RequiredModule->Material && !bMeshUsesMeshMaterials)
-            continue;
+        // Material 체크 제거: Material이 없어도 디폴트 쉐이더로 렌더링 가능
+        // (ParticleHelper.cpp에서 Material이 nullptr일 때 흰색 텍스처 사용)
 
         // 파티클이 없으면 스킵
         if (Instance->ActiveParticles == 0)
@@ -347,6 +328,11 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
         {
             // Beam TypeData
             DynamicData = new FDynamicBeamEmitterData(Instance);
+        }
+        else if (Cast<UParticleModuleTypeDataRibbon>(LODLevel->TypeDataModule))
+        {
+            // Ribbon TypeData
+            DynamicData = new FDynamicRibbonEmitterData(Instance);
         }
         else
         {

@@ -323,6 +323,11 @@ struct TPropertyTypeTraits
 		Prop.EnumCount = EnumCountVal; \
 		Prop.bIsEditAnywhere = bEditAnywhere; \
 		Prop.Tooltip = "" __VA_ARGS__; \
+		/* EnumStorage 메타데이터: 실제 enum 저장 크기 + 부호 */ \
+		if constexpr (sizeof(VarType) == 1) { Prop.Metadata.Add(FName("EnumStorage"), std::is_signed_v<VarType> ? FString("i8") : FString("u8")); } \
+		else if constexpr (sizeof(VarType) == 2) { Prop.Metadata.Add(FName("EnumStorage"), std::is_signed_v<VarType> ? FString("i16") : FString("u16")); } \
+		else if constexpr (sizeof(VarType) == 8) { Prop.Metadata.Add(FName("EnumStorage"), std::is_signed_v<VarType> ? FString("i64") : FString("u64")); } \
+		else { Prop.Metadata.Add(FName("EnumStorage"), std::is_signed_v<VarType> ? FString("i32") : FString("u32")); } \
 		Class->AddProperty(Prop); \
 	}
 

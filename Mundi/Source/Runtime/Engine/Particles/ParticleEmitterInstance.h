@@ -102,6 +102,7 @@ struct FParticleEmitterInstance
     // 좌표계 헬퍼
     bool UseLocalSpace() const;
     FVector GetComponentWorldLocation() const;
+    FTransform GetComponentWorldTransform() const;
 
     // 모듈 인스턴스 데이터 접근
     // - EventGenerator 모듈의 인스턴스 데이터 반환

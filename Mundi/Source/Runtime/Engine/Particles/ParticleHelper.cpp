@@ -13,11 +13,27 @@
 #include "ParticleDynamicBuffers.h"
 #include "ParticleSystemComponent.h"
 #include "ResourceManager.h"
+#include "ParticleModuleTypeDataRibbon.h"
 
 // ============================================================
 // 헬퍼 함수들
 // ============================================================
 // (CreateParticleQuadBuffers는 UParticleDynamicBuffers로 이동됨)
+
+// Hermite Cubic Interpolation for FVector
+// P(t) = (2t³ - 3t² + 1)P0 + (t³ - 2t² + t)T0 + (-2t³ + 3t²)P1 + (t³ - t²)T1
+static FVector CubicInterp(const FVector& P0, const FVector& T0, const FVector& P1, const FVector& T1, float Alpha)
+{
+    float Alpha2 = Alpha * Alpha;
+    float Alpha3 = Alpha2 * Alpha;
+
+    float H1 = 2.0f * Alpha3 - 3.0f * Alpha2 + 1.0f;  // (2t³ - 3t² + 1)
+    float H2 = Alpha3 - 2.0f * Alpha2 + Alpha;        // (t³ - 2t² + t)
+    float H3 = -2.0f * Alpha3 + 3.0f * Alpha2;        // (-2t³ + 3t²)
+    float H4 = Alpha3 - Alpha2;                       // (t³ - t²)
+
+    return P0 * H1 + T0 * H2 + P1 * H3 + T1 * H4;
+}
 
 
 // ============================================================
@@ -49,9 +65,9 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
         bLoggedParticles = true;
     }
 
-    // bUseLocalSpace일 때만 컴포넌트 월드 위치를 더함
+    // bUseLocalSpace일 때만 컴포넌트 Transform 적용 (위치 + 회전 + 스케일)
     const bool bUseLocalSpace = Source->UseLocalSpace();
-    const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
+    const FTransform CompTransform = bUseLocalSpace ? Source->GetComponentWorldTransform() : FTransform();
 
     // 각 파티클의 인스턴스 데이터 생성
     for (int32 i = 0; i < ParticleCount; ++i)
@@ -60,8 +76,10 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
         if (!Particle)
             continue;
 
-        // Local Space면 월드로 변환, World Space면 그대로 사용
-        FVector WorldPosition = Particle->Location + ComponentWorldLocation;
+        // Local Space면 컴포넌트 Transform 적용, World Space면 그대로 사용
+        FVector WorldPosition = bUseLocalSpace ?
+            CompTransform.TransformPosition(Particle->Location) :
+            Particle->Location;
 
         // 인스턴스 데이터 설정 (명시적 float 필드로 변경)
         Instances[i].WorldPositionX = WorldPosition.X;
@@ -143,42 +161,41 @@ void FDynamicSpriteEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMateria
     // 4.6. Depth/Stencil 상태 설정 (반투명 파티클: depth test 활성화, depth write 비활성화)
     RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
 
-    // 5. Material 바인딩 (셰이더, 텍스처, 샘플러)
+    // 5. 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (Material과 무관)
+    static UShader* SpriteShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleSprite.hlsl");
+    if (SpriteShader)
+    {
+        RHI->PrepareShader(SpriteShader);
+        UE_LOG("[debug] Shader bound: %s", SpriteShader ? "Valid" : "Null");
+    }
+    else
+    {
+        UE_LOG("[error] Shader is null!");
+    }
+
+    // 6. 텍스처 바인딩 (Material이 있으면 Material에서, 없으면 nullptr)
+    ID3D11ShaderResourceView* DiffuseSRV = nullptr;
     if (Material)
     {
-        // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
-        static UShader* SpriteShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleSprite.hlsl");
-        if (SpriteShader)
-        {
-            RHI->PrepareShader(SpriteShader);
-            UE_LOG("[debug] Shader bound: %s", SpriteShader ? "Valid" : "Null");
-        }
-        else
-        {
-            UE_LOG("[error] Shader is null!");
-        }
-
-        // 텍스처 바인딩
-        ID3D11ShaderResourceView* DiffuseSRV = nullptr;
         if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
         {
             DiffuseSRV = DiffuseTexture->GetShaderResourceView();
-            UE_LOG("[debug] Texture SRV: %s", DiffuseSRV ? "Valid" : "Null");
+            UE_LOG("[debug] Texture SRV from Material: %s", DiffuseSRV ? "Valid" : "Null");
         }
         else
         {
             UE_LOG("[warn] No diffuse texture in material");
         }
-        Context->PSSetShaderResources(0, 1, &DiffuseSRV);
-
-        // 샘플러 바인딩
-        ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
-        Context->PSSetSamplers(0, 1, &DefaultSampler);
     }
     else
     {
-        UE_LOG("[error] Material is null!");
+        UE_LOG("[debug] Material is null, using no texture (will render as white)");
     }
+    Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+
+    // 7. 샘플러 바인딩
+    ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
+    Context->PSSetSamplers(0, 1, &DefaultSampler);
 
     // 6. 버퍼 바인딩
     UINT Strides[2] = { sizeof(FVector2D), sizeof(FParticleSpriteInstance) };
@@ -224,9 +241,9 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
     int32 ParticleCount = Source->ActiveParticles;
     Instances.SetNum(ParticleCount);
 
-    // bUseLocalSpace일 때만 컴포넌트 월드 위치를 더함
+    // bUseLocalSpace일 때만 컴포넌트 Transform 적용
     const bool bUseLocalSpace = Source->UseLocalSpace();
-    const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
+    const FMatrix CompMatrix = bUseLocalSpace ? Source->GetComponentWorldTransform().ToMatrix() : FMatrix::Identity();
 
     for (int32 i = 0; i < ParticleCount; ++i)
     {
@@ -234,10 +251,7 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
         if (!Particle)
             continue;
 
-        // Local Space면 월드로 변환, World Space면 그대로 사용
-        FVector WorldPosition = Particle->Location + ComponentWorldLocation;
-
-        // Transform 행렬 생성 (Scale, Rotation, Translation)
+        // 파티클 로컬 Transform 행렬 생성 (Scale, Rotation, Translation)
         FMatrix ScaleMatrix = FMatrix::MakeScale(Particle->Size);
 
         // Rotation (Z축 회전)
@@ -252,13 +266,14 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
             RotationMatrix.M[1][1] = CosRot;
         }
 
-        // Translation (월드 좌표 사용)
-        FMatrix TranslationMatrix = FMatrix::MakeTranslation(WorldPosition);
+        // Translation (로컬 좌표 사용)
+        FMatrix TranslationMatrix = FMatrix::MakeTranslation(Particle->Location);
 
-        // 최종 변환: Scale * Rotation * Translation
-        FMatrix Transform = ScaleMatrix * RotationMatrix * TranslationMatrix;
+        // 파티클 로컬 변환: Scale * Rotation * Translation
+        FMatrix ParticleLocal = ScaleMatrix * RotationMatrix * TranslationMatrix;
 
-        Instances[i].Transform = Transform;
+        // Local Space면 컴포넌트 Transform 적용, World Space면 그대로 사용
+        Instances[i].Transform = bUseLocalSpace ? (ParticleLocal * CompMatrix) : ParticleLocal;
         Instances[i].Color = FVector4(Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);
     }
 }
@@ -371,22 +386,23 @@ void FDynamicMeshEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     else
     {
         // 파티클 머티리얼 사용 (기존 방식 - 전체 메시 한번에)
-        // 쉐이더는 파티클 전용 쉐이더 강제 사용
+        // 쉐이더는 파티클 전용 쉐이더 강제 사용 (Material과 무관)
         if (MeshShader)
         {
             RHI->PrepareShader(MeshShader);
         }
 
+        // 텍스처 바인딩 (Material이 있으면 Material에서, 없으면 nullptr)
+        ID3D11ShaderResourceView* DiffuseSRV = nullptr;
         if (Material)
         {
-            ID3D11ShaderResourceView* DiffuseSRV = nullptr;
             if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
             {
                 DiffuseSRV = DiffuseTexture->GetShaderResourceView();
             }
-            Context->PSSetShaderResources(0, 1, &DiffuseSRV);
-            Context->PSSetSamplers(0, 1, &DefaultSampler);
         }
+        Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+        Context->PSSetSamplers(0, 1, &DefaultSampler);
 
         UINT IndexCount = ParticleMesh->GetIndexCount();
         Context->DrawIndexedInstanced(IndexCount, InstanceCount, 0, 0, 0);
@@ -454,8 +470,15 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
     Indices.SetNum(ParticleCount * IndicesPerBeam);
 
     const bool bUseLocalSpace = Source->UseLocalSpace();
-    const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
+    const FTransform CompTransform = bUseLocalSpace ? Source->GetComponentWorldTransform() : FTransform();
     const FVector CameraPos = View->ViewLocation;
+
+    // TypeData에서 빔 방향 가져오기
+    FVector BeamDirection = TypeDataBeam->Direction.GetSafeNormal();
+    if (BeamDirection.SizeSquared() < 0.001f)
+    {
+        BeamDirection = FVector(1.0f, 0.0f, 0.0f);
+    }
 
     for (int32 p = 0; p < ParticleCount; ++p)
     {
@@ -463,17 +486,24 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
         if (!Particle)
             continue;
 
-        FVector StartPos = Particle->Location + ComponentWorldLocation;
-
+        // Local Space면 컴포넌트 Transform 적용 (위치 + 방향), World Space면 그대로 사용
+        FVector StartPos;
         FVector BeamDir;
-        if (Particle->Velocity.SizeSquared() > 0.001f)
+
+        if (bUseLocalSpace)
         {
-            BeamDir = Particle->Velocity.GetSafeNormal();
+            // 시작 위치: 위치 + 회전 + 스케일 적용
+            StartPos = CompTransform.TransformPosition(Particle->Location);
+
+            // 방향 벡터: 회전만 적용 (TransformVector)
+            BeamDir = CompTransform.TransformVector(BeamDirection).GetSafeNormal();
         }
         else
         {
-            BeamDir = FVector(1.0f, 0.0f, 0.0f);
+            StartPos = Particle->Location;
+            BeamDir = BeamDirection;
         }
+
         FVector EndPos = StartPos + BeamDir * Length;
 
         FLinearColor ParticleColor(Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);
@@ -582,29 +612,292 @@ void FDynamicBeamEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialI
     RHI->OMSetBlendState(true);
     RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
 
-    // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (머티리얼의 쉐이더 무시)
+    // 셰이더 바인딩 - 파티클 전용 쉐이더 강제 사용 (Material과 무관)
     static UShader* BeamShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleBeam.hlsl");
     if (BeamShader)
     {
         RHI->PrepareShader(BeamShader);
     }
 
+    // 텍스처 바인딩 (Material이 있으면 Material에서, 없으면 nullptr)
+    ID3D11ShaderResourceView* DiffuseSRV = nullptr;
     if (Material)
     {
-        // 텍스처 바인딩
-        ID3D11ShaderResourceView* DiffuseSRV = nullptr;
         if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
         {
             DiffuseSRV = DiffuseTexture->GetShaderResourceView();
         }
-        Context->PSSetShaderResources(0, 1, &DiffuseSRV);
-
-        ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
-        Context->PSSetSamplers(0, 1, &DefaultSampler);
     }
+    Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+
+    ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
+    Context->PSSetSamplers(0, 1, &DefaultSampler);
 
     // 버퍼 바인딩
     UINT Stride = sizeof(FParticleBeamInstance);
+    UINT Offset = 0;
+    Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+    Context->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // Draw
+    Context->DrawIndexed(Indices.Num(), 0, 0);
+
+    // 렌더 상태 복원
+    RHI->RSSetState(ERasterizerMode::Solid);
+    RHI->OMSetBlendState(false);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+}
+
+// ============================================================
+// Ribbon 파티클 렌더링
+// ============================================================
+
+void FDynamicRibbonEmitterData::UpdateRenderData(FSceneView* View)
+{
+    BuildRibbonVertices(View);
+}
+
+void FDynamicRibbonEmitterData::BuildRibbonVertices(FSceneView* View)
+{
+    if (!Source || !View)
+        return;
+
+    Vertices.SetNum(0);
+    Indices.SetNum(0);
+
+    int32 ParticleCount = Source->ActiveParticles;
+    if (ParticleCount < 1)
+        return;
+
+    // Ribbon TypeData 가져오기
+    UParticleModuleTypeDataRibbon* RibbonModule = nullptr;
+    if (Source->CurrentLODLevel && Source->CurrentLODLevel->TypeDataModule)
+    {
+        RibbonModule = Cast<UParticleModuleTypeDataRibbon>(Source->CurrentLODLevel->TypeDataModule);
+    }
+
+    if (!RibbonModule)
+        return;
+
+    // Ribbon 파라미터
+    float Width = RibbonModule->Width;
+    int32 MaxParticleInTrailCount = RibbonModule->MaxParticleInTrailCount;
+    float TilingDistance = RibbonModule->TilingDistance;
+    ERibbonRenderAxis RenderAxis = RibbonModule->RenderAxis;
+
+    const bool bUseLocalSpace = Source->UseLocalSpace();
+    const FTransform CompTransform = bUseLocalSpace ? Source->GetComponentWorldTransform() : FTransform();
+    const FVector CameraPos = View->ViewLocation;
+
+    // HEAD 파티클 찾기 (DataIndex로 찾기)
+    int32 HeadDataIndex = -1;
+    for (int32 i = 0; i < ParticleCount; ++i)
+    {
+        // ActiveIndex i에 해당하는 DataIndex 가져오기
+        int32 DataIndex = Source->ParticleIndices[i];
+        uint8* ParticleBytes = Source->ParticleData + DataIndex * Source->ParticleStride;
+        FRibbonTypeDataPayload* Payload = (FRibbonTypeDataPayload*)(ParticleBytes + sizeof(FBaseParticle));
+
+        if (Payload && (Payload->Flags & ETrailParticleFlags::Head))
+        {
+            HeadDataIndex = DataIndex;
+            break;
+        }
+    }
+
+    if (HeadDataIndex == -1)
+        return;  // HEAD 없으면 리본 없음
+
+    // Trail 구성 (HEAD → TAIL 순회, DataIndex로 순회)
+    struct FTrailPoint
+    {
+        FVector Position;
+        FVector Tangent;
+        FLinearColor Color;
+        float Size;
+    };
+
+    TArray<FTrailPoint> TrailPoints;
+    TrailPoints.Reserve(MaxParticleInTrailCount);
+
+    int32 CurrentDataIndex = HeadDataIndex;
+    while (CurrentDataIndex != -1 && TrailPoints.Num() < MaxParticleInTrailCount)
+    {
+        // DataIndex로 직접 접근
+        uint8* ParticleBytes = Source->ParticleData + CurrentDataIndex * Source->ParticleStride;
+        FBaseParticle* Particle = (FBaseParticle*)ParticleBytes;
+        FRibbonTypeDataPayload* Payload = (FRibbonTypeDataPayload*)(ParticleBytes + sizeof(FBaseParticle));
+
+        if (!Payload)
+            break;
+
+        FTrailPoint Point;
+        Point.Position = bUseLocalSpace ? CompTransform.TransformPosition(Particle->Location) : Particle->Location;
+        Point.Tangent = Payload->Tangent;
+        Point.Color = Particle->Color;
+        Point.Size = Particle->Size.X;
+
+        TrailPoints.Add(Point);
+
+        // 다음 파티클로 (Next는 DataIndex!)
+        CurrentDataIndex = Payload->Next;
+    }
+
+    if (TrailPoints.Num() < 2)
+        return;  // 최소 2개 파티클 필요
+
+    Vertices.Reserve(TrailPoints.Num() * 2);
+
+    float AccumulatedDistance = 0.0f;
+
+    for (int32 i = 0; i < TrailPoints.Num(); ++i)
+    {
+        const FTrailPoint& Current = TrailPoints[i];
+
+        FVector Position = Current.Position;
+        FVector Tangent = Current.Tangent;
+        FLinearColor Color = Current.Color;
+        float Size = Current.Size;
+
+        // Up 벡터 계산 (RenderAxis에 따라)
+        FVector Up;
+        switch (RenderAxis)
+        {
+        case ERibbonRenderAxis::CameraUp:
+        {
+            FVector ToCamera = (CameraPos - Position).GetSafeNormal();
+            Up = FVector::Cross(Tangent, ToCamera).GetSafeNormal();
+            Up = FVector::Cross(Up, Tangent).GetSafeNormal();  // Re-orthogonalize
+            break;
+        }
+        case ERibbonRenderAxis::SourceUp:
+            // Component의 Z축 (Up 벡터) - Rotation으로 (0,0,1) 회전
+            Up = CompTransform.Rotation.RotateVector(FVector(0, 0, 1));
+            break;
+        case ERibbonRenderAxis::WorldUp:
+        default:
+            Up = FVector(0, 0, 1);
+            break;
+        }
+
+        // Right 벡터 (리본 너비 방향)
+        FVector Right = FVector::Cross(Tangent, Up).GetSafeNormal();
+        float HalfWidth = Width * 0.5f * Size;
+
+        // UV 계산
+        float U = 0.0f;
+        if (TilingDistance > 0.001f && i > 0)
+        {
+            float Distance = (Position - TrailPoints[i - 1].Position).Size();
+            AccumulatedDistance += Distance;
+            U = AccumulatedDistance / TilingDistance;
+        }
+        else
+        {
+            U = (float)i / (float)(TrailPoints.Num() - 1);
+        }
+
+        // 양쪽 버텍스 생성
+        FParticleRibbonInstance LeftVertex, RightVertex;
+
+        LeftVertex.Position = Position - Right * HalfWidth;
+        LeftVertex.UV = FVector2D(U, 0.0f);
+        LeftVertex.Padding0 = 0.0f;
+        LeftVertex.Color = Color;
+
+        RightVertex.Position = Position + Right * HalfWidth;
+        RightVertex.UV = FVector2D(U, 1.0f);
+        RightVertex.Padding0 = 0.0f;
+        RightVertex.Color = Color;
+
+        Vertices.Add(LeftVertex);
+        Vertices.Add(RightVertex);
+    }
+
+    // Triangle Strip 인덱스 생성
+    int32 SegmentCount = TrailPoints.Num() - 1;
+    Indices.Reserve(SegmentCount * 6);
+
+    for (int32 i = 0; i < SegmentCount; ++i)
+    {
+        int32 BaseVertex = i * 2;
+
+        // 삼각형 1 (CCW)
+        Indices.Add(BaseVertex);
+        Indices.Add(BaseVertex + 2);
+        Indices.Add(BaseVertex + 1);
+
+        // 삼각형 2 (CCW)
+        Indices.Add(BaseVertex + 1);
+        Indices.Add(BaseVertex + 2);
+        Indices.Add(BaseVertex + 3);
+    }
+}
+
+void FDynamicRibbonEmitterData::Render(D3D11RHI* RHI, FSceneView* View, UMaterialInterface* Material, UParticleDynamicBuffers* BufferPool)
+{
+    if (Vertices.Num() == 0 || Indices.Num() == 0)
+        return;
+
+    if (!RHI || !BufferPool)
+        return;
+
+    // 동적 버텍스/인덱스 버퍼 가져오기 (Beam 버퍼 재사용 - 구조 동일)
+    uint32 MaxVertices = 0, MaxIndices = 0;
+    ID3D11Buffer* VertexBuffer = BufferPool->GetOrCreateBeamVertexBuffer(Vertices.Num(), MaxVertices);
+    ID3D11Buffer* IndexBuffer = BufferPool->GetOrCreateBeamIndexBuffer(Indices.Num(), MaxIndices);
+
+    if (!VertexBuffer || !IndexBuffer)
+    {
+        UE_LOG("[error] Failed to create ribbon buffers!");
+        return;
+    }
+
+    // 버텍스/인덱스 데이터 업로드
+    ID3D11DeviceContext* Context = RHI->GetDeviceContext();
+
+    D3D11_MAPPED_SUBRESOURCE MappedVB, MappedIB;
+    if (SUCCEEDED(Context->Map(VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedVB)))
+    {
+        memcpy(MappedVB.pData, Vertices.data(), Vertices.Num() * sizeof(FParticleRibbonInstance));
+        Context->Unmap(VertexBuffer, 0);
+    }
+
+    if (SUCCEEDED(Context->Map(IndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedIB)))
+    {
+        memcpy(MappedIB.pData, Indices.data(), Indices.Num() * sizeof(uint32));
+        Context->Unmap(IndexBuffer, 0);
+    }
+
+    // 렌더 상태 설정 (Beam과 동일 - 양면 렌더링 필요)
+    RHI->RSSetState(ERasterizerMode::Solid_NoCull);
+    RHI->OMSetBlendState(true);
+    RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
+
+    // 셰이더 바인딩 - 빔 셰이더 재사용
+    static UShader* BeamShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/ParticleBeam.hlsl");
+    if (BeamShader)
+    {
+        RHI->PrepareShader(BeamShader);
+    }
+
+    // 텍스처 바인딩 (Material이 있으면 사용)
+    ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+    if (Material)
+    {
+        if (UTexture* DiffuseTexture = Material->GetTexture(EMaterialTextureSlot::Diffuse))
+        {
+            DiffuseSRV = DiffuseTexture->GetShaderResourceView();
+        }
+    }
+    Context->PSSetShaderResources(0, 1, &DiffuseSRV);
+
+    ID3D11SamplerState* DefaultSampler = RHI->GetSamplerState(RHI_Sampler_Index::Default);
+    Context->PSSetSamplers(0, 1, &DefaultSampler);
+
+    // 버퍼 바인딩
+    UINT Stride = sizeof(FParticleRibbonInstance);
     UINT Offset = 0;
     Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
     Context->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);

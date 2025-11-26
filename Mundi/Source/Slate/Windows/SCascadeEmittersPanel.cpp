@@ -22,6 +22,8 @@
 #include "Source/Runtime/Engine/Particles/Modules/ParticleModuleEventGenerator.h"
 #include "Material.h"
 #include "ResourceManager.h"
+#include "ParticleModuleTypeDataRibbon.h"
+#include "Source/Runtime/Engine/Particles/Modules/ParticleModuleSpawnPerUnit.h"
 
 void SCascadeEmittersPanel::SetEditingSystem(UParticleSystem* InSystem)
 {
@@ -601,6 +603,16 @@ void SCascadeEmittersPanel::Render(float width, float height)
             }
         }
 
+        if (ImGui::MenuItem("Ribbon Emitter"))
+        {
+            if (UParticleEmitter* NewEmitter = CreateDefaultRibbonEmitter())
+            {
+                EditingSystem->AddEmitter(NewEmitter);
+                SelectedEmitterIndex = EditingSystem->GetEmitterCount() - 1;
+                if (EditingSystem) EditingSystem->bIsDirty = true;
+            }
+        }
+
         ImGui::EndPopup();
     }
 
@@ -752,6 +764,12 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultSpriteEmitter()
     {
         Velocity->ModuleName = "Velocity";
         LOD0->AddModule(Velocity);
+    }
+    // Initial Size
+    if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())
+    {
+        Size->ModuleName = "Size";
+        LOD0->AddModule(Size);
     }
     // Initial Color / Color Over Life
     if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
@@ -915,12 +933,107 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultBeamEmitter()
         Velocity->StartVelocityMax = FVector(200.f, 50.f, 0.f);
         LOD0->AddModule(Velocity);
     }
+    // Size
+    if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())
+    {
+        Size->ModuleName = "Size";
+        LOD0->AddModule(Size);
+    }
     // Color
     if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
     {
         Color->ModuleName = "Color";
         Color->StartColor = FLinearColor(0.2f, 0.5f, 1.0f, 1.0f); // Blue-ish
         Color->EndColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.0f); // Fade to transparent
+        LOD0->AddModule(Color);
+    }
+
+    Emitter->AddLODLevel(LOD0);
+    return Emitter;
+}
+
+UParticleEmitter* SCascadeEmittersPanel::CreateDefaultRibbonEmitter()
+{
+    UParticleEmitter* Emitter = NewObject<UParticleEmitter>();
+    if (!Emitter)
+        return nullptr;
+
+    Emitter->EmitterName = "Ribbon Emitter";
+    Emitter->MaxParticleCount = 2000; // 리본 궤적을 위해 많은 파티클
+
+    UParticleLODLevel* LOD0 = NewObject<UParticleLODLevel>();
+    if (!LOD0)
+        return nullptr;
+
+    LOD0->Level = 0;
+    LOD0->DistanceThreshold = 0.0f;
+
+    // Required module
+    UParticleModuleRequired* Required = NewObject<UParticleModuleRequired>();
+    if (Required)
+    {
+        Required->ModuleName = "Required";
+        Required->SpawnRate = 0.0f; // SpawnPerUnit 모듈이 거리 기반으로 스폰하므로 0
+        Required->bUseLocalSpace = false; // World Space 사용
+        LOD0->RequiredModule = Required;
+    }
+
+    // Ribbon TypeData module (RibbonParticleActor와 동일한 설정)
+    UParticleModuleTypeDataRibbon* RibbonModule = NewObject<UParticleModuleTypeDataRibbon>();
+    if (RibbonModule)
+    {
+        RibbonModule->ModuleName = "Ribbon";
+        RibbonModule->Width = 0.5f;                           // 리본 너비
+        RibbonModule->MaxParticleInTrailCount = 2000;         // 최대 파티클로 궤적 구성
+        RibbonModule->TilingDistance = 5.0f;                  // 5m마다 UV 타일링
+        RibbonModule->RenderAxis = ERibbonRenderAxis::CameraUp;  // 카메라를 향함
+        LOD0->TypeDataModule = RibbonModule;  // TypeDataModule로 설정
+    }
+
+    // SpawnPerUnit 모듈 (거리 기반 스폰 - Trail 필수)
+    if (UParticleModuleSpawnPerUnit* SpawnPerUnit = NewObject<UParticleModuleSpawnPerUnit>())
+    {
+        SpawnPerUnit->ModuleName = "SpawnPerUnit";
+        SpawnPerUnit->SpawnPerUnit = 20.0f;           // 단위당 20개
+        SpawnPerUnit->MaxFrameDistance = 200;         // 프레임당 최대 200개
+        SpawnPerUnit->bSpawnOnMovementStart = true;   // 첫 이동 시 스폰
+        LOD0->AddModule(SpawnPerUnit);
+    }
+
+    // Lifetime (긴 수명으로 궤적 유지 - RibbonParticleActor와 동일)
+    if (UParticleModuleLifetime* Lifetime = NewObject<UParticleModuleLifetime>())
+    {
+        Lifetime->ModuleName = "Lifetime";
+        Lifetime->LifetimeMin = 2.0f;
+        Lifetime->LifetimeMax = 2.0f;
+        LOD0->AddModule(Lifetime);
+    }
+    // Location
+    if (UParticleModuleLocation* Location = NewObject<UParticleModuleLocation>())
+    {
+        Location->ModuleName = "Location";
+        LOD0->AddModule(Location);
+    }
+    // Velocity (궤적 생성을 위한 움직임)
+    if (UParticleModuleVelocity* Velocity = NewObject<UParticleModuleVelocity>())
+    {
+        Velocity->ModuleName = "Velocity";
+        Velocity->StartVelocityMin = FVector(2.0f, 0.f, 0.5f);
+        Velocity->StartVelocityMax = FVector(2.0f, 0.f, 1.0f);
+        LOD0->AddModule(Velocity);
+    }
+    // Size
+    if (UParticleModuleSize* Size = NewObject<UParticleModuleSize>())
+    {
+        Size->ModuleName = "Size";
+        LOD0->AddModule(Size);
+    }
+    // Color
+    if (UParticleModuleColor* Color = NewObject<UParticleModuleColor>())
+    {
+        Color->ModuleName = "Color";
+        Color->StartColor = FLinearColor(1.0f, 0.5f, 0.2f, 1.0f); // 주황색
+        Color->EndColor = FLinearColor(1.0f, 0.8f, 0.2f, 0.0f);   // 노란색으로 페이드
         LOD0->AddModule(Color);
     }
 

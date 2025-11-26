@@ -64,6 +64,7 @@ ABeamParticleActor::ABeamParticleActor()
 	RequiredModule->EmitterDuration = 5.0f;
 	RequiredModule->EmitterLoops = 0; // 무한 반복
 	RequiredModule->Material = ParticleMaterial;
+	RequiredModule->bUseLocalSpace = true;
 	LODLevel->RequiredModule = RequiredModule;
 
 	// TypeData 모듈 (빔)
