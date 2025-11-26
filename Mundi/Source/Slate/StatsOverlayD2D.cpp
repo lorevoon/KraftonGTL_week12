@@ -165,7 +165,7 @@ static void DrawTextBlock(
 
 void UStatsOverlayD2D::Draw()
 {
-	if (!bInitialized || (!bShowFPS && !bShowMemory && !bShowPicking && !bShowDecal && !bShowTileCulling && !bShowLights && !bShowShadow && !bShowSkinning) || !SwapChain)
+	if (!bInitialized || (!bShowFPS && !bShowMemory && !bShowPicking && !bShowDecal && !bShowTileCulling && !bShowLights && !bShowShadow && !bShowSkinning && !bShowParticle) || !SwapChain)
 		return;
 
 	// D2D 리소스 초기화 (최초 1회만 실행)
@@ -200,7 +200,7 @@ void UStatsOverlayD2D::Draw()
 	const float PanelWidth = 200.0f;
 	const float SkinningPanelWidth = 340.0f;  // 스키닝 통계용 넓은 패널
 	const float PanelHeight = 48.0f;
-	float NextY = 70.0f;
+	float NextY = 90.0f;
 
 	if (bShowFPS)
 	{
@@ -484,6 +484,23 @@ void UStatsOverlayD2D::Draw()
 		NextY += skinningPanelHeight + Space;
 	}
 
+	if (bShowParticle)
+	{
+		// TODO: 파티클 통계 표시
+		// 파티클 통계 수집 구현 완료 후 구현.
+
+		wchar_t Buf[128];
+		swprintf_s(Buf, L"Not Implemented");
+
+		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth, NextY + PanelHeight);
+		DrawTextBlock(
+			D2dCtx, CachedBrush, TextFormat, Buf, rc,
+			D2D1::ColorF(0, 0, 0, 0.6f),
+			D2D1::ColorF(D2D1::ColorF::Yellow));
+
+		NextY += PanelHeight + Space;
+	}
+
 	D2dCtx->EndDraw();
 	D2dCtx->SetTarget(nullptr);
 
@@ -572,4 +589,14 @@ void UStatsOverlayD2D::SetShowSkinning(bool b)
 void UStatsOverlayD2D::ToggleSkinning()
 {
 	bShowSkinning = !bShowSkinning;
+}
+
+void UStatsOverlayD2D::SetShowParticle(bool b)
+{
+	bShowParticle = b;
+}
+
+void UStatsOverlayD2D::ToggleParticle()
+{
+	bShowParticle = !bShowParticle;
 }
