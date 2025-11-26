@@ -1507,6 +1507,16 @@ void SViewportWindow::RenderShowFlagDropdownMenu()
 				ImGui::SetTooltip("스키닝 통계를 표시합니다. (GPU/CPU 스키닝 메시 개수, 버텍스 개수)");
 			}
 
+			bool bParticleStats = UStatsOverlayD2D::Get().IsParticleVisible();
+			if (ImGui::Checkbox(" PARTICLES", &bParticleStats))
+			{
+				UStatsOverlayD2D::Get().ToggleParticle();
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("파티클 시스템 성능 통계를 표시합니다.");
+			}
+
 			ImGui::EndMenu();
 		}
 
