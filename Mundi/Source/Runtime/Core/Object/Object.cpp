@@ -1,5 +1,7 @@
 ﻿#include "pch.h"
 
+class UParticleSystem;
+
 FString UObject::GetName()
 {
     return ObjectName.ToString();
@@ -50,6 +52,159 @@ void UObject::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			else
 			{
 				InOutHandle[Prop.Name] = *Value;
+			}
+			break;
+		}
+		case EPropertyType::Enum:
+		{
+			// EnumStorage 메타로 실제 크기를 판단하여 안전하게 직렬화
+			auto StorageIt = Prop.Metadata.find(FName("EnumStorage"));
+			FString StorageTag = (StorageIt != Prop.Metadata.end()) ? StorageIt->second : FString();
+
+			auto ReadIntegral = [&](int64& OutValue) -> bool
+			{
+				// JSON에 integral이거나 string 숫자가 있을 수 있으니 int64로 우선 시도
+				if (FJsonSerializer::ReadInt64(InOutHandle, Prop.Name, OutValue))
+				{
+					return true;
+				}
+				int32 Temp32 = 0;
+				if (FJsonSerializer::ReadInt32(InOutHandle, Prop.Name, Temp32))
+				{
+					OutValue = static_cast<int64>(Temp32);
+					return true;
+				}
+				return false;
+			};
+
+			if (StorageTag == FString("u8"))
+			{
+				uint8* Value = Prop.GetValuePtr<uint8>(this);
+				if (bInIsLoading)
+				{
+					int64 ReadValue = 0;
+					if (ReadIntegral(ReadValue))
+					{
+						*Value = static_cast<uint8>(ReadValue);
+					}
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = static_cast<int32>(*Value);
+				}
+			}
+			else if (StorageTag == FString("i8"))
+			{
+				int8* Value = Prop.GetValuePtr<int8>(this);
+				if (bInIsLoading)
+				{
+					int64 ReadValue = 0;
+					if (ReadIntegral(ReadValue))
+					{
+						*Value = static_cast<int8>(ReadValue);
+					}
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = static_cast<int32>(*Value);
+				}
+			}
+			else if (StorageTag == FString("u16"))
+			{
+				uint16* Value = Prop.GetValuePtr<uint16>(this);
+				if (bInIsLoading)
+				{
+					int64 ReadValue = 0;
+					if (ReadIntegral(ReadValue))
+					{
+						*Value = static_cast<uint16>(ReadValue);
+					}
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = static_cast<int32>(*Value);
+				}
+			}
+			else if (StorageTag == FString("i16"))
+			{
+				int16* Value = Prop.GetValuePtr<int16>(this);
+				if (bInIsLoading)
+				{
+					int64 ReadValue = 0;
+					if (ReadIntegral(ReadValue))
+					{
+						*Value = static_cast<int16>(ReadValue);
+					}
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = static_cast<int32>(*Value);
+				}
+			}
+			else if (StorageTag == FString("u64"))
+			{
+				uint64* Value = Prop.GetValuePtr<uint64>(this);
+				if (bInIsLoading)
+				{
+					int64 ReadValue = 0;
+					if (ReadIntegral(ReadValue))
+					{
+						*Value = static_cast<uint64>(ReadValue);
+					}
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = *Value;
+				}
+			}
+			else if (StorageTag == FString("i64"))
+			{
+				int64* Value = Prop.GetValuePtr<int64>(this);
+				if (bInIsLoading)
+				{
+					int64 ReadValue = 0;
+					if (ReadIntegral(ReadValue))
+					{
+						*Value = ReadValue;
+					}
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = *Value;
+				}
+			}
+			else if (StorageTag == FString("u32"))
+			{
+				uint32* Value = Prop.GetValuePtr<uint32>(this);
+				if (bInIsLoading)
+				{
+					int64 ReadValue = 0;
+					if (ReadIntegral(ReadValue))
+					{
+						*Value = static_cast<uint32>(ReadValue);
+					}
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = static_cast<int64>(*Value);
+				}
+			}
+			else
+			{
+				// 기본 또는 i32: 32비트 enum
+				int32* Value = Prop.GetValuePtr<int32>(this);
+				if (bInIsLoading)
+				{
+					int64 ReadValue = 0;
+					if (ReadIntegral(ReadValue))
+					{
+						*Value = static_cast<int32>(ReadValue);
+					}
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = *Value;
+				}
 			}
 			break;
 		}

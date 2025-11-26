@@ -193,9 +193,6 @@ void UParticleSystem::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     if (bInIsLoading)
     {
         // UPROPERTY 필드는 자동 직렬화되므로 수동 처리 대상만 별도 처리
-        int32 LODMethodValue = static_cast<int32>(EParticleSystemLODMethod::Automatic);
-        FJsonSerializer::ReadInt32(InOutHandle, "LODMethod", LODMethodValue, static_cast<int32>(EParticleSystemLODMethod::Automatic), false);
-        LODMethod = static_cast<EParticleSystemLODMethod>(LODMethodValue);
 
         // Load LOD distances
         LODDistances.Empty();
@@ -252,7 +249,6 @@ void UParticleSystem::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     else
     {
         // UPROPERTY 필드는 자동 직렬화됨. 수동 직렬화 대상만 저장.
-        InOutHandle["LODMethod"] = static_cast<long>(LODMethod);
 
         // Save LOD distances
         JSON LODArray = JSON::Make(JSON::Class::Array);
