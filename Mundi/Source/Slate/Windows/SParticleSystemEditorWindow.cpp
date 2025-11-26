@@ -22,6 +22,22 @@
 #include "Source/Runtime/Engine/Viewer/EditorAssetPreviewContext.h"
 #include "Source/Runtime/Core/Misc/PathUtils.h"
 
+// Helper: preview 컴포넌트에서 현재 LOD 인덱스를 추출
+static int32 GetCurrentPreviewLOD(UParticleSystemComponent* PreviewComp)
+{
+    if (!PreviewComp)
+        return 0;
+
+    for (FParticleEmitterInstance* Instance : PreviewComp->EmitterInstances)
+    {
+        if (Instance && Instance->CurrentLODLevel)
+        {
+            return FMath::Max(Instance->CurrentLODLevel->Level, 0);
+        }
+    }
+    return 0;
+}
+
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
     CenterRect = FRect(0, 0, 0, 0);
@@ -371,19 +387,104 @@ void SParticleSystemEditorWindow::RenderLODEditingButtons()
 
     if (IconLODInsertBefore && IconLODInsertBefore->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODInsertBeforeBtn", (void*)IconLODInsertBefore->GetShaderResourceView(), IconSizeVec)) {}
+        if (ImGui::ImageButton("##Cascade_LODInsertBeforeBtn", (void*)IconLODInsertBefore->GetShaderResourceView(), IconSizeVec))
+        {
+            UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+            UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+            if (EditingSystem && EditingSystem->GetLODLevelCount() > 1)
+            {
+                const int32 CurrentLOD = GetCurrentPreviewLOD(PreviewComp);
+                if (CurrentLOD > 0 && CurrentLOD < EditingSystem->GetLODLevelCount())
+                {
+                    const float PrevDist = EditingSystem->LODDistances[CurrentLOD - 1];
+                    const float CurrDist = EditingSystem->LODDistances[CurrentLOD];
+                    const float NewDist = (PrevDist + CurrDist) * 0.5f;
+                    if (EditingSystem->InsertLODDistance(CurrentLOD, NewDist))
+                    {
+                        EditingSystem->bIsDirty = true;
+                        if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
+                        {
+                            PreviewComp->SetLODIndex(CurrentLOD); // 유지/재적용
+                        }
+                    }
+                }
+            }
+        }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD Before");
     }
     ImGui::SameLine();
     if (IconLODInsertAfter && IconLODInsertAfter->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODInsertAfterBtn", (void*)IconLODInsertAfter->GetShaderResourceView(), IconSizeVec)) {}
+        if (ImGui::ImageButton("##Cascade_LODInsertAfterBtn", (void*)IconLODInsertAfter->GetShaderResourceView(), IconSizeVec))
+        {
+            UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+            UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+            if (EditingSystem)
+            {
+                const int32 LODCount = EditingSystem->GetLODLevelCount();
+                const int32 CurrentLOD = GetCurrentPreviewLOD(PreviewComp);
+                if (CurrentLOD < LODCount)
+                {
+                    const float CurrDist = EditingSystem->LODDistances[CurrentLOD];
+                    float NewDist = CurrDist;
+                    if (CurrentLOD + 1 < LODCount)
+                    {
+                        const float NextDist = EditingSystem->LODDistances[CurrentLOD + 1];
+                        NewDist = (CurrDist + NextDist) * 0.5f;
+                    }
+                    else
+                    {
+                        const float PrevDist = (CurrentLOD > 0) ? EditingSystem->LODDistances[CurrentLOD - 1] : CurrDist;
+                        NewDist = CurrDist + (CurrDist - PrevDist);
+                        if (NewDist <= CurrDist)
+                        {
+                            NewDist = CurrDist + 100.0f; // 안전한 증가분
+                        }
+                    }
+
+                    if (EditingSystem->InsertLODDistance(CurrentLOD + 1, NewDist))
+                    {
+                        EditingSystem->bIsDirty = true;
+                        if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
+                        {
+                            PreviewComp->SetLODIndex(CurrentLOD); // 기존 LOD 유지
+                        }
+                    }
+                }
+            }
+        }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD After");
     }
     ImGui::SameLine();
     if (IconLODDelete && IconLODDelete->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODDeleteBtn", (void*)IconLODDelete->GetShaderResourceView(), IconSizeVec)) {}
+        if (ImGui::ImageButton("##Cascade_LODDeleteBtn", (void*)IconLODDelete->GetShaderResourceView(), IconSizeVec))
+        {
+            UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+            UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+            if (EditingSystem)
+            {
+                const int32 LODCount = EditingSystem->GetLODLevelCount();
+                const int32 CurrentLOD = GetCurrentPreviewLOD(PreviewComp);
+
+                // LOD0는 제거 불가, 최소 2개 이상일 때만 삭제
+                if (LODCount > 1 && CurrentLOD > 0 && CurrentLOD < LODCount)
+                {
+                    if (EditingSystem->RemoveLODDistance(CurrentLOD))
+                    {
+                        EditingSystem->bIsDirty = true;
+
+                        // 프리뷰 LOD를 유효 범위로 재설정
+                        if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
+                        {
+                            const int32 NewLODCount = EditingSystem->GetLODLevelCount();
+                            const int32 NewLODIndex = FMath::Clamp(CurrentLOD - 1, 0, NewLODCount - 1);
+                            PreviewComp->SetLODIndex(NewLODIndex);
+                        }
+                    }
+                }
+            }
+        }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delete LOD");
     }
 }
@@ -844,6 +945,9 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
     if (!PreviewComp)
         return;
 
+    // Editor preview는 거리 기반 자동 전환 대신 수동 LOD 지정 모드로 강제
+    PreviewComp->LODMethod = EParticleSystemLODMethod::DirectSet;
+
     // If the emitters panel has no system, adopt the preview component's template
     if (EmittersPanel)
     {
@@ -863,6 +967,8 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
         if (PreviewComp->Template != EditingSystem)
         {
             PreviewComp->SetTemplate(EditingSystem);
+            // Template 적용 시 컴포넌트의 LODMethod가 템플릿 값으로 덮어쓰이므로 다시 DirectSet으로 강제
+            PreviewComp->LODMethod = EParticleSystemLODMethod::DirectSet;
             PreviewComp->Restart();
             // Clear dirty state once bound
             EditingSystem->bIsDirty = false;
@@ -1046,6 +1152,51 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         ImGui::PopStyleColor();
         ImGui::Separator();
 
+        // LOD distances (custom UI for array editing)
+        {
+            ImGui::TextUnformatted("LOD Distances");
+            ImGui::Separator();
+
+            // Keep LOD0 fixed at 0
+            if (!EditingSystem->LODDistances.IsEmpty() && EditingSystem->LODDistances[0] != 0.0f)
+            {
+                EditingSystem->LODDistances[0] = 0.0f;
+            }
+
+            const int32 LODCount = EditingSystem->GetLODLevelCount();
+            for (int32 i = 0; i < LODCount; ++i)
+            {
+                ImGui::PushID(i);
+                if (i == 0)
+                {
+                    ImGui::Text("LOD %d: 0.0 (fixed)", i);
+                }
+                else
+                {
+                    float Value = EditingSystem->LODDistances[i];
+                    if (ImGui::InputFloat("##LODDistance", &Value, 0.0f, 0.0f, "%.3f"))
+                    {
+                        const float OldValue = EditingSystem->LODDistances[i];
+                        // Enforce non-negative and monotonic constraints via SetLODDistance
+                        if (!EditingSystem->SetLODDistance(i, FMath::Max(Value, 0.0f)))
+                        {
+                            // Revert if validation fails
+                            EditingSystem->LODDistances[i] = OldValue;
+                        }
+                        else
+                        {
+                            EditingSystem->bIsDirty = true;
+                        }
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text("LOD %d", i);
+                }
+                ImGui::PopID();
+            }
+
+            ImGui::Dummy(ImVec2(0, 8)); // spacing
+        }
+
         // Get all properties
         const TArray<FProperty>& Properties = SystemClass->GetAllProperties();
 
@@ -1055,6 +1206,9 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         {
             if (Prop.bIsEditAnywhere)
             {
+                // LODDistances는 커스텀 UI로 처리했으므로 자동 렌더링에서 제외
+                if (Prop.Name == FString("LODDistances"))
+                    continue;
                 FString Category = Prop.Category ? FString(Prop.Category) : FString("General");
                 if (!CategorizedProperties.Contains(Category))
                 {
