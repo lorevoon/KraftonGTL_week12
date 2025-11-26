@@ -33,6 +33,7 @@ private:
     float LeftRowSplitRatio = 0.6f;     // Viewport vs Details (left column)
     float RightRowSplitRatio = 0.45f;   // Emitters vs Curves (right column)
 
+    void RenderToolbar();
     void RenderLeftColumn(float width, float height);
     void RenderRightColumn(float width, float height);
     void RenderViewportArea(float width, float height);
