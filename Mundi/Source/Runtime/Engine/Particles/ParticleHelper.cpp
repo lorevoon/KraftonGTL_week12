@@ -65,9 +65,9 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
         bLoggedParticles = true;
     }
 
-    // bUseLocalSpace일 때만 컴포넌트 월드 위치를 더함
+    // bUseLocalSpace일 때만 컴포넌트 Transform 적용 (위치 + 회전 + 스케일)
     const bool bUseLocalSpace = Source->UseLocalSpace();
-    const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
+    const FTransform CompTransform = bUseLocalSpace ? Source->GetComponentWorldTransform() : FTransform();
 
     // 각 파티클의 인스턴스 데이터 생성
     for (int32 i = 0; i < ParticleCount; ++i)
@@ -76,8 +76,10 @@ void FDynamicSpriteEmitterData::BuildSpriteInstances(FSceneView* View)
         if (!Particle)
             continue;
 
-        // Local Space면 월드로 변환, World Space면 그대로 사용
-        FVector WorldPosition = Particle->Location + ComponentWorldLocation;
+        // Local Space면 컴포넌트 Transform 적용, World Space면 그대로 사용
+        FVector WorldPosition = bUseLocalSpace ?
+            CompTransform.TransformPosition(Particle->Location) :
+            Particle->Location;
 
         // 인스턴스 데이터 설정 (명시적 float 필드로 변경)
         Instances[i].WorldPositionX = WorldPosition.X;
@@ -239,9 +241,9 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
     int32 ParticleCount = Source->ActiveParticles;
     Instances.SetNum(ParticleCount);
 
-    // bUseLocalSpace일 때만 컴포넌트 월드 위치를 더함
+    // bUseLocalSpace일 때만 컴포넌트 Transform 적용
     const bool bUseLocalSpace = Source->UseLocalSpace();
-    const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
+    const FMatrix CompMatrix = bUseLocalSpace ? Source->GetComponentWorldTransform().ToMatrix() : FMatrix::Identity();
 
     for (int32 i = 0; i < ParticleCount; ++i)
     {
@@ -249,10 +251,7 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
         if (!Particle)
             continue;
 
-        // Local Space면 월드로 변환, World Space면 그대로 사용
-        FVector WorldPosition = Particle->Location + ComponentWorldLocation;
-
-        // Transform 행렬 생성 (Scale, Rotation, Translation)
+        // 파티클 로컬 Transform 행렬 생성 (Scale, Rotation, Translation)
         FMatrix ScaleMatrix = FMatrix::MakeScale(Particle->Size);
 
         // Rotation (Z축 회전)
@@ -267,13 +266,14 @@ void FDynamicMeshEmitterData::BuildMeshInstances()
             RotationMatrix.M[1][1] = CosRot;
         }
 
-        // Translation (월드 좌표 사용)
-        FMatrix TranslationMatrix = FMatrix::MakeTranslation(WorldPosition);
+        // Translation (로컬 좌표 사용)
+        FMatrix TranslationMatrix = FMatrix::MakeTranslation(Particle->Location);
 
-        // 최종 변환: Scale * Rotation * Translation
-        FMatrix Transform = ScaleMatrix * RotationMatrix * TranslationMatrix;
+        // 파티클 로컬 변환: Scale * Rotation * Translation
+        FMatrix ParticleLocal = ScaleMatrix * RotationMatrix * TranslationMatrix;
 
-        Instances[i].Transform = Transform;
+        // Local Space면 컴포넌트 Transform 적용, World Space면 그대로 사용
+        Instances[i].Transform = bUseLocalSpace ? (ParticleLocal * CompMatrix) : ParticleLocal;
         Instances[i].Color = FVector4(Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);
     }
 }
@@ -470,7 +470,7 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
     Indices.SetNum(ParticleCount * IndicesPerBeam);
 
     const bool bUseLocalSpace = Source->UseLocalSpace();
-    const FVector ComponentWorldLocation = bUseLocalSpace ? Source->GetComponentWorldLocation() : FVector::Zero();
+    const FTransform CompTransform = bUseLocalSpace ? Source->GetComponentWorldTransform() : FTransform();
     const FVector CameraPos = View->ViewLocation;
 
     for (int32 p = 0; p < ParticleCount; ++p)
@@ -479,17 +479,39 @@ void FDynamicBeamEmitterData::BuildBeamVertices(FSceneView* View)
         if (!Particle)
             continue;
 
-        FVector StartPos = Particle->Location + ComponentWorldLocation;
-
+        // Local Space면 컴포넌트 Transform 적용 (위치 + 방향), World Space면 그대로 사용
+        FVector StartPos;
         FVector BeamDir;
-        if (Particle->Velocity.SizeSquared() > 0.001f)
+
+        if (bUseLocalSpace)
         {
-            BeamDir = Particle->Velocity.GetSafeNormal();
+            // 시작 위치: 위치 + 회전 + 스케일 적용
+            StartPos = CompTransform.TransformPosition(Particle->Location);
+
+            // 방향 벡터: 회전만 적용 (TransformVector)
+            if (Particle->Velocity.SizeSquared() > 0.001f)
+            {
+                BeamDir = CompTransform.TransformVector(Particle->Velocity).GetSafeNormal();
+            }
+            else
+            {
+                BeamDir = CompTransform.TransformVector(FVector(1.0f, 0.0f, 0.0f)).GetSafeNormal();
+            }
         }
         else
         {
-            BeamDir = FVector(1.0f, 0.0f, 0.0f);
+            StartPos = Particle->Location;
+
+            if (Particle->Velocity.SizeSquared() > 0.001f)
+            {
+                BeamDir = Particle->Velocity.GetSafeNormal();
+            }
+            else
+            {
+                BeamDir = FVector(1.0f, 0.0f, 0.0f);
+            }
         }
+
         FVector EndPos = StartPos + BeamDir * Length;
 
         FLinearColor ParticleColor(Particle->Color.R, Particle->Color.G, Particle->Color.B, Particle->Color.A);

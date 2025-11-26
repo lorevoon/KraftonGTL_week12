@@ -178,22 +178,6 @@ void UParticleSystemComponent::SetLODIndex(int32 LODIndex)
     }
 }
 
-void UParticleSystemComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
-{
-    Super::Serialize(bInIsLoading, InOutHandle);
-
-    if (bInIsLoading)
-    {
-        int32 LODMethodValue = static_cast<int32>(EParticleSystemLODMethod::Automatic);
-        FJsonSerializer::ReadInt32(InOutHandle, "LODMethod", LODMethodValue, static_cast<int32>(EParticleSystemLODMethod::Automatic), false);
-        LODMethod = static_cast<EParticleSystemLODMethod>(LODMethodValue);
-    }
-    else
-    {
-        InOutHandle["LODMethod"] = static_cast<long>(LODMethod);
-    }
-}
-
 void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
     if (!bIsActive || !Template)
