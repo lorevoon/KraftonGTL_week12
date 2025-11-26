@@ -722,8 +722,13 @@ void FDynamicRibbonEmitterData::BuildRibbonVertices(FSceneView* View)
     TrailPoints.Reserve(MaxParticleInTrailCount);
 
     int32 CurrentDataIndex = HeadDataIndex;
-    while (CurrentDataIndex != -1 && TrailPoints.Num() < MaxParticleInTrailCount)
+    int32 IterationCount = 0;
+    const int32 MaxIterations = FMath::Min(MaxParticleInTrailCount, Source->MaxActiveParticles + 1);
+
+    while (CurrentDataIndex != -1 && TrailPoints.Num() < MaxParticleInTrailCount && IterationCount < MaxIterations)
     {
+        IterationCount++;
+
         // DataIndex로 직접 접근
         uint8* ParticleBytes = Source->ParticleData + CurrentDataIndex * Source->ParticleStride;
         FBaseParticle* Particle = (FBaseParticle*)ParticleBytes;

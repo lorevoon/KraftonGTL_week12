@@ -222,9 +222,14 @@ void UParticleModuleSpawnPerUnit::RecalculateTangents(FParticleEmitterInstance* 
 	FVector PrevLocation = FVector::Zero();
 	bool bHasPrev = false;
 
+	// 순환 참조 방지: 최대 반복 횟수 제한
+	int32 IterationCount = 0;
+	const int32 MaxIterations = Owner->MaxActiveParticles + 1;
+
 	// HEAD부터 TAIL까지 순회 (DataIndex로 순회)
-	while (CurrentDataIndex != -1)
+	while (CurrentDataIndex != -1 && IterationCount < MaxIterations)
 	{
+		IterationCount++;
 		// DataIndex로 직접 접근
 		uint8* CurrentBytes = Owner->ParticleData + CurrentDataIndex * Owner->ParticleStride;
 		FBaseParticle* CurrentParticle = (FBaseParticle*)CurrentBytes;

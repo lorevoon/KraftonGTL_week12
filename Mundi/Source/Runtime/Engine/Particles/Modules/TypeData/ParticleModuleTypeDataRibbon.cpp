@@ -44,6 +44,9 @@ void UParticleModuleTypeDataRibbon::OnParticleKilled(FParticleEmitterInstance* O
 		}
 	}
 
+	// 죽는 파티클의 Next를 -1로 초기화 (순환 참조 방지)
+	DyingPayload->Next = -1;
+
 	// SpawnPerUnit 모듈의 HeadParticleDataIndex 업데이트
 	if (Owner->CurrentLODLevel)
 	{
