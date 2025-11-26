@@ -17,6 +17,7 @@
 #include "SpotLightComponent.h"
 #include "PlatformProcess.h"
 #include "SkeletalMeshComponent.h"
+#include "ParticleSystemComponent.h"
 #include "SlateManager.h"
 #include "ImGui/imgui_curve.hpp"
 #include "Source/Runtime/Engine/Viewer/EditorAssetPreviewContext.h"
@@ -36,6 +37,8 @@ TArray<FString> UPropertyRenderer::CachedSoundPaths;
 TArray<const char*> UPropertyRenderer::CachedSoundItems;
 TArray<FString> UPropertyRenderer::CachedScriptPaths;
 TArray<const char*> UPropertyRenderer::CachedScriptItems;
+TArray<FString> UPropertyRenderer::CachedParticleSystemPaths;
+TArray<FString> UPropertyRenderer::CachedParticleSystemItems;
 
 static bool ItemsGetter(void* Data, int Index, const char** CItem)
 {
@@ -234,6 +237,10 @@ bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectIn
 
 	case EPropertyType::Curve:
 		bChanged = RenderCurveProperty(Property, ObjectInstance);
+		break;
+
+	case EPropertyType::ParticleSystem:
+		bChanged = RenderParticleSystemProperty(Property, ObjectInstance);
 		break;
 
 	case EPropertyType::Array:
@@ -521,6 +528,19 @@ void UPropertyRenderer::CacheResources()
             CachedSoundItems.push_back(path.c_str());
         }
     }
+
+	// 6. ParticleSystem
+	if (CachedParticleSystemPaths.IsEmpty() && CachedParticleSystemItems.IsEmpty())
+	{
+		CachedParticleSystemPaths = ResMgr.GetAllFilePaths<UParticleSystem>();
+		for (const FString& path : CachedParticleSystemPaths)
+		{
+			std::filesystem::path fsPath(UTF8ToWide(path));
+			CachedParticleSystemItems.push_back(WideToUTF8(fsPath.filename().wstring()));
+		}
+		CachedParticleSystemPaths.Insert("", 0);
+		CachedParticleSystemItems.Insert("None", 0);
+	}
 }
 
 void UPropertyRenderer::ClearResourcesCache()
@@ -539,6 +559,8 @@ void UPropertyRenderer::ClearResourcesCache()
 	CachedSoundItems.Empty();
 	CachedScriptPaths.Empty();
 	CachedScriptItems.Empty();
+	CachedParticleSystemPaths.Empty();
+	CachedParticleSystemItems.Empty();
 }
 
 // ===== 타입별 렌더링 구현 =====
@@ -2045,4 +2067,91 @@ bool UPropertyRenderer::RenderTransformProperty(const FProperty& Prop, void* Ins
 	ImGui::PopID();
 
 	return bAnyChanged;
+}
+
+bool UPropertyRenderer::RenderParticleSystemProperty(const FProperty& Prop, void* Instance)
+{
+	UParticleSystem** PSPtr = Prop.GetValuePtr<UParticleSystem*>(Instance);
+
+	FString CurrentPath;
+	if (*PSPtr)
+	{
+		CurrentPath = (*PSPtr)->GetFilePath();
+	}
+
+	if (CachedParticleSystemPaths.empty())
+	{
+		ImGui::Text("%s: <No Particle Systems>", Prop.Name);
+		return false;
+	}
+
+	int SelectedIdx = -1;
+	for (int i = 0; i < static_cast<int>(CachedParticleSystemPaths.size()); ++i)
+	{
+		if (CachedParticleSystemPaths[i] == CurrentPath)
+		{
+			SelectedIdx = i;
+			break;
+		}
+	}
+
+	// Cascade Editor 버튼 (Template이 있을 때만 표시)
+	if (*PSPtr)
+	{
+		if (ImGui::Button("Cascade Editor"))
+		{
+			UEditorAssetPreviewContext* Context = NewObject<UEditorAssetPreviewContext>();
+			Context->ViewerType = EViewerType::Particle;
+			Context->ParticleSystem = *PSPtr;  // 포인터 직접 전달 (하드코딩된 ParticleSystem 지원)
+			Context->AssetPath = CurrentPath;  // 경로도 전달 (있으면)
+
+			// 소스 컴포넌트 전달 (다른 이름으로 저장 시 이 컴포넌트의 Template도 업데이트됨)
+			UObject* Object = static_cast<UObject*>(Instance);
+			if (UParticleSystemComponent* PSComp = Cast<UParticleSystemComponent>(Object))
+			{
+				Context->SourceComponent = PSComp;
+			}
+
+			USlateManager::GetInstance().OpenAssetViewer(Context);
+		}
+	}
+
+	// TArray<FString>을 const char* 배열로 변환
+	TArray<const char*> ItemsPtr;
+	ItemsPtr.reserve(CachedParticleSystemItems.size());
+	for (const FString& item : CachedParticleSystemItems)
+	{
+		ItemsPtr.push_back(item.c_str());
+	}
+
+	ImGui::SetNextItemWidth(240);
+	if (ImGui::Combo(Prop.Name, &SelectedIdx, ItemsPtr.data(), static_cast<int>(ItemsPtr.size())))
+	{
+		if (SelectedIdx >= 0 && SelectedIdx < static_cast<int>(CachedParticleSystemPaths.size()))
+		{
+			// 컴포넌트별 Setter 호출
+			UObject* Object = static_cast<UObject*>(Instance);
+			if (UParticleSystemComponent* PSComp = Cast<UParticleSystemComponent>(Object))
+			{
+				PSComp->SetTemplate(
+					UResourceManager::GetInstance().Load<UParticleSystem>(CachedParticleSystemPaths[SelectedIdx])
+				);
+			}
+			else
+			{
+				*PSPtr = UResourceManager::GetInstance().Load<UParticleSystem>(CachedParticleSystemPaths[SelectedIdx]);
+			}
+			return true;
+		}
+	}
+
+	// 닫힌 콤보박스에 마우스를 올렸을 때 전체 경로 툴팁 (경로가 있을 때만)
+	if (ImGui::IsItemHovered() && !CurrentPath.empty())
+	{
+		ImGui::BeginTooltip();
+		ImGui::TextUnformatted(CurrentPath.c_str());
+		ImGui::EndTooltip();
+	}
+
+	return false;
 }

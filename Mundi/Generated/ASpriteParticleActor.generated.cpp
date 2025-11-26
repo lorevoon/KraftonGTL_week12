@@ -34,7 +34,7 @@ const bool ASpriteParticleActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(ASpriteParticleActor)
-    MARK_AS_SPAWNABLE("파티클 액터", "파티클 시스템을 생성하는 액터입니다")
+    MARK_AS_SPAWNABLE("스프라이트 파티클 액터 (샘플)", "샘플 스프라이트 파티클 시스템이 설정된 액터입니다")
 END_PROPERTIES()
 
 

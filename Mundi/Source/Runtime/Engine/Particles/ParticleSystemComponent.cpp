@@ -131,12 +131,19 @@ void UParticleSystemComponent::SetTemplate(UParticleSystem* NewTemplate)
         CompletedLoops = 0;
         AccumLODDistanceCheckTime = 0.0f;
         bLODUpdatePending = false;
+        bIsActive = false;
 
         if (Template)
         {
 			LODDistanceCheckTime = Template->LODDistanceCheckTime;
 			LODMethod = Template->LODMethod;
             CreateEmitterInstances();
+
+            // bAutoActivate가 true이면 자동으로 활성화
+            if (bAutoActivate)
+            {
+                Activate();
+            }
         }
     }
 }

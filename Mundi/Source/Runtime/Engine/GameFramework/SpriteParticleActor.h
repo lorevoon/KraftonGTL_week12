@@ -1,9 +1,9 @@
-#pragma once
+﻿#pragma once
 #include "ASpriteParticleActor.generated.h"
 
 class UParticleSystemComponent;
 
-UCLASS(DisplayName="파티클 액터", Description="파티클 시스템을 생성하는 액터입니다")
+UCLASS(DisplayName="스프라이트 파티클 액터 (샘플)", Description="샘플 스프라이트 파티클 시스템이 설정된 액터입니다")
 class ASpriteParticleActor : public AActor
 {
 public:

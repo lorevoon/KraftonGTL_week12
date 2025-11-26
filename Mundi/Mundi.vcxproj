@@ -299,7 +299,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\GameFramework\GameStateBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\CollisionParticleActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\ParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Pawn.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PlayerController.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.cpp" />
@@ -456,6 +456,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Editor\Gizmo\GizmoScaleComponent.cpp" />
     <ClCompile Include="Source\Editor\Grid\GridActor.cpp" />
     <ClCompile Include="Source\Editor\ObjManager.cpp" />
+    <ClCompile Include="Source\Editor\ParticleLoader.cpp" />
     <ClCompile Include="Source\Editor\SelectionManager.cpp" />
     <ClCompile Include="Source\Runtime\AssetManagement\DynamicMesh.cpp" />
     <ClCompile Include="Source\Runtime\AssetManagement\Line.cpp" />
@@ -609,7 +610,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Generated\UParticleModuleTypeDataBeam.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleEventGenerator.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleAcceleration.generated.cpp" />
-    <ClCompile Include="Generated\ACollisionParticleActor.generated.cpp" />
+    <ClCompile Include="Generated\AParticleActor.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleBeamNoise.generated.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -826,7 +827,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\GameFramework\GameStateBase.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.h" />
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\CollisionParticleActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\ParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Pawn.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PlayerCameraManager.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\DirectionalLightActor.h" />
@@ -924,6 +925,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Editor\Grid\GridActor.h" />
     <ClInclude Include="Source\Editor\ImGuiConsole.h" />
     <ClInclude Include="Source\Editor\ObjManager.h" />
+    <ClInclude Include="Source\Editor\ParticleLoader.h" />
     <ClInclude Include="Source\Editor\SelectionManager.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\Cube.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\DynamicMesh.h" />
@@ -1099,7 +1101,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Generated\UParticleModuleTypeDataBeam.generated.h" />
     <ClInclude Include="Generated\UParticleModuleEventGenerator.generated.h" />
     <ClInclude Include="Generated\UParticleModuleAcceleration.generated.h" />
-    <ClInclude Include="Generated\ACollisionParticleActor.generated.h" />
+    <ClInclude Include="Generated\AParticleActor.generated.h" />
     <ClInclude Include="Generated\UParticleModuleBeamNoise.generated.h" />
   </ItemGroup>
   <ItemGroup>

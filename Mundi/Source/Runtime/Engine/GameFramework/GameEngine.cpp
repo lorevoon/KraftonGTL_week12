@@ -5,6 +5,7 @@
 #include "FViewport.h"
 #include "PlayerCameraManager.h"
 #include <ObjManager.h>
+#include "ParticleLoader.h"
 #include "FAudioDevice.h"
 #include <sol/sol.hpp>
 
@@ -195,6 +196,7 @@ bool UGameEngine::Startup(HINSTANCE hInstance)
     INPUT.Initialize(HWnd);
 
     FObjManager::Preload();
+    FParticleLoader::Preload();
 
     // Preload audio assets
     FAudioDevice::Preload();

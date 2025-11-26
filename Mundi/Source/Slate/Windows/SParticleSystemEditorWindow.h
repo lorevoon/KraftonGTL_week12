@@ -89,4 +89,8 @@ private:
     void OnNewParticleSystem();
     void OnLoadParticleSystem();
     void OnSaveParticleSystem();
+
+    // Scene에서 Cascade Editor를 연 소스 컴포넌트 (있는 경우)
+    // 다른 이름으로 저장 시 이 컴포넌트의 Template도 업데이트해야 함
+    class UParticleSystemComponent* SourceSceneComponent = nullptr;
 };

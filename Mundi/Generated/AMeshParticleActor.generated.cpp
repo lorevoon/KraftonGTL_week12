@@ -34,7 +34,7 @@ const bool AMeshParticleActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AMeshParticleActor)
-    MARK_AS_SPAWNABLE("메시 파티클 액터", "메시 파티클 시스템을 생성하는 액터입니다")
+    MARK_AS_SPAWNABLE("메시 파티클 액터 (샘플)", "샘플 메시 파티클 시스템이 설정된 액터입니다")
 END_PROPERTIES()
 
 

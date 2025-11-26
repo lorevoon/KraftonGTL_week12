@@ -171,8 +171,13 @@ void UResourceManager::SetAnimations()
 }
 
 void UResourceManager::SetAudioFiles()
-{ 
+{
     Sounds = GetAll<USound>();
+}
+
+void UResourceManager::SetParticleSystems()
+{
+    ParticleSystems = GetAll<UParticleSystem>();
 }
 
 

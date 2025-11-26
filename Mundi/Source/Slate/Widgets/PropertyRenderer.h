@@ -20,6 +20,9 @@ public:
 	// 객체의 모든 프로퍼티를 카테고리별로 렌더링 (부모 클래스 프로퍼티 포함)
 	static void RenderAllPropertiesWithInheritance(UObject* Object);
 
+	// 리소스 캐시 비우기 (외부에서 리소스 목록이 변경되었을 때 호출)
+	static void ClearResourcesCache();
+
 private:
 	// 타입별 렌더링 함수들
 	static bool RenderBoolProperty(const FProperty& Prop, void* Instance);
@@ -41,6 +44,7 @@ private:
 	static bool RenderSpotLightShadowMap(class FLightManager* LightManager, class ULightComponent* LightComp, ID3D11ShaderResourceView* AtlasSRV);
 	static bool RenderSkeletalMeshProperty(const FProperty& Prop, void* Instance);
 	static bool RenderStaticMeshProperty(const FProperty& Prop, void* Instance);
+	static bool RenderParticleSystemProperty(const FProperty& Prop, void* Instance);
 	static bool RenderMaterialProperty(const FProperty& Prop, void* Instance);
 	static bool RenderMaterialArrayProperty(const FProperty& Prop, void* Instance);
 	static bool RenderSingleMaterialSlot(const char* Label, UMaterialInterface** MaterialPtr, UObject* OwningObject, uint32 MaterialIndex);	// 단일 UMaterial* 슬롯을 렌더링하는 헬퍼 함수.
@@ -54,7 +58,6 @@ private:
 	static bool RenderTransformProperty(const FProperty& Prop, void* Instance);
 
 	static void CacheResources();	// 필요할 때 리소스 목록을 멤버 변수에 캐시합니다.
-	static void ClearResourcesCache();	// 렌더링 패스가 끝날 때 캐시를 비웁니다.
 
 private:
 	// 렌더링 중 캐시되는 리소스 목록
@@ -72,4 +75,6 @@ private:
 	static TArray<const char*> CachedSoundItems;
 	static TArray<FString> CachedScriptPaths;
 	static TArray<const char*> CachedScriptItems;
+	static TArray<FString> CachedParticleSystemPaths;
+	static TArray<FString> CachedParticleSystemItems;
 };
