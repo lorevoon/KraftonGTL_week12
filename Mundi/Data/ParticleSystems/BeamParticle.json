@@ -74,10 +74,7 @@
               "EmitterLoops" : 0,
               "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
               "EmitterRotation" : 0.000000,
-              "Material" : {
-                "DiffuseTexture" : "Data/Textures/Default.png",
-                "ShaderPath" : "Shaders/Effects/ParticleBeam.hlsl"
-              },
+              "Material" : "Shaders/Effects/ParticleBeam.hlsl",
               "ModuleName" : "Required",
               "SpawnRate" : 25.000000,
               "Type" : "UParticleModuleRequired",
