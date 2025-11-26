@@ -255,6 +255,35 @@ void UObject::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			}
 			break;
 		}
+		case EPropertyType::ParticleSystem:
+		{
+			UParticleSystem** Value = Prop.GetValuePtr<UParticleSystem*>(this);
+			if (bInIsLoading)
+			{
+				FString ParticleSystemPath;
+				FJsonSerializer::ReadString(InOutHandle, Prop.Name, ParticleSystemPath);
+				if (!ParticleSystemPath.empty())
+				{
+					*Value = UResourceManager::GetInstance().Load<UParticleSystem>(ParticleSystemPath);
+				}
+				else
+				{
+					*Value = nullptr;
+				}
+			}
+			else
+			{
+				if (*Value)
+				{
+					InOutHandle[Prop.Name] = (*Value)->GetFilePath().c_str();
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = "";
+				}
+			}
+			break;
+		}
 		case EPropertyType::Curve:
 		{
 			// Curve 프로퍼티는 float[4] 배열입니다. 따라서 FVector4로 처리
