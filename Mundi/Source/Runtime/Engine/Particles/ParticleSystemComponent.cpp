@@ -16,6 +16,7 @@
 #include "ParticleModuleTypeDataRibbon.h"
 #include "PlatformTime.h"
 #include "ParticleStatManager.h"
+#include "BillboardComponent.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -41,6 +42,13 @@ UParticleSystemComponent::~UParticleSystemComponent()
 void UParticleSystemComponent::OnRegister(UWorld* InWorld)
 {
     UPrimitiveComponent::OnRegister(InWorld);
+
+    // 에디터용 빌보드 아이콘 생성
+    if (!SpriteComponent && !InWorld->bPie)
+    {
+        CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
+        SpriteComponent->SetTexture(GDataDir + "/UI/Icons/ParticleSystem_64x.png");
+    }
 
     if (Template && bAutoActivate)
     {
