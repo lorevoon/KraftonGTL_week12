@@ -2095,6 +2095,18 @@ bool UPropertyRenderer::RenderParticleSystemProperty(const FProperty& Prop, void
 		}
 	}
 
+	// Cascade Editor 버튼 (SkeletalMesh의 Viewer 버튼 패턴과 동일)
+	if (ImGui::Button("Cascade Editor"))
+	{
+		if (*PSPtr)
+		{
+			UEditorAssetPreviewContext* Context = NewObject<UEditorAssetPreviewContext>();
+			Context->ViewerType = EViewerType::Particle;
+			Context->AssetPath = CurrentPath;
+			USlateManager::GetInstance().OpenAssetViewer(Context);
+		}
+	}
+
 	// TArray<FString>을 const char* 배열로 변환
 	TArray<const char*> ItemsPtr;
 	ItemsPtr.reserve(CachedParticleSystemItems.size());

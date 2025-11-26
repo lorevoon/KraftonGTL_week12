@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SParticleSystemEditorWindow.h"
 #include "SlateManager.h"
 #include "Source/Runtime/Engine/Viewer/ParticleSystemEditorBootstrap.h"
@@ -17,6 +17,7 @@
 #include "Widgets/PropertyRenderer.h"
 #include "Source/Editor/PlatformProcess.h"
 #include "ObjectFactory.h"
+#include "Source/Runtime/Engine/Viewer/EditorAssetPreviewContext.h"
 
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
@@ -644,6 +645,18 @@ void SParticleSystemEditorWindow::RenderViewportArea(float width, float height)
 ViewerState* SParticleSystemEditorWindow::CreateViewerState(const char* Name, UEditorAssetPreviewContext* Context)
 {
     ViewerState* NewState = ParticleSystemEditorBootstrap::CreateViewerState(Name, World, Device);
+    if (!NewState) return nullptr;
+
+    // Context->AssetPath가 있으면 해당 ParticleSystem을 로드하여 편집
+    if (Context && !Context->AssetPath.empty())
+    {
+        UParticleSystem* PS = UResourceManager::GetInstance().Load<UParticleSystem>(Context->AssetPath);
+        if (PS && EmittersPanel)
+        {
+            EmittersPanel->SetEditingSystem(PS);
+            NewState->LoadedMeshPath = Context->AssetPath;  // 탭 매칭용
+        }
+    }
     return NewState;
 }
 
