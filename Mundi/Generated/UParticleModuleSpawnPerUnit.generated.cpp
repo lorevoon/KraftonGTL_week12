@@ -36,7 +36,6 @@ const bool UParticleModuleSpawnPerUnit::bPropertiesRegistered = []() {
 
 BEGIN_PROPERTIES(UParticleModuleSpawnPerUnit)
     ADD_PROPERTY(float, SpawnPerUnit, "Spawn", true)
-    ADD_PROPERTY(float, UnitScalar, "Spawn", true)
     ADD_PROPERTY(int32, MaxFrameDistance, "Spawn", true)
     ADD_PROPERTY(bool, bSpawnOnMovementStart, "Spawn", true)
 END_PROPERTIES()
@@ -47,8 +46,6 @@ LUA_BIND_BEGIN(UParticleModuleSpawnPerUnit)
 {
     AddProperty<UParticleModuleSpawnPerUnit, float>(
         T, "SpawnPerUnit", &UParticleModuleSpawnPerUnit::SpawnPerUnit);
-    AddProperty<UParticleModuleSpawnPerUnit, float>(
-        T, "UnitScalar", &UParticleModuleSpawnPerUnit::UnitScalar);
     AddProperty<UParticleModuleSpawnPerUnit, int32>(
         T, "MaxFrameDistance", &UParticleModuleSpawnPerUnit::MaxFrameDistance);
     AddProperty<UParticleModuleSpawnPerUnit, bool>(

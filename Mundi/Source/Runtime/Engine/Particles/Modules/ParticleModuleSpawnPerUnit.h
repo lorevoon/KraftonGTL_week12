@@ -41,11 +41,6 @@ public:
 	UPROPERTY(EditAnywhere, Category="Spawn")
 	float SpawnPerUnit;
 
-	// 거리 스케일
-	// UnitScalar만큼 이동 시 SpawnPerUnit개 스폰 (1유닛 = 1m)
-	UPROPERTY(EditAnywhere, Category="Spawn")
-	float UnitScalar;
-
 	// 최대 프레임당 스폰 개수 (무한 스폰 방지)
 	UPROPERTY(EditAnywhere, Category="Spawn")
 	int32 MaxFrameDistance;

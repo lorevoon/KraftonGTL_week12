@@ -10,8 +10,7 @@
 TMap<FParticleEmitterInstance*, FSpawnPerUnitInstancePayload> UParticleModuleSpawnPerUnit::InstanceDataMap;
 
 UParticleModuleSpawnPerUnit::UParticleModuleSpawnPerUnit()
-	: SpawnPerUnit(10.0f)
-	, UnitScalar(2.0f)
+	: SpawnPerUnit(20.0f)
 	, MaxFrameDistance(200)
 	, bSpawnOnMovementStart(true)
 {
@@ -65,7 +64,7 @@ void UParticleModuleSpawnPerUnit::Update(FParticleEmitterInstance* Owner, int32 
 	FVector MovementDelta = CurrentLocation - InstanceData->PreviousLocation;
 	float Distance = MovementDelta.Size();
 
-	if (Distance > 0.01f)  // 최소 이동 거리
+	if (Distance > 0.001f)  // 최소 이동 거리
 	{
 		SpawnParticlesAlongMovement(Owner, MovementDelta, Distance, InstanceData);
 	}
@@ -73,13 +72,18 @@ void UParticleModuleSpawnPerUnit::Update(FParticleEmitterInstance* Owner, int32 
 	InstanceData->PreviousLocation = CurrentLocation;
 }
 
-void UParticleModuleSpawnPerUnit::SpawnParticlesAlongMovement(FParticleEmitterInstance* Owner, const FVector& MovementDelta, float Distance, FSpawnPerUnitInstancePayload* InstanceData)
+void UParticleModuleSpawnPerUnit::SpawnParticlesAlongMovement(
+	FParticleEmitterInstance* Owner,
+	const FVector& MovementDelta,
+	float Distance,
+	FSpawnPerUnitInstancePayload* InstanceData
+	)
 {
 	InstanceData->AccumulatedDistance += Distance;
 
 	// SpawnPerUnit 계산
 	// 예: SpawnPerUnit=10, UnitScalar=2 → 2m당 10개
-	float SpawnCount = (InstanceData->AccumulatedDistance / UnitScalar) * SpawnPerUnit;
+	float SpawnCount = (InstanceData->AccumulatedDistance) * SpawnPerUnit;
 
 	if (SpawnCount >= 1.0f)
 	{
@@ -120,7 +124,7 @@ void UParticleModuleSpawnPerUnit::SpawnParticlesAlongMovement(FParticleEmitterIn
 		}
 
 		// 소모한 거리만큼 차감
-		float ConsumedDistance = (ActualSpawnCount * UnitScalar) / SpawnPerUnit;
+		float ConsumedDistance = (ActualSpawnCount) / SpawnPerUnit;
 		InstanceData->AccumulatedDistance -= ConsumedDistance;
 
 		// Tangent 저장 (다음 프레임용)

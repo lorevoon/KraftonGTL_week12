@@ -692,9 +692,6 @@ void FDynamicRibbonEmitterData::BuildRibbonVertices(FSceneView* View)
     float Width = RibbonModule->Width;
     int32 MaxParticleInTrailCount = RibbonModule->MaxParticleInTrailCount;
     float TilingDistance = RibbonModule->TilingDistance;
-    int32 MaxTessellation = RibbonModule->MaxTessellationBetweenParticles;
-    float TessellationStepSize = RibbonModule->DistanceTessellationStepSize;
-    bool bEnableTangentDiffInterpScale = RibbonModule->bEnableTangentDiffInterpScale;
     ERibbonRenderAxis RenderAxis = RibbonModule->RenderAxis;
 
     const bool bUseLocalSpace = Source->UseLocalSpace();

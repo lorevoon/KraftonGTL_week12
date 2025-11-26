@@ -865,7 +865,7 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultRibbonEmitter()
         return nullptr;
 
     Emitter->EmitterName = "Ribbon Emitter";
-    Emitter->MaxParticleCount = 200; // 리본 궤적을 위해 많은 파티클
+    Emitter->MaxParticleCount = 2000; // 리본 궤적을 위해 많은 파티클
 
     UParticleLODLevel* LOD0 = NewObject<UParticleLODLevel>();
     if (!LOD0)
@@ -889,13 +889,10 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultRibbonEmitter()
     if (RibbonModule)
     {
         RibbonModule->ModuleName = "Ribbon";
-        RibbonModule->Width = 2.0f;                           // 리본 너비 2m
-        RibbonModule->MaxParticleInTrailCount = 200;          // 최대 200개 파티클로 궤적 구성 (긴 궤적)
+        RibbonModule->Width = 0.5f;                           // 리본 너비
+        RibbonModule->MaxParticleInTrailCount = 2000;         // 최대 파티클로 궤적 구성
         RibbonModule->TilingDistance = 5.0f;                  // 5m마다 UV 타일링
         RibbonModule->RenderAxis = ERibbonRenderAxis::CameraUp;  // 카메라를 향함
-        RibbonModule->DistanceTessellationStepSize = 0.5f;    // 0.5m마다 테셀레이션
-        RibbonModule->MaxTessellationBetweenParticles = 25;   // 최대 25개 보간
-        RibbonModule->bEnableTangentDiffInterpScale = true;   // Tangent 각도로 추가 세분화
         LOD0->TypeDataModule = RibbonModule;  // TypeDataModule로 설정
     }
 
@@ -904,7 +901,6 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultRibbonEmitter()
     {
         SpawnPerUnit->ModuleName = "SpawnPerUnit";
         SpawnPerUnit->SpawnPerUnit = 20.0f;           // 단위당 20개
-        SpawnPerUnit->UnitScalar = 1.0f;              // 1m당 (더 조밀하게)
         SpawnPerUnit->MaxFrameDistance = 200;         // 프레임당 최대 200개
         SpawnPerUnit->bSpawnOnMovementStart = true;   // 첫 이동 시 스폰
         LOD0->AddModule(SpawnPerUnit);
@@ -914,8 +910,8 @@ UParticleEmitter* SCascadeEmittersPanel::CreateDefaultRibbonEmitter()
     if (UParticleModuleLifetime* Lifetime = NewObject<UParticleModuleLifetime>())
     {
         Lifetime->ModuleName = "Lifetime";
-        Lifetime->LifetimeMin = 5.0f;
-        Lifetime->LifetimeMax = 10.0f;
+        Lifetime->LifetimeMin = 2.0f;
+        Lifetime->LifetimeMax = 2.0f;
         LOD0->AddModule(Lifetime);
     }
     // Location

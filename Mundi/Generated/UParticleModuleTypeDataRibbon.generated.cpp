@@ -39,21 +39,9 @@ static const char* RenderAxis_EnumNames[] = { "CameraUp", "SourceUp", "WorldUp",
 BEGIN_PROPERTIES(UParticleModuleTypeDataRibbon)
     ADD_PROPERTY(int32, MaxTrailCount, "Trail", true)
     ADD_PROPERTY(int32, MaxParticleInTrailCount, "Trail", true)
-    ADD_PROPERTY(int32, SheetsPerTrail, "Rendering", true)
     ADD_PROPERTY(float, Width, "Ribbon", true)
     ADD_PROPERTY_ENUM(ERibbonRenderAxis, RenderAxis, "Ribbon", RenderAxis_EnumNames, 3, true)
     ADD_PROPERTY(float, TilingDistance, "Rendering", true)
-    ADD_PROPERTY(int32, MaxTessellationBetweenParticles, "Tessellation", true)
-    ADD_PROPERTY(float, DistanceTessellationStepSize, "Tessellation", true)
-    ADD_PROPERTY(bool, bEnableTangentDiffInterpScale, "Tessellation", true)
-    ADD_PROPERTY(bool, bTangentRecalculationEveryFrame, "Trail", true)
-    ADD_PROPERTY(bool, bSpawnInitialParticle, "Spawn", true)
-    ADD_PROPERTY(bool, bDeadTrailsOnDeactivate, "Trail", true)
-    ADD_PROPERTY(bool, bDeadTrailsOnSourceLoss, "Trail", true)
-    ADD_PROPERTY(bool, bClipSourceSegment, "Trail", true)
-    ADD_PROPERTY(bool, bRenderSpawnPoints, "Debug", true)
-    ADD_PROPERTY(bool, bRenderTangents, "Debug", true)
-    ADD_PROPERTY(bool, bRenderTessellation, "Debug", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -64,35 +52,11 @@ LUA_BIND_BEGIN(UParticleModuleTypeDataRibbon)
         T, "MaxTrailCount", &UParticleModuleTypeDataRibbon::MaxTrailCount);
     AddProperty<UParticleModuleTypeDataRibbon, int32>(
         T, "MaxParticleInTrailCount", &UParticleModuleTypeDataRibbon::MaxParticleInTrailCount);
-    AddProperty<UParticleModuleTypeDataRibbon, int32>(
-        T, "SheetsPerTrail", &UParticleModuleTypeDataRibbon::SheetsPerTrail);
     AddProperty<UParticleModuleTypeDataRibbon, float>(
         T, "Width", &UParticleModuleTypeDataRibbon::Width);
     AddProperty<UParticleModuleTypeDataRibbon, ERibbonRenderAxis>(
         T, "RenderAxis", &UParticleModuleTypeDataRibbon::RenderAxis);
     AddProperty<UParticleModuleTypeDataRibbon, float>(
         T, "TilingDistance", &UParticleModuleTypeDataRibbon::TilingDistance);
-    AddProperty<UParticleModuleTypeDataRibbon, int32>(
-        T, "MaxTessellationBetweenParticles", &UParticleModuleTypeDataRibbon::MaxTessellationBetweenParticles);
-    AddProperty<UParticleModuleTypeDataRibbon, float>(
-        T, "DistanceTessellationStepSize", &UParticleModuleTypeDataRibbon::DistanceTessellationStepSize);
-    AddProperty<UParticleModuleTypeDataRibbon, bool>(
-        T, "bEnableTangentDiffInterpScale", &UParticleModuleTypeDataRibbon::bEnableTangentDiffInterpScale);
-    AddProperty<UParticleModuleTypeDataRibbon, bool>(
-        T, "bTangentRecalculationEveryFrame", &UParticleModuleTypeDataRibbon::bTangentRecalculationEveryFrame);
-    AddProperty<UParticleModuleTypeDataRibbon, bool>(
-        T, "bSpawnInitialParticle", &UParticleModuleTypeDataRibbon::bSpawnInitialParticle);
-    AddProperty<UParticleModuleTypeDataRibbon, bool>(
-        T, "bDeadTrailsOnDeactivate", &UParticleModuleTypeDataRibbon::bDeadTrailsOnDeactivate);
-    AddProperty<UParticleModuleTypeDataRibbon, bool>(
-        T, "bDeadTrailsOnSourceLoss", &UParticleModuleTypeDataRibbon::bDeadTrailsOnSourceLoss);
-    AddProperty<UParticleModuleTypeDataRibbon, bool>(
-        T, "bClipSourceSegment", &UParticleModuleTypeDataRibbon::bClipSourceSegment);
-    AddProperty<UParticleModuleTypeDataRibbon, bool>(
-        T, "bRenderSpawnPoints", &UParticleModuleTypeDataRibbon::bRenderSpawnPoints);
-    AddProperty<UParticleModuleTypeDataRibbon, bool>(
-        T, "bRenderTangents", &UParticleModuleTypeDataRibbon::bRenderTangents);
-    AddProperty<UParticleModuleTypeDataRibbon, bool>(
-        T, "bRenderTessellation", &UParticleModuleTypeDataRibbon::bRenderTessellation);
 }
 LUA_BIND_END()

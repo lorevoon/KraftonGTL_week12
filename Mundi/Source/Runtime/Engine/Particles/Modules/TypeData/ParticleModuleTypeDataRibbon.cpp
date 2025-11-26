@@ -6,22 +6,10 @@
 
 UParticleModuleTypeDataRibbon::UParticleModuleTypeDataRibbon()
 	: MaxTrailCount(1)
-	, MaxParticleInTrailCount(50)
-	, SheetsPerTrail(1)
-	, Width(20.0f)
+	, MaxParticleInTrailCount(2000)
+	, Width(0.5f)
 	, RenderAxis(ERibbonRenderAxis::CameraUp)
-	, TilingDistance(50.0f)
-	, MaxTessellationBetweenParticles(25)
-	, DistanceTessellationStepSize(5.0f)
-	, bEnableTangentDiffInterpScale(true)
-	, bTangentRecalculationEveryFrame(false)
-	, bSpawnInitialParticle(true)
-	, bDeadTrailsOnDeactivate(true)
-	, bDeadTrailsOnSourceLoss(false)
-	, bClipSourceSegment(false)
-	, bRenderSpawnPoints(false)
-	, bRenderTangents(false)
-	, bRenderTessellation(false)
+	, TilingDistance(5.0f)
 {
 	bSpawnModule = false;
 	bUpdateModule = false;

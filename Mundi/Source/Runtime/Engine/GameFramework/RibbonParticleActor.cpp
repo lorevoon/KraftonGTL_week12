@@ -69,15 +69,12 @@ ARibbonParticleActor::ARibbonParticleActor()
 	RibbonModule->MaxParticleInTrailCount = 2000;      // 최대 200개 파티클로 궤적 구성 (긴 궤적)
 	RibbonModule->TilingDistance = 5.0f;             // 5m마다 UV 타일링
 	RibbonModule->RenderAxis = ERibbonRenderAxis::CameraUp;  // 카메라를 향하도록
-	RibbonModule->DistanceTessellationStepSize = 0.5f;       // 0.5m마다 테셀레이션
-	RibbonModule->MaxTessellationBetweenParticles = 25;      // 최대 25개 보간
-	RibbonModule->bEnableTangentDiffInterpScale = true;      // Tangent 각도로 추가 세분화
+
 	LODLevel->TypeDataModule = RibbonModule;
 
 	// SpawnPerUnit 모듈 (거리 기반 스폰)
 	UParticleModuleSpawnPerUnit* SpawnPerUnitModule = NewObject<UParticleModuleSpawnPerUnit>();
 	SpawnPerUnitModule->SpawnPerUnit = 20.0f;           // 단위당 20개
-	SpawnPerUnitModule->UnitScalar = 1.0f;              // 1m당 (더 조밀하게)
 	SpawnPerUnitModule->MaxFrameDistance = 200;         // 프레임당 최대 200개
 	SpawnPerUnitModule->bSpawnOnMovementStart = true;   // 첫 이동 시 스폰
 	LODLevel->AddModule(SpawnPerUnitModule);
