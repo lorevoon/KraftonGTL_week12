@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
   <Import Project="..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props" Condition="Exists('..\packages\Microsoft.SourceLink.GitHub.8.0.0\build\Microsoft.SourceLink.GitHub.props')" />
   <Import Project="..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props" Condition="Exists('..\packages\Microsoft.SourceLink.Common.8.0.0\build\Microsoft.SourceLink.Common.props')" />
@@ -290,15 +290,12 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SpringArmComponent.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\BeamParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Gamma.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Character.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Controller.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\DancingCharacter.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\GameModeBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\GameStateBase.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\ParticleActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Pawn.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PlayerController.cpp" />
@@ -371,8 +368,10 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PointLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpotLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleBeamNoise.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSpawnPerUnit.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataRibbon.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleHelper.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\GameObject.cpp" />
@@ -405,6 +404,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Slate\Windows\SBlendSpaceEditorWindow.cpp" />
     <ClCompile Include="Source\Slate\Windows\SParticleSystemEditorWindow.cpp" />
     <ClCompile Include="Source\Slate\Windows\SCascadeEmittersPanel.cpp" />
+    <ClCompile Include="Source\Slate\Windows\SCascadeCurveEditor.cpp" />
     <ClCompile Include="Source\Slate\Windows\SSkeletalMeshViewerWindow.cpp" />
     <ClCompile Include="Source\Slate\ThumbnailManager.cpp" />
     <ClCompile Include="Source\Slate\Windows\SViewerWindow.cpp" />
@@ -508,6 +508,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleCollision.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleAcceleration.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleEventGenerator.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Curves\ParticleCurve.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleLODLevel.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleEmitter.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Particles\ParticleSystem.cpp" />
@@ -604,14 +605,13 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClCompile Include="Generated\UParticleModuleCollision.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleTypeDataBase.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleTypeDataMesh.generated.cpp" />
-    <ClCompile Include="Generated\ASpriteParticleActor.generated.cpp" />
-    <ClCompile Include="Generated\AMeshParticleActor.generated.cpp" />
-    <ClCompile Include="Generated\ABeamParticleActor.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleTypeDataBeam.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleEventGenerator.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleAcceleration.generated.cpp" />
     <ClCompile Include="Generated\AParticleActor.generated.cpp" />
     <ClCompile Include="Generated\UParticleModuleBeamNoise.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleTypeDataRibbon.generated.cpp" />
+    <ClCompile Include="Generated\UParticleModuleSpawnPerUnit.generated.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
@@ -811,7 +811,6 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\Components\SphereComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\SpringArmComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.h" />
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\BeamParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Gamma.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_LetterBox.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Vignette.h" />
@@ -825,8 +824,6 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\GameFramework\GameEngine.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\GameModeBase.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\GameStateBase.h" />
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\SpriteParticleActor.h" />
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\MeshParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\ParticleActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Pawn.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PlayerCameraManager.h" />
@@ -839,9 +836,11 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpotLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleBeamNoise.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleSpawnPerUnit.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBase.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBeam.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataMesh.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataRibbon.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitterInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleStatManager.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\GameObject.h" />
@@ -885,6 +884,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Slate\Windows\SBlendSpaceEditorWindow.h" />
     <ClInclude Include="Source\Slate\Windows\SParticleSystemEditorWindow.h" />
     <ClInclude Include="Source\Slate\Windows\SCascadeEmittersPanel.h" />
+    <ClInclude Include="Source\Slate\Windows\SCascadeCurveEditor.h" />
     <ClInclude Include="Source\Slate\Windows\SSkeletalMeshViewerWindow.h" />
     <ClInclude Include="Source\Slate\ThumbnailManager.h" />
     <ClInclude Include="Source\Slate\Windows\SViewerWindow.h" />
@@ -991,6 +991,7 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleCollision.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleAcceleration.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleEventGenerator.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Curves\ParticleCurve.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleLODLevel.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleEmitter.h" />
     <ClInclude Include="Source\Runtime\Engine\Particles\ParticleSystem.h" />
@@ -1096,14 +1097,13 @@ if exist "\\172.21.11.115\symbols" ("C:\Program Files (x86)\Windows Kits\10\Debu
     <ClInclude Include="Generated\UParticleModuleCollision.generated.h" />
     <ClInclude Include="Generated\UParticleModuleTypeDataBase.generated.h" />
     <ClInclude Include="Generated\UParticleModuleTypeDataMesh.generated.h" />
-    <ClInclude Include="Generated\ASpriteParticleActor.generated.h" />
-    <ClInclude Include="Generated\AMeshParticleActor.generated.h" />
-    <ClInclude Include="Generated\ABeamParticleActor.generated.h" />
     <ClInclude Include="Generated\UParticleModuleTypeDataBeam.generated.h" />
     <ClInclude Include="Generated\UParticleModuleEventGenerator.generated.h" />
     <ClInclude Include="Generated\UParticleModuleAcceleration.generated.h" />
     <ClInclude Include="Generated\AParticleActor.generated.h" />
     <ClInclude Include="Generated\UParticleModuleBeamNoise.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleTypeDataRibbon.generated.h" />
+    <ClInclude Include="Generated\UParticleModuleSpawnPerUnit.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />

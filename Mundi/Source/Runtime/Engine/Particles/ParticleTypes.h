@@ -11,6 +11,8 @@ enum class EDynamicEmitterType : uint8
 {
     Sprite,      // 스프라이트 파티클 (빌보드)
     Mesh,        // 메시 파티클 (3D 메시)
+    Beam,        // 빔 파티클 (라인 세그먼트)
+    Ribbon,      // 리본 파티클 (궤적 띠)
     Unknown
 };
 
@@ -83,7 +85,10 @@ struct FBaseParticle
     float OneOverMaxLifetime;    // 1.0 / MaxLifetime (최적화)
     int32 Flags;                 // 파티클 플래그
 
-    // Total: ~128 bytes (정렬 포함)
+    // Padding to align to 16 bytes (4 bytes)
+    uint32 Padding;              // 16바이트 정렬용 패딩
+
+    // Total: 128 bytes (16-byte aligned)
 
     FBaseParticle()
         : Location(FVector::Zero())
@@ -99,6 +104,71 @@ struct FBaseParticle
         , RelativeTime(0.0f)
         , OneOverMaxLifetime(0.0f)
         , Flags(0)
+        , Padding(0)
+    {
+    }
+};
+
+// ============================================================
+// Trail/Ribbon 파티클 페이로드
+// ============================================================
+
+// Trail 파티클 플래그
+namespace ETrailParticleFlags
+{
+    constexpr uint32 None          = 0;
+    constexpr uint32 Head          = 1 << 0;  // Trail의 HEAD 파티클 (리더)
+    constexpr uint32 Tail          = 1 << 1;  // Trail의 TAIL 파티클
+    constexpr uint32 Middle        = 1 << 2;  // Trail의 MIDDLE 파티클
+    constexpr uint32 DeadTrail     = 1 << 3;  // 죽은 Trail (제거 예정)
+    constexpr uint32 Interpolated  = 1 << 4;  // 보간된 파티클 (테셀레이션)
+}
+
+// Trail 베이스 페이로드
+// - 모든 Trail/Ribbon 파티클이 FBaseParticle 뒤에 가지는 추가 데이터
+struct FTrailsBaseTypeDataPayload
+{
+    uint32 Flags;                      // ETrailParticleFlags (4 bytes)
+    int32  TrailIndex;                 // 트레일 인덱스 (HEAD만 사용) (4 bytes)
+    int32  TriangleCount;              // 트레일의 총 삼각형 수 (HEAD만 사용) (4 bytes)
+    float  SpawnTime;                  // 스폰 시간 (4 bytes)
+    int32  RenderingInterpCount;       // 렌더링 시 보간 개수 (4 bytes)
+    float  TiledU;                     // UV 타일링 (4 bytes)
+    bool   bInterpolatedSpawn;         // 보간 스폰 여부 (1 byte)
+    uint8  Padding[7];                 // 16바이트 정렬용 패딩 (7 bytes)
+
+    // Total: 32 bytes (16-byte aligned)
+
+    FTrailsBaseTypeDataPayload()
+        : Flags(ETrailParticleFlags::None)
+        , TrailIndex(-1)
+        , TriangleCount(0)
+        , SpawnTime(0.0f)
+        , RenderingInterpCount(0)
+        , TiledU(0.0f)
+        , bInterpolatedSpawn(false)
+    {
+        memset(Padding, 0, sizeof(Padding));
+    }
+};
+
+// Ribbon 전용 페이로드
+// - FTrailsBaseTypeDataPayload + 추가 데이터
+struct FRibbonTypeDataPayload : public FTrailsBaseTypeDataPayload
+{
+    FVector Tangent;       // 탄젠트 벡터 (Trail 방향) (12 bytes)
+    FVector Up;            // 업 벡터 (리본 면 방향) (12 bytes)
+    int32   SourceIndex;   // 소스 인덱스 (멀티 트레일 시) (4 bytes)
+    int32   Next;          // Trail에서 다음 파티클의 ActiveIndex (-1이면 TAIL) (4 bytes)
+
+    // Total: 32 (base) + 32 = 64 bytes (16-byte aligned)
+
+    FRibbonTypeDataPayload()
+        : FTrailsBaseTypeDataPayload()
+        , Tangent(FVector(1, 0, 0))
+        , Up(FVector(0, 0, 1))
+        , SourceIndex(0)
+        , Next(-1)
     {
     }
 };

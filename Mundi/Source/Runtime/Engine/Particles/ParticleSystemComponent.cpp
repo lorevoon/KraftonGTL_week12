@@ -13,8 +13,10 @@
 #include "PlayerCameraManager.h"
 #include "CameraActor.h"
 #include "CameraComponent.h"
+#include "ParticleModuleTypeDataRibbon.h"
 #include "PlatformTime.h"
 #include "ParticleStatManager.h"
+#include "BillboardComponent.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -40,6 +42,13 @@ UParticleSystemComponent::~UParticleSystemComponent()
 void UParticleSystemComponent::OnRegister(UWorld* InWorld)
 {
     UPrimitiveComponent::OnRegister(InWorld);
+
+    // 에디터용 빌보드 아이콘 생성
+    if (!SpriteComponent && !InWorld->bPie)
+    {
+        CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
+        SpriteComponent->SetTexture(GDataDir + "/UI/Icons/ParticleSystem_64x.png");
+    }
 
     if (Template && bAutoActivate)
     {
@@ -327,6 +336,11 @@ TArray<FDynamicEmitterDataBase*> UParticleSystemComponent::GetRenderData(FSceneV
         {
             // Beam TypeData
             DynamicData = new FDynamicBeamEmitterData(Instance);
+        }
+        else if (Cast<UParticleModuleTypeDataRibbon>(LODLevel->TypeDataModule))
+        {
+            // Ribbon TypeData
+            DynamicData = new FDynamicRibbonEmitterData(Instance);
         }
         else
         {

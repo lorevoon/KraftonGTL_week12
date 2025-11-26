@@ -12,21 +12,21 @@
 #endif
 
 // Define class-specific body macro
-#define A_SPRITE_PARTICLE_ACTOR_BODY \
+#define U_PARTICLE_MODULE_SPAWN_PER_UNIT_BODY \
 public: \
-    using Super = AActor; \
-    using ThisClass_t = ASpriteParticleActor; \
+    using Super = UParticleModule; \
+    using ThisClass_t = UParticleModuleSpawnPerUnit; \
     static UClass* StaticClass() \
     { \
-        static UClass Cls{ "ASpriteParticleActor", AActor::StaticClass(), sizeof(ASpriteParticleActor) }; \
+        static UClass Cls{ "UParticleModuleSpawnPerUnit", UParticleModule::StaticClass(), sizeof(UParticleModuleSpawnPerUnit) }; \
         static bool bRegistered = (UClass::SignUpClass(&Cls), true); \
         return &Cls; \
     } \
-    virtual UClass* GetClass() const override { return ASpriteParticleActor::StaticClass(); } \
-    ASpriteParticleActor(const ASpriteParticleActor&) = default; \
-    ASpriteParticleActor* Duplicate() const override \
+    virtual UClass* GetClass() const override { return UParticleModuleSpawnPerUnit::StaticClass(); } \
+    UParticleModuleSpawnPerUnit(const UParticleModuleSpawnPerUnit&) = default; \
+    UParticleModuleSpawnPerUnit* Duplicate() const override \
     { \
-        ASpriteParticleActor* NewObject = ObjectFactory::DuplicateObject<ASpriteParticleActor>(this); \
+        UParticleModuleSpawnPerUnit* NewObject = ObjectFactory::DuplicateObject<UParticleModuleSpawnPerUnit>(this); \
         NewObject->DuplicateSubObjects(); \
         NewObject->PostDuplicate(); \
         return NewObject; \
@@ -37,4 +37,4 @@ private: \
 public:
 
 // Redirect generic macro to class-specific one
-#define CURRENT_CLASS_GENERATED_BODY A_SPRITE_PARTICLE_ACTOR_BODY
+#define CURRENT_CLASS_GENERATED_BODY U_PARTICLE_MODULE_SPAWN_PER_UNIT_BODY

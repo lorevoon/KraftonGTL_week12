@@ -37,6 +37,7 @@ const bool UParticleModuleColor::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UParticleModuleColor)
     ADD_PROPERTY(FLinearColor, StartColor, "Color", true)
     ADD_PROPERTY(FLinearColor, EndColor, "Color", true)
+    ADD_PROPERTY(bool, bUseCurve, "Color", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -47,5 +48,7 @@ LUA_BIND_BEGIN(UParticleModuleColor)
         T, "StartColor", &UParticleModuleColor::StartColor);
     AddProperty<UParticleModuleColor, FLinearColor>(
         T, "EndColor", &UParticleModuleColor::EndColor);
+    AddProperty<UParticleModuleColor, bool>(
+        T, "bUseCurve", &UParticleModuleColor::bUseCurve);
 }
 LUA_BIND_END()

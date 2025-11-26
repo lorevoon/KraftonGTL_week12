@@ -5,6 +5,7 @@
 class UEditorAssetPreviewContext;
 class UTexture;
 class SCascadeEmittersPanel;
+class SCascadeCurveEditor;
 
 // Minimal Cascade-style particle editor shell
 // Provides: top toolbar, left column (viewport + details), right column (emitters + curves)
@@ -60,10 +61,15 @@ private:
     UTexture* IconLODInsertAfter = nullptr;
     UTexture* IconLODDelete = nullptr;
 
+    // Panel icons
+    UTexture* IconPanelDetails = nullptr;
+    UTexture* IconPanelCurves = nullptr;
+
     float IconSize = 24.0f;
 
     // Panels
     SCascadeEmittersPanel* EmittersPanel = nullptr;
+    SCascadeCurveEditor* CurveEditor = nullptr;
 
     // Viewport menu state
     enum class EDetailMode { Low, Medium, High };

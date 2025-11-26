@@ -6,6 +6,7 @@
 #include "ParticleEmitter.h"
 #include "ParticleLODLevel.h"
 #include "ParticleModule.h"
+#include "ParticleModuleTypeDataBase.h"
 #include "Modules/ParticleModuleRequired.h"
 #include "Modules/ParticleModuleEventGenerator.h"
 #include "ParticleSystemComponent.h"
@@ -315,6 +316,15 @@ void FParticleEmitterInstance::KillParticle(int32 ActiveIndex)
     }
 
     const int32 LastActive = ActiveParticles - 1;
+
+    // TypeDataModule handles type-specific cleanup
+    if (CurrentLODLevel && CurrentLODLevel->TypeDataModule)
+    {
+        const int32 DyingDataIndex = ParticleIndices[ActiveIndex];
+        CurrentLODLevel->TypeDataModule->OnParticleKilled(this, DyingDataIndex);
+    }
+
+    // Swap & Pop
     if (ActiveIndex != LastActive)
     {
         // Swap: LastActive의 DataIndex를 죽을 위치로
@@ -427,23 +437,27 @@ bool FParticleEmitterInstance::CanSpawnThisFrame(float DeltaTime)
     EmitterTime += DeltaTime;
 
     const int32 LoopLimit = CurrentLODLevel->RequiredModule->EmitterLoops;
-    const bool bHasFiniteLoops = (LoopLimit > 0);
 
+    auto LoopLimitReached = [this, LoopLimit]() -> bool
+    {
+        return (LoopLimit > 0) && (LoopCount >= LoopLimit);
+	};
+
+	// 이미 루프 제한에 도달했으면 스폰 불가
+    if (LoopLimitReached())
+        return false;
+
+    // 지속시간이 있으면 루프 카운트 갱신 후 루프 제한 도달 여부 재확인
     if (EmitterDuration > 0.0f)
     {
         while (EmitterTime >= EmitterDuration)
         {
+			UE_LOG("EmitterTime exceeded EmitterDuration");
             EmitterTime -= EmitterDuration;
             ++LoopCount;
-            if (bHasFiniteLoops && LoopCount >= LoopLimit)
-            {
+            if (LoopLimitReached())
                 return false;
-            }
         }
-    }
-    else if (bHasFiniteLoops && LoopCount >= LoopLimit)
-    {
-        return false;
     }
 
     return true;

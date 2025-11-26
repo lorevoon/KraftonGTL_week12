@@ -69,4 +69,7 @@ private:
 
 	// 헬퍼 메서드
 	void ResetChangeFlags();
+
+	// 파티클 시스템 에디터 제어용 UI 헬퍼 메소드
+	void RenderParticleSystemComponentControls(UParticleSystemComponent& ParticleComponent);
 };

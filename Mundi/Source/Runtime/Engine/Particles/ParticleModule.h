@@ -2,9 +2,22 @@
 
 #include "Object.h"
 #include "UParticleModule.generated.h"
+#include "ImGui/imgui.h"
 
 struct FBaseParticle;
 struct FParticleEmitterInstance;
+struct FParticleCurve;
+
+// Information about a curve-capable property for the curve editor
+struct FCurvePropertyInfo
+{
+    FString PropertyName;           // Display name (e.g., "Color Over Life")
+    int32 NumChannels;              // 1 for float, 3 for vector, 4 for color
+    FParticleCurve* CurvePtr;       // Pointer to the actual curve data
+    bool* bUseCurvePtr;             // Pointer to the bUseCurve flag (enables curve mode when edited)
+    TArray<FString> ChannelNames;   // e.g., {"R", "G", "B", "A"} or {"X", "Y", "Z"}
+    TArray<ImU32> ChannelColors;    // Display colors for each channel
+};
 
 // 파티클 모듈 베이스 클래스
 // - 실행 단계 플래그 시스템 (bSpawnModule, bUpdateModule, bFinalUpdateModule)
@@ -81,4 +94,11 @@ public:
 
     // Serialization - uses reflection to serialize all properties
     virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+
+    // Curve editor support: returns all curve-capable properties on this module
+    // Override in subclasses to register curve properties
+    virtual void GetCurveProperties(TArray<FCurvePropertyInfo>& OutProperties)
+    {
+        // Base class has no curve properties
+    }
 };
