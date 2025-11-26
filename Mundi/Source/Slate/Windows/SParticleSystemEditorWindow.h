@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "ParticleModule.h"
 #include "SViewerWindow.h"
 
@@ -33,6 +33,16 @@ private:
     float LeftRowSplitRatio = 0.6f;     // Viewport vs Details (left column)
     float RightRowSplitRatio = 0.45f;   // Emitters vs Curves (right column)
 
+    // Toolbar
+    void RenderToolbar();
+    void RenderFileOperationButtons();
+	void RenderRestartSimulationButton();
+	void RenderViewportControlButtons();
+    void RenderLODControlButtons();
+	void RenderLODEditingButtons();
+    void RenderLODStatus();
+
+    // Panels
     void RenderLeftColumn(float width, float height);
     void RenderRightColumn(float width, float height);
     void RenderViewportArea(float width, float height);
@@ -65,7 +75,7 @@ private:
     UTexture* IconPanelDetails = nullptr;
     UTexture* IconPanelCurves = nullptr;
 
-    float IconSize = 24.0f;
+    float IconSize = 32.0f;
 
     // Panels
     SCascadeEmittersPanel* EmittersPanel = nullptr;

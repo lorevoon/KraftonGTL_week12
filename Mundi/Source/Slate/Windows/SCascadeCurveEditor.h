@@ -2,6 +2,7 @@
 #include "Object.h"
 #include "ImGui/imgui.h"
 
+class UTexture;
 class UParticleModule;
 struct FParticleCurve;
 
@@ -67,6 +68,13 @@ public:
     bool HasPendingChanges() const { return bHasPendingChanges; }
     void ClearPendingChanges() { bHasPendingChanges = false; }
 
+    // Check if a curve key is currently selected (for input priority)
+    bool HasSelectedKey() const { return SelectedKeyIndex >= 0; }
+
+    // Check if DEL key was consumed by the curve editor this frame
+    bool WasDeleteKeyConsumed() const { return bDeleteKeyConsumed; }
+    void ClearDeleteKeyConsumed() { bDeleteKeyConsumed = false; }
+
 private:
     // UI Rendering
     void RenderToolbar(float width);
@@ -114,6 +122,9 @@ private:
     // Dirty flag for pending changes
     bool bHasPendingChanges = false;
 
+    // Flag to indicate DEL key was consumed this frame
+    bool bDeleteKeyConsumed = false;
+
     // View state
     float ViewMinTime = 0.0f;
     float ViewMaxTime = 1.0f;
@@ -143,4 +154,19 @@ private:
     bool bSnapToGrid = false;
     float GridTimeStep = 0.1f;
     float GridValueStep = 0.1f;
+
+    // Toolbar icons
+    UTexture* IconZoomToFit = nullptr;
+    UTexture* IconHorizontal = nullptr;
+    UTexture* IconVertical = nullptr;
+    UTexture* IconTangentAuto = nullptr;
+    UTexture* IconTangentUser = nullptr;
+    UTexture* IconTangentBreak = nullptr;
+    UTexture* IconTangentLinear = nullptr;
+    UTexture* IconTangentConstant = nullptr;
+    UTexture* IconShowGrid = nullptr;
+    UTexture* IconSnapToGrid = nullptr;
+
+    // Helper to load toolbar icons
+    void LoadToolbarIcons();
 };

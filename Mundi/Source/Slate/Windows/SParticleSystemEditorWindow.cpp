@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SParticleSystemEditorWindow.h"
 #include "SlateManager.h"
 #include "Source/Runtime/Engine/Viewer/ParticleSystemEditorBootstrap.h"
@@ -9,6 +9,7 @@
 #include "Source/Runtime/Engine/Particles/ParticleModule.h"
 #include "Source/Runtime/Engine/Particles/ParticleSystem.h"
 #include "Source/Runtime/Engine/Particles/ParticleEmitter.h"
+#include "Source/Runtime/Engine/Particles/ParticleEmitterInstance.h"
 #include "Source/Runtime/Core/Object/Property.h"
 #include "Source/Runtime/Core/Misc/JsonSerializer.h"
 #include "FViewportClient.h"
@@ -21,11 +22,30 @@
 #include "Source/Runtime/Engine/Viewer/EditorAssetPreviewContext.h"
 #include "Source/Runtime/Core/Misc/PathUtils.h"
 
+// Helper: preview 컴포넌트에서 현재 LOD 인덱스를 추출
+static int32 GetCurrentPreviewLOD(UParticleSystemComponent* PreviewComp)
+{
+    if (!PreviewComp)
+        return 0;
+
+    for (FParticleEmitterInstance* Instance : PreviewComp->EmitterInstances)
+    {
+        if (Instance && Instance->CurrentLODLevel)
+        {
+            return FMath::Max(Instance->CurrentLODLevel->Level, 0);
+        }
+    }
+    return 0;
+}
+
 SParticleSystemEditorWindow::SParticleSystemEditorWindow()
 {
     CenterRect = FRect(0, 0, 0, 0);
     EmittersPanel = new SCascadeEmittersPanel();
     CurveEditor = new SCascadeCurveEditor();
+
+    // Set curve editor reference for input coordination
+    EmittersPanel->SetCurveEditor(CurveEditor);
 }
 
 SParticleSystemEditorWindow::~SParticleSystemEditorWindow()
@@ -75,190 +95,7 @@ void SParticleSystemEditorWindow::OnRender()
         bIsWindowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
         bIsWindowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
-        // Top toolbar area specific to the particle editor
-        ImGui::BeginChild("Cascade_Toolbar", ImVec2(0, 36.0f), false, ImGuiWindowFlags_NoScrollbar);
-        LoadToolbarIcons();
-
-        const ImVec2 IconSizeVec(IconSize, IconSize);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 4));
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 0));
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.7f));
-
-        // File operations - use deferred command pattern
-        ImGui::SameLine();
-        if (IconNew && IconNew->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_NewBtn", (void*)IconNew->GetShaderResourceView(), IconSizeVec))
-            {
-                PendingCommand = EParticleEditorCommand::New;
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("New Particle System");
-        }
-        ImGui::SameLine();
-        if (IconLoad && IconLoad->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_LoadBtn", (void*)IconLoad->GetShaderResourceView(), IconSizeVec))
-            {
-                PendingCommand = EParticleEditorCommand::Load;
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Open Particle System");
-        }
-        ImGui::SameLine();
-        if (IconSave && IconSave->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_SaveBtn", (void*)IconSave->GetShaderResourceView(), IconSizeVec))
-            {
-                PendingCommand = EParticleEditorCommand::Save;
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Save Particle System");
-        }
-
-        // Separator
-        ImGui::SameLine();
-        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-        ImGui::SameLine();
-
-        // Restart simulation
-        if (IconRestart && IconRestart->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_RestartBtn", (void*)IconRestart->GetShaderResourceView(), IconSizeVec))
-            {
-                UParticleSystemComponent* PreviewComp = GetPreviewComponent();
-                if (PreviewComp)
-                {
-                    PreviewComp->Restart();
-                }
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restart Simulation");
-        }
-
-        // Separator
-        ImGui::SameLine();
-        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-        ImGui::SameLine();
-
-        // Viewport display options
-        if (IconBackgroundColor && IconBackgroundColor->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_BgColorBtn", (void*)IconBackgroundColor->GetShaderResourceView(), IconSizeVec))
-            {
-                ImGui::OpenPopup("BackgroundColorPicker");
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Background Color");
-
-            // Color picker popup
-            if (ImGui::BeginPopup("BackgroundColorPicker"))
-            {
-                ImGui::TextUnformatted("Background Color");
-                ImGui::Separator();
-
-                if (ActiveState)
-                {
-                    float color[4] = {
-                        ActiveState->BackgroundColor.R,
-                        ActiveState->BackgroundColor.G,
-                        ActiveState->BackgroundColor.B,
-                        ActiveState->BackgroundColor.A
-                    };
-
-                    if (ImGui::ColorPicker4("##BgColorPicker", color, ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview))
-                    {
-                        ActiveState->BackgroundColor.R = color[0];
-                        ActiveState->BackgroundColor.G = color[1];
-                        ActiveState->BackgroundColor.B = color[2];
-                        ActiveState->BackgroundColor.A = color[3];
-                    }
-                }
-
-                ImGui::EndPopup();
-            }
-        }
-        ImGui::SameLine();
-        if (IconBounds && IconBounds->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_BoundsBtn", (void*)IconBounds->GetShaderResourceView(), IconSizeVec)) { }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Bounds");
-        }
-        ImGui::SameLine();
-        if (IconOriginAxis && IconOriginAxis->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_OriginBtn", (void*)IconOriginAxis->GetShaderResourceView(), IconSizeVec))
-            {
-                // Toggle axis visibility
-                if (ActiveState && ActiveState->World)
-                {
-                    ActiveState->World->GetRenderSettings().ToggleShowFlag(EEngineShowFlags::SF_Axis);
-                }
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Origin Axis");
-        }
-        // ImGui::SameLine();
-        // if (IconParticle && IconParticle->GetShaderResourceView())
-        // {
-        //     if (ImGui::ImageButton("##Cascade_ParticleBtn", (void*)IconParticle->GetShaderResourceView(), IconSizeVec)) { }
-        //     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Particles");
-        // }
-
-        // Separator
-        ImGui::SameLine();
-        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-        ImGui::SameLine();
-
-        // LOD controls
-        if (IconLODFirst && IconLODFirst->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_LODFirstBtn", (void*)IconLODFirst->GetShaderResourceView(), IconSizeVec)) { }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to First LOD");
-        }
-        ImGui::SameLine();
-        if (IconLODPrev && IconLODPrev->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_LODPrevBtn", (void*)IconLODPrev->GetShaderResourceView(), IconSizeVec)) { }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Previous LOD");
-        }
-        ImGui::SameLine();
-        if (IconLODNext && IconLODNext->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_LODNextBtn", (void*)IconLODNext->GetShaderResourceView(), IconSizeVec)) { }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Next LOD");
-        }
-        ImGui::SameLine();
-        if (IconLODLast && IconLODLast->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_LODLastBtn", (void*)IconLODLast->GetShaderResourceView(), IconSizeVec)) { }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to Last LOD");
-        }
-
-        // Separator
-        ImGui::SameLine();
-        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-        ImGui::SameLine();
-
-        // LOD editing
-        if (IconLODInsertBefore && IconLODInsertBefore->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_LODInsertBeforeBtn", (void*)IconLODInsertBefore->GetShaderResourceView(), IconSizeVec)) { }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD Before");
-        }
-        ImGui::SameLine();
-        if (IconLODInsertAfter && IconLODInsertAfter->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_LODInsertAfterBtn", (void*)IconLODInsertAfter->GetShaderResourceView(), IconSizeVec)) { }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD After");
-        }
-        ImGui::SameLine();
-        if (IconLODDelete && IconLODDelete->GetShaderResourceView())
-        {
-            if (ImGui::ImageButton("##Cascade_LODDeleteBtn", (void*)IconLODDelete->GetShaderResourceView(), IconSizeVec)) { }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delete LOD");
-        }
-
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar(3);
-        ImGui::EndChild();
+        RenderToolbar();
 
         // Early out if just closed
         if (!bIsOpen)
@@ -338,6 +175,428 @@ void SParticleSystemEditorWindow::OnRender()
     }
 
     bRequestFocus = false;
+}
+
+void SParticleSystemEditorWindow::RenderToolbar()
+{
+    // Top toolbar area specific to the particle editor
+    ImGui::BeginChild("Cascade_Toolbar", ImVec2(0, 44.0f), false, ImGuiWindowFlags_NoScrollbar);
+    LoadToolbarIcons();
+
+    const ImVec2 IconSizeVec(IconSize, IconSize);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 4));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 0));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.7f));
+
+    // File operations - use deferred command pattern
+    ImGui::SameLine();
+	RenderFileOperationButtons();
+
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+    // Restart simulation
+	RenderRestartSimulationButton();
+
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+    // Viewport display options
+    RenderViewportControlButtons();
+
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+    // LOD controls
+	RenderLODControlButtons();
+
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+    // LOD editing
+	RenderLODEditingButtons();
+
+    // Separator
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+
+	RenderLODStatus();
+
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(3);
+    ImGui::EndChild();
+}
+
+void SParticleSystemEditorWindow::RenderFileOperationButtons()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
+
+    if (IconNew && IconNew->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_NewBtn", (void*)IconNew->GetShaderResourceView(), IconSizeVec))
+        {
+            PendingCommand = EParticleEditorCommand::New;
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("New Particle System");
+    }
+    ImGui::SameLine();
+    if (IconLoad && IconLoad->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_LoadBtn", (void*)IconLoad->GetShaderResourceView(), IconSizeVec))
+        {
+            PendingCommand = EParticleEditorCommand::Load;
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Open Particle System");
+    }
+    ImGui::SameLine();
+    if (IconSave && IconSave->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_SaveBtn", (void*)IconSave->GetShaderResourceView(), IconSizeVec))
+        {
+            PendingCommand = EParticleEditorCommand::Save;
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Save Particle System");
+    }
+}
+
+void SParticleSystemEditorWindow::RenderRestartSimulationButton()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
+
+    if (IconRestart && IconRestart->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_RestartBtn", (void*)IconRestart->GetShaderResourceView(), IconSizeVec))
+        {
+            UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+            if (PreviewComp)
+            {
+                PreviewComp->Restart();
+            }
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restart Simulation");
+    }
+}
+
+void SParticleSystemEditorWindow::RenderViewportControlButtons()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
+    
+    if (IconBackgroundColor && IconBackgroundColor->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_BgColorBtn", (void*)IconBackgroundColor->GetShaderResourceView(), IconSizeVec))
+        {
+            ImGui::OpenPopup("BackgroundColorPicker");
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Background Color");
+
+        // Color picker popup
+        if (ImGui::BeginPopup("BackgroundColorPicker"))
+        {
+            ImGui::TextUnformatted("Background Color");
+            ImGui::Separator();
+
+            if (ActiveState)
+            {
+                float color[4] = {
+                    ActiveState->BackgroundColor.R,
+                    ActiveState->BackgroundColor.G,
+                    ActiveState->BackgroundColor.B,
+                    ActiveState->BackgroundColor.A
+                };
+
+                if (ImGui::ColorPicker4("##BgColorPicker", color, ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview))
+                {
+                    ActiveState->BackgroundColor.R = color[0];
+                    ActiveState->BackgroundColor.G = color[1];
+                    ActiveState->BackgroundColor.B = color[2];
+                    ActiveState->BackgroundColor.A = color[3];
+                }
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+    ImGui::SameLine();
+    if (IconBounds && IconBounds->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_BoundsBtn", (void*)IconBounds->GetShaderResourceView(), IconSizeVec)) {}
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Bounds");
+    }
+    ImGui::SameLine();
+    if (IconOriginAxis && IconOriginAxis->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_OriginBtn", (void*)IconOriginAxis->GetShaderResourceView(), IconSizeVec))
+        {
+            // Toggle axis visibility
+            if (ActiveState && ActiveState->World)
+            {
+                ActiveState->World->GetRenderSettings().ToggleShowFlag(EEngineShowFlags::SF_Axis);
+            }
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Origin Axis");
+    }
+    // ImGui::SameLine();
+    // if (IconParticle && IconParticle->GetShaderResourceView())
+    // {
+    //     if (ImGui::ImageButton("##Cascade_ParticleBtn", (void*)IconParticle->GetShaderResourceView(), IconSizeVec)) { }
+    //     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show Particles");
+    // }
+}
+
+void SParticleSystemEditorWindow::RenderLODControlButtons()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
+
+    UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+    UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+
+    int32 LODCount = 1;
+    if (EditingSystem)
+        LODCount = FMath::Max(EditingSystem->GetLODLevelCount(), 1);
+    else if (PreviewComp && PreviewComp->Template)
+        LODCount = FMath::Max(PreviewComp->Template->GetLODLevelCount(), 1);
+
+    int32 CurrentLOD = GetCurrentPreviewLOD(PreviewComp);
+    CurrentLOD = FMath::Clamp(CurrentLOD, 0, LODCount - 1);
+
+    auto ApplyLODChange = [&](int32 TargetLOD)
+    {
+        TargetLOD = FMath::Clamp(TargetLOD, 0, LODCount - 1);
+        if (TargetLOD == CurrentLOD)
+            return;
+
+        if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
+        {
+            PreviewComp->SetLODIndex(TargetLOD);
+        }
+        if (EmittersPanel)
+        {
+            EmittersPanel->SetActiveLODIndex(TargetLOD);
+            EmittersPanel->SetSelectedModule(nullptr);
+        }
+        CurrentLOD = TargetLOD;
+    };
+
+    if (IconLODFirst && IconLODFirst->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_LODFirstBtn", (void*)IconLODFirst->GetShaderResourceView(), IconSizeVec))
+        {
+            ApplyLODChange(0);
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to First LOD");
+    }
+    ImGui::SameLine();
+    if (IconLODPrev && IconLODPrev->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_LODPrevBtn", (void*)IconLODPrev->GetShaderResourceView(), IconSizeVec))
+        {
+            ApplyLODChange(CurrentLOD - 1);
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Previous LOD");
+    }
+    ImGui::SameLine();
+    if (IconLODNext && IconLODNext->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_LODNextBtn", (void*)IconLODNext->GetShaderResourceView(), IconSizeVec))
+        {
+            ApplyLODChange(CurrentLOD + 1);
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Next LOD");
+    }
+    ImGui::SameLine();
+    if (IconLODLast && IconLODLast->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_LODLastBtn", (void*)IconLODLast->GetShaderResourceView(), IconSizeVec))
+        {
+            ApplyLODChange(LODCount - 1);
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to Last LOD");
+    }
+}
+
+void SParticleSystemEditorWindow::RenderLODEditingButtons()
+{
+    const ImVec2 IconSizeVec(IconSize, IconSize);
+
+    if (IconLODInsertBefore && IconLODInsertBefore->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_LODInsertBeforeBtn", (void*)IconLODInsertBefore->GetShaderResourceView(), IconSizeVec))
+        {
+            UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+            UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+            if (EditingSystem && EditingSystem->GetLODLevelCount() > 1)
+            {
+                const int32 CurrentLOD = GetCurrentPreviewLOD(PreviewComp);
+                if (CurrentLOD > 0 && CurrentLOD < EditingSystem->GetLODLevelCount())
+                {
+                    const float PrevDist = EditingSystem->LODDistances[CurrentLOD - 1];
+                    const float CurrDist = EditingSystem->LODDistances[CurrentLOD];
+                    const float NewDist = (PrevDist + CurrDist) * 0.5f;
+                    if (EditingSystem->InsertLODDistance(CurrentLOD, NewDist))
+                    {
+                        EditingSystem->bIsDirty = true;
+                        if (EmittersPanel)
+                        {
+                            EmittersPanel->SetActiveLODIndex(CurrentLOD);
+                            EmittersPanel->SetSelectedModule(nullptr);
+                        }
+                        if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
+                        {
+                            PreviewComp->SetLODIndex(CurrentLOD); // 유지/재적용
+                        }
+                    }
+                }
+            }
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD Before");
+    }
+    ImGui::SameLine();
+    if (IconLODInsertAfter && IconLODInsertAfter->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_LODInsertAfterBtn", (void*)IconLODInsertAfter->GetShaderResourceView(), IconSizeVec))
+        {
+            UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+            UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+            if (EditingSystem)
+            {
+                const int32 LODCount = EditingSystem->GetLODLevelCount();
+                const int32 CurrentLOD = GetCurrentPreviewLOD(PreviewComp);
+                if (CurrentLOD < LODCount)
+                {
+                    const float CurrDist = EditingSystem->LODDistances[CurrentLOD];
+                    float NewDist = CurrDist;
+                    if (CurrentLOD + 1 < LODCount)
+                    {
+                        const float NextDist = EditingSystem->LODDistances[CurrentLOD + 1];
+                        NewDist = (CurrDist + NextDist) * 0.5f;
+                    }
+                    else
+                    {
+                        const float PrevDist = (CurrentLOD > 0) ? EditingSystem->LODDistances[CurrentLOD - 1] : CurrDist;
+                        NewDist = CurrDist + (CurrDist - PrevDist);
+                        if (NewDist <= CurrDist)
+                        {
+                            NewDist = CurrDist + 100.0f; // 안전한 증가분
+                        }
+                    }
+
+                    if (EditingSystem->InsertLODDistance(CurrentLOD + 1, NewDist))
+                    {
+                        EditingSystem->bIsDirty = true;
+                        if (EmittersPanel)
+                        {
+                            EmittersPanel->SetActiveLODIndex(CurrentLOD);
+                            EmittersPanel->SetSelectedModule(nullptr);
+                        }
+                        if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
+                        {
+                            PreviewComp->SetLODIndex(CurrentLOD); // 기존 LOD 유지
+                        }
+                    }
+                }
+            }
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert LOD After");
+    }
+    ImGui::SameLine();
+    if (IconLODDelete && IconLODDelete->GetShaderResourceView())
+    {
+        if (ImGui::ImageButton("##Cascade_LODDeleteBtn", (void*)IconLODDelete->GetShaderResourceView(), IconSizeVec))
+        {
+            UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+            UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+            if (EditingSystem)
+            {
+                const int32 LODCount = EditingSystem->GetLODLevelCount();
+                const int32 CurrentLOD = GetCurrentPreviewLOD(PreviewComp);
+
+                // LOD0는 제거 불가, 최소 2개 이상일 때만 삭제
+                if (LODCount > 1 && CurrentLOD > 0 && CurrentLOD < LODCount)
+                {
+                    if (EditingSystem->RemoveLODDistance(CurrentLOD))
+                    {
+                        EditingSystem->bIsDirty = true;
+
+                        // 프리뷰 LOD를 유효 범위로 재설정
+                        if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
+                        {
+                            const int32 NewLODCount = EditingSystem->GetLODLevelCount();
+                            const int32 NewLODIndex = FMath::Clamp(CurrentLOD - 1, 0, NewLODCount - 1);
+                            PreviewComp->SetLODIndex(NewLODIndex);
+                            if (EmittersPanel)
+                            {
+                                EmittersPanel->SetActiveLODIndex(NewLODIndex);
+                                EmittersPanel->SetSelectedModule(nullptr);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Delete LOD");
+    }
+}
+
+void SParticleSystemEditorWindow::RenderLODStatus()
+{
+    int32 CurrentLOD = -1;
+    int32 MaxLOD = -1;
+
+    // Prefer the editing system for the maximum LOD count
+    UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+    if (EditingSystem)
+    {
+        MaxLOD = FMath::Max(EditingSystem->GetLODLevelCount() - 1, 0);
+    }
+
+    // Read current LOD from the preview component's first valid emitter instance
+    if (UParticleSystemComponent* PreviewComp = GetPreviewComponent())
+    {
+        for (FParticleEmitterInstance* Instance : PreviewComp->EmitterInstances)
+        {
+            if (Instance && Instance->CurrentLODLevel)
+            {
+                CurrentLOD = Instance->CurrentLODLevel->Level;
+                break;
+            }
+        }
+
+        // Fallback for max LOD using the preview template
+        if (MaxLOD < 0 && PreviewComp->Template)
+        {
+            MaxLOD = FMath::Max(PreviewComp->Template->GetLODLevelCount() - 1, 0);
+        }
+    }
+
+    // Graceful defaults if data is missing
+    if (CurrentLOD < 0)
+        CurrentLOD = 0;
+    if (MaxLOD < 0)
+        MaxLOD = 0;
+
+    // Right-align inside the remaining toolbar space
+    char LODLabel[64];
+    sprintf_s(LODLabel, sizeof(LODLabel), "Current LOD: %d (Max: %d)", CurrentLOD, MaxLOD);
+
+    ImVec2 textSize = ImGui::CalcTextSize(LODLabel);
+    float availX = ImGui::GetContentRegionAvail().x;
+    ImVec2 cursor = ImGui::GetCursorPos();
+    float centeredY = (ImGui::GetWindowSize().y - textSize.y) * 0.5f;
+    ImGui::SetCursorPos(ImVec2(cursor.x + FMath::Max(availX - textSize.x, 0.0f), centeredY));
+
+    ImGui::TextUnformatted(LODLabel);
 }
 
 void SParticleSystemEditorWindow::RenderLeftColumn(float width, float height)
@@ -746,6 +1005,9 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
     if (!PreviewComp)
         return;
 
+    // Editor preview는 거리 기반 자동 전환 대신 수동 LOD 지정 모드로 강제
+    PreviewComp->LODMethod = EParticleSystemLODMethod::DirectSet;
+
     // If the emitters panel has no system, adopt the preview component's template
     if (EmittersPanel)
     {
@@ -765,6 +1027,8 @@ void SParticleSystemEditorWindow::PreRenderViewportUpdate()
         if (PreviewComp->Template != EditingSystem)
         {
             PreviewComp->SetTemplate(EditingSystem);
+            // Template 적용 시 컴포넌트의 LODMethod가 템플릿 값으로 덮어쓰이므로 다시 DirectSet으로 강제
+            PreviewComp->LODMethod = EParticleSystemLODMethod::DirectSet;
             PreviewComp->Restart();
             // Clear dirty state once bound
             EditingSystem->bIsDirty = false;
@@ -798,7 +1062,7 @@ void SParticleSystemEditorWindow::LoadToolbarIcons()
     if (!IconRestart)
         IconRestart = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_Restart.png");
     if (!IconBackgroundColor)
-        IconBackgroundColor = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_BackgroundColor.png");
+        IconBackgroundColor = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_Color_40x.png");
     if (!IconBounds)
         IconBounds = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_Bounds.png");
     if (!IconOriginAxis)
@@ -806,25 +1070,68 @@ void SParticleSystemEditorWindow::LoadToolbarIcons()
     if (!IconParticle)
         IconParticle = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_Particle.png");
     if (!IconLODFirst)
-        IconLODFirst = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODFirst.png");
+        IconLODFirst = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_LowestLOD_512x.png");
     if (!IconLODPrev)
-        IconLODPrev = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODPrev.png");
+        IconLODPrev = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_LowerLOD_512x.png");
     if (!IconLODNext)
-        IconLODNext = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODNext.png");
+        IconLODNext = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_HigherLOD_512x.png");
     if (!IconLODLast)
-        IconLODLast = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODLast.png");
+        IconLODLast = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_HighestLOD_512x.png");
     if (!IconLODInsertBefore)
-        IconLODInsertBefore = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODInsertBefore.png");
+        IconLODInsertBefore = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_AddLOD2_512x.png");
     if (!IconLODInsertAfter)
-        IconLODInsertAfter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODInsertAfter.png");
+        IconLODInsertAfter = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_AddLOD1_512x.png");
     if (!IconLODDelete)
-        IconLODDelete = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Toolbar_LODDelete.png");
+        IconLODDelete = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/icon_Cascade_DeleteLOD_512x.png");
 
     // Panel icons
     if (!IconPanelDetails)
         IconPanelDetails = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_Details.png");
     if (!IconPanelCurves)
         IconPanelCurves = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Particle Editor/Panel_CurveEditor.png");
+}
+
+// Helper: Render a minimal object header (Module/Emitter/System name)
+static void RenderDetailsObjectHeader(const char* label, ImU32 accentColor)
+{
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    float availW = ImGui::GetContentRegionAvail().x;
+
+    // Simple underline style
+    ImVec2 textSize = ImGui::CalcTextSize(label);
+
+    // Text
+    dl->AddText(pos, IM_COL32(220, 220, 220, 255), label);
+
+    // Thin accent underline
+    float lineY = pos.y + textSize.y + 3.0f;
+    dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + textSize.x + 8.0f, lineY), accentColor, 2.0f);
+
+    // Faded line extending to the right
+    dl->AddLine(ImVec2(pos.x + textSize.x + 8.0f, lineY), ImVec2(pos.x + availW, lineY), IM_COL32(60, 60, 60, 255), 1.0f);
+
+    ImGui::Dummy(ImVec2(availW, textSize.y + 10.0f));
+}
+
+// Helper: Render a subtle category header (just text with a dot)
+static void RenderDetailsCategoryHeader(const char* categoryName)
+{
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+
+    // Small dot before category name
+    float dotRadius = 2.5f;
+    ImVec2 dotCenter = ImVec2(pos.x + dotRadius, pos.y + ImGui::GetTextLineHeight() * 0.5f);
+    dl->AddCircleFilled(dotCenter, dotRadius, IM_COL32(120, 120, 140, 255));
+
+    // Category text (slightly dimmed)
+    ImGui::SetCursorScreenPos(ImVec2(pos.x + dotRadius * 2 + 6.0f, pos.y));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.65f, 1.0f));
+    ImGui::TextUnformatted(categoryName);
+    ImGui::PopStyleColor();
+
+    ImGui::Dummy(ImVec2(0, 2.0f));
 }
 
 void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
@@ -838,19 +1145,31 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         ImDrawList* dl = ImGui::GetWindowDrawList();
         ImVec2 ts = ImGui::CalcTextSize("Details");
         ImVec2 chipMin = pos;
-        float chipW = ts.x + padX * 2.0f; const float iconSize = 20.0f; bool hasIcon = (IconPanelDetails && IconPanelDetails->GetShaderResourceView()); if (hasIcon) chipW += iconSize + 6.0f; ImVec2 chipMax = ImVec2(pos.x + chipW, pos.y + ts.y + padY * 2.0f);
+        float chipW = ts.x + padX * 2.0f;
+        const float iconSize = 20.0f;
+        bool hasIcon = (IconPanelDetails && IconPanelDetails->GetShaderResourceView());
+        if (hasIcon) chipW += iconSize + 6.0f;
+        ImVec2 chipMax = ImVec2(pos.x + chipW, pos.y + ts.y + padY * 2.0f);
         ImU32 chipBg = ImGui::GetColorU32(ImVec4(0.18f, 0.19f, 0.23f, 1.0f));
         ImU32 chipBorder = ImGui::GetColorU32(ImVec4(0.36f, 0.40f, 0.48f, 1.0f));
         ImU32 lineCol = ImGui::GetColorU32(ImVec4(0.18f, 0.18f, 0.20f, 1.0f));
         dl->AddRectFilled(chipMin, chipMax, chipBg, 6.0f);
         dl->AddRect(chipMin, chipMax, chipBorder, 6.0f, 0, 1.0f);
-        ImVec2 cur = ImVec2(pos.x + padX, pos.y + padY); ImGui::SetCursorScreenPos(cur); if (hasIcon) { ImGui::Image((void*)IconPanelDetails->GetShaderResourceView(), ImVec2(iconSize, iconSize)); ImGui::SameLine(); cur.x += iconSize + 6.0f; } ImGui::SetCursorScreenPos(cur);
+        ImVec2 cur = ImVec2(pos.x + padX, pos.y + padY);
+        ImGui::SetCursorScreenPos(cur);
+        if (hasIcon)
+        {
+            ImGui::Image((void*)IconPanelDetails->GetShaderResourceView(), ImVec2(iconSize, iconSize));
+            ImGui::SameLine();
+            cur.x += iconSize + 6.0f;
+        }
+        ImGui::SetCursorScreenPos(cur);
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.90f, 1.00f, 1.0f));
         ImGui::TextUnformatted("Details");
         ImGui::PopStyleColor();
         float lineY = chipMax.y + 5.0f;
         dl->AddLine(ImVec2(pos.x, lineY), ImVec2(pos.x + fullW, lineY), lineCol, 1.0f);
-        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 6.0f));
+        ImGui::SetCursorScreenPos(ImVec2(pos.x, lineY + 8.0f));
     }
 
     if (!EmittersPanel)
@@ -879,11 +1198,10 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
                     return;
                 }
 
-                // Display emitter name header
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.7f, 0.5f, 1.0f)); // Orange for emitter
-                ImGui::Text("Emitter: %s", SelectedEmitter->EmitterName.c_str());
-                ImGui::PopStyleColor();
-                ImGui::Separator();
+                // Display emitter name header with orange accent
+                char headerLabel[256];
+                sprintf_s(headerLabel, "Emitter: %s", SelectedEmitter->EmitterName.c_str());
+                RenderDetailsObjectHeader(headerLabel, IM_COL32(230, 160, 100, 255));
 
                 // Get all properties
                 const TArray<FProperty>& Properties = EmitterClass->GetAllProperties();
@@ -904,25 +1222,22 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
                 }
 
                 // Render properties by category
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 5));
                 for (auto& Pair : CategorizedProperties)
                 {
                     const FString& CategoryName = Pair.first;
                     const TArray<const FProperty*>& CategoryProps = Pair.second;
 
-                    // Category header
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
-                    ImGui::TextUnformatted(CategoryName.c_str());
-                    ImGui::PopStyleColor();
-                    ImGui::Separator();
-
-                    // Render each property
+                    RenderDetailsCategoryHeader(CategoryName.c_str());
+                    ImGui::Indent(6.0f);
                     for (const FProperty* Prop : CategoryProps)
                     {
                         RenderEmitterProperty(SelectedEmitter, Prop);
                     }
-
-                    ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+                    ImGui::Unindent(6.0f);
+                    ImGui::Dummy(ImVec2(0, 6));
                 }
+                ImGui::PopStyleVar();
                 return;
             }
         }
@@ -930,7 +1245,10 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         // No emitter selected either, show UParticleSystem properties
         if (!EditingSystem)
         {
-            ImGui::TextUnformatted("Select a module to view properties");
+            ImGui::Dummy(ImVec2(0, 20));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+            ImGui::TextWrapped("Select a module or emitter to view its properties.");
+            ImGui::PopStyleColor();
             return;
         }
 
@@ -942,11 +1260,53 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
             return;
         }
 
-        // Display system name header
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.9f, 0.9f, 1.0f)); // Cyan for system
-        ImGui::TextUnformatted("Particle System");
-        ImGui::PopStyleColor();
-        ImGui::Separator();
+        // Display system name header with cyan accent
+        RenderDetailsObjectHeader("Particle System", IM_COL32(100, 200, 220, 255));
+
+        // LOD distances (custom UI for array editing)
+        {
+            ImGui::TextUnformatted("LOD Distances");
+            ImGui::Separator();
+
+            // Keep LOD0 fixed at 0
+            if (!EditingSystem->LODDistances.IsEmpty() && EditingSystem->LODDistances[0] != 0.0f)
+            {
+                EditingSystem->LODDistances[0] = 0.0f;
+            }
+
+            const int32 LODCount = EditingSystem->GetLODLevelCount();
+            for (int32 i = 0; i < LODCount; ++i)
+            {
+                ImGui::PushID(i);
+                if (i == 0)
+                {
+                    ImGui::Text("LOD %d: 0.0 (fixed)", i);
+                }
+                else
+                {
+                    float Value = EditingSystem->LODDistances[i];
+                    if (ImGui::InputFloat("##LODDistance", &Value, 0.0f, 0.0f, "%.3f"))
+                    {
+                        const float OldValue = EditingSystem->LODDistances[i];
+                        // Enforce non-negative and monotonic constraints via SetLODDistance
+                        if (!EditingSystem->SetLODDistance(i, FMath::Max(Value, 0.0f)))
+                        {
+                            // Revert if validation fails
+                            EditingSystem->LODDistances[i] = OldValue;
+                        }
+                        else
+                        {
+                            EditingSystem->bIsDirty = true;
+                        }
+                    }
+                    ImGui::SameLine();
+                    ImGui::Text("LOD %d", i);
+                }
+                ImGui::PopID();
+            }
+
+            ImGui::Dummy(ImVec2(0, 8)); // spacing
+        }
 
         // Get all properties
         const TArray<FProperty>& Properties = SystemClass->GetAllProperties();
@@ -957,6 +1317,9 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         {
             if (Prop.bIsEditAnywhere)
             {
+                // LODDistances는 커스텀 UI로 처리했으므로 자동 렌더링에서 제외
+                if (Prop.Name == FString("LODDistances"))
+                    continue;
                 FString Category = Prop.Category ? FString(Prop.Category) : FString("General");
                 if (!CategorizedProperties.Contains(Category))
                 {
@@ -967,25 +1330,22 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         }
 
         // Render properties by category
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 5));
         for (auto& Pair : CategorizedProperties)
         {
             const FString& CategoryName = Pair.first;
             const TArray<const FProperty*>& CategoryProps = Pair.second;
 
-            // Category header
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
-            ImGui::TextUnformatted(CategoryName.c_str());
-            ImGui::PopStyleColor();
-            ImGui::Separator();
-
-            // Render each property
+            RenderDetailsCategoryHeader(CategoryName.c_str());
+            ImGui::Indent(6.0f);
             for (const FProperty* Prop : CategoryProps)
             {
                 RenderSystemProperty(EditingSystem, Prop);
             }
-
-            ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+            ImGui::Unindent(6.0f);
+            ImGui::Dummy(ImVec2(0, 6));
         }
+        ImGui::PopStyleVar();
         return;
     }
 
@@ -997,11 +1357,8 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
         return;
     }
 
-    // Display module name header
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.9f, 0.5f, 1.0f));
-    ImGui::TextUnformatted(SelectedModule->ModuleName.c_str());
-    ImGui::PopStyleColor();
-    ImGui::Separator();
+    // Display module name header with yellow accent
+    RenderDetailsObjectHeader(SelectedModule->ModuleName.c_str(), IM_COL32(220, 200, 80, 255));
 
     // Get all properties including inherited ones
     const TArray<FProperty>& Properties = ModuleClass->GetAllProperties();
@@ -1022,25 +1379,22 @@ void SParticleSystemEditorWindow::RenderDetailsPanel(float width, float height)
     }
 
     // Render properties by category
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 5));
     for (auto& Pair : CategorizedProperties)
     {
         const FString& CategoryName = Pair.first;
         const TArray<const FProperty*>& CategoryProps = Pair.second;
 
-        // Category header
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.9f, 1.0f));
-        ImGui::TextUnformatted(CategoryName.c_str());
-        ImGui::PopStyleColor();
-        ImGui::Separator();
-
-        // Render each property
+        RenderDetailsCategoryHeader(CategoryName.c_str());
+        ImGui::Indent(6.0f);
         for (const FProperty* Prop : CategoryProps)
         {
             RenderProperty(SelectedModule, Prop);
         }
-
-        ImGui::Dummy(ImVec2(0, 8)); // Spacing between categories
+        ImGui::Unindent(6.0f);
+        ImGui::Dummy(ImVec2(0, 6));
     }
+    ImGui::PopStyleVar();
 }
 
 void SParticleSystemEditorWindow::RenderProperty(UParticleModule* Module, const FProperty* Prop)
