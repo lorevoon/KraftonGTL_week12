@@ -46,67 +46,36 @@ namespace ParticleCollision
 		Ray.Direction = Direction;
 
 		// WorldPartitionManager를 통한 레이 쿼리
+		// BVH에서 히트한 Actor와 Component를 직접 반환받음
 		AActor* HitActor = nullptr;
+		UPrimitiveComponent* HitComponent = nullptr;
 		float HitT = 0.0f;
 
-		Partition->RayQueryClosest(Ray, HitActor, HitT);
+		Partition->RayQueryClosest(Ray, HitActor, HitComponent, HitT);
 
 		// 유효한 히트인지 확인 (범위 내)
 		if (HitActor && HitT > 0.0f && HitT <= MaxDistance)
 		{
 			OutHit.bHit = true;
 			OutHit.HitActor = HitActor;
+			OutHit.HitComponent = HitComponent;
 			OutHit.Distance = HitT;
 			OutHit.ImpactPoint = Start + Direction * HitT;
 
-			// 히트 컴포넌트 및 노말 계산
-			// 모든 SceneComponent를 순회하여 실제 충돌한 컴포넌트 찾기
-			UPrimitiveComponent* ClosestHitComponent = nullptr;
-			float ClosestDistance = std::numeric_limits<float>::max();
-
-			for (USceneComponent* SceneComp : HitActor->GetSceneComponents())
+			// HitComponent가 있으면 해당 컴포넌트의 AABB로 노말 계산
+			if (HitComponent)
 			{
-				if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SceneComp))
-				{
-					// 컴포넌트의 AABB와 레이 충돌 검사
-					FAABB CompAABB = PrimComp->GetWorldAABB();
-
-					// AABB-Ray 교차 검사
-					float tMin, tMax;
-					if (CompAABB.IntersectsRay(Ray, tMin, tMax))
-					{
-						// 유효 범위 내이고 가장 가까운 컴포넌트 선택
-						if (tMin > 0.0f && tMin <= MaxDistance && tMin < ClosestDistance)
-						{
-							ClosestDistance = tMin;
-							ClosestHitComponent = PrimComp;
-						}
-					}
-				}
-			}
-
-			// 실제 충돌한 컴포넌트로 결과 업데이트
-			if (ClosestHitComponent)
-			{
-				OutHit.HitComponent = ClosestHitComponent;
-				OutHit.Distance = ClosestDistance;
-				OutHit.ImpactPoint = Start + Direction * ClosestDistance;
-
-				// AABB 기반 노말 계산
-				FAABB WorldAABB = ClosestHitComponent->GetWorldAABB();
+				FAABB WorldAABB = HitComponent->GetWorldAABB();
 				OutHit.ImpactNormal = CalculateAABBNormal(WorldAABB, OutHit.ImpactPoint);
 			}
-			else
+			else if (USceneComponent* RootComp = HitActor->GetRootComponent())
 			{
 				// 폴백: RootComponent 사용
-				if (USceneComponent* RootComp = HitActor->GetRootComponent())
+				if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(RootComp))
 				{
-					if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(RootComp))
-					{
-						OutHit.HitComponent = PrimComp;
-						FAABB WorldAABB = PrimComp->GetWorldAABB();
-						OutHit.ImpactNormal = CalculateAABBNormal(WorldAABB, OutHit.ImpactPoint);
-					}
+					OutHit.HitComponent = PrimComp;
+					FAABB WorldAABB = PrimComp->GetWorldAABB();
+					OutHit.ImpactNormal = CalculateAABBNormal(WorldAABB, OutHit.ImpactPoint);
 				}
 			}
 

@@ -169,16 +169,17 @@ void UWorldPartitionManager::Update(float DeltaTime, const uint32 BudgetCount)
 //    }
 //}
 
-void UWorldPartitionManager::RayQueryClosest(FRay InRay, OUT AActor*& OutActor, OUT float& OutBestT)
+void UWorldPartitionManager::RayQueryClosest(FRay InRay, OUT AActor*& OutActor, OUT UPrimitiveComponent*& OutComponent, OUT float& OutBestT)
 {
     OutActor = nullptr;
+    OutComponent = nullptr;
     //if (SceneOctree)
     //{
     //    SceneOctree->QueryRayClosest(InRay, OutActor, OutBestT);
     //}
 	if (BVH)
 	{
-		BVH->QueryRayClosest(InRay, OutActor, OutBestT);
+		BVH->QueryRayClosest(InRay, OutActor, OutComponent, OutBestT);
 	}
 }
 
