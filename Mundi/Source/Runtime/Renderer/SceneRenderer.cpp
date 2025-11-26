@@ -52,6 +52,7 @@
 #include "ParticleSystemComponent.h"
 #include "Modules/ParticleModuleRequired.h"
 #include "SkinnedMeshComponent.h"
+#include "ParticleStatManager.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, FSceneView* InView, URenderer* InOwnerRenderer)
 	: World(InWorld)
@@ -1022,6 +1023,9 @@ void FSceneRenderer::RenderParticlePass()
 		for (auto DynamicData : DynamicDataArray)
 		{
 			UParticleModuleRequired* RequiredModule = DynamicData->Source->CurrentLODLevel->RequiredModule;
+
+			// Draw call 통계 (이미터 단위)
+			FParticleStatManager::GetInstance().AddDrawCall(1);
 
 			// BufferPool 전달 (UResourceManager에서 관리)
 			DynamicData->Render(RHIDevice, View, RequiredModule->Material,

@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
     <FxCompile Include="Shaders\PostProcess\GammaCorrection_PS.hlsl">
@@ -998,6 +998,8 @@
     <ClCompile Include="Generated\UParticleModuleBeamNoise.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\BeamParticleActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleBeamNoise.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Generated\USkinnedMeshComponent.generated.h">
@@ -2097,6 +2099,12 @@
     </ClInclude>
     <ClInclude Include="Generated\UParticleModuleBeamNoise.generated.h">
       <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\BeamParticleActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\ParticleModuleBeamNoise.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\Modules\TypeData\ParticleModuleTypeDataBeam.h" />
+    <ClInclude Include="Source\Runtime\Engine\Particles\ParticleStatManager.h">
+      <Filter>Source\Runtime\Engine\Particles</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

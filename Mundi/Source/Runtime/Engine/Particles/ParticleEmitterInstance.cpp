@@ -9,6 +9,7 @@
 #include "Modules/ParticleModuleRequired.h"
 #include "Modules/ParticleModuleEventGenerator.h"
 #include "ParticleSystemComponent.h"
+#include "ParticleStatManager.h"
 
 FParticleEmitterInstance::FParticleEmitterInstance()
     : EmitterTemplate(nullptr)
@@ -131,27 +132,27 @@ void FParticleEmitterInstance::SpawnParticles(float DeltaTime)
     if (ActiveParticles >= MaxActiveParticles)
     {
         return;
-    }
+	}
 
-    const float SpawnRate = CurrentLODLevel->RequiredModule->SpawnRate;
-    if (SpawnRate <= 0.0f)
-    {
-        return;
-    }
+	const float SpawnRate = CurrentLODLevel->RequiredModule->SpawnRate;
+	if (SpawnRate <= 0.0f)
+	{
+		return;
+	}
 
 	// 이번 프레임에 스폰할 파티클 수 계산
 	const float Desired = SpawnFraction + SpawnRate * DeltaTime; // 이번 프레임에 스폰할 파티클 수 (이전 프레임 소수점 단위 이월받음 + 소수점 포함)
 	int32 SpawnCount = static_cast<int32>(std::floor(Desired)); // 정수 부분만 남겨 실제 스폰할 파티클 수
 	SpawnFraction = Desired - SpawnCount; // 실수 부분은 다음 프레임으로 이월
 
-    // Capacity 넘길 수 없도록 제한
-    const int32 CapacityLeft = MaxActiveParticles - ActiveParticles;
-    SpawnCount = FMath::Min(SpawnCount, CapacityLeft);
+	// Capacity 넘길 수 없도록 제한
+	const int32 CapacityLeft = MaxActiveParticles - ActiveParticles;
+	SpawnCount = FMath::Min(SpawnCount, CapacityLeft);
 
-    if (SpawnCount <= 0)
-    {
-        return;
-    }
+	if (SpawnCount <= 0)
+	{
+		return;
+	}
 
     // Spawn 단계에서 실행할 모듈 얻어오기
     const TArray<UParticleModule*> SpawnModules = CurrentLODLevel->GetSpawnModules();
@@ -178,12 +179,13 @@ void FParticleEmitterInstance::SpawnParticles(float DeltaTime)
             {
                 Module->Spawn(this, NewActiveIndex, EmitterTime, Particle);
             }
-        }
+		}
 
-        Particle->OldLocation = Particle->Location;
-        ++ActiveParticles;
-        ++ParticleCounter;
-    }
+		Particle->OldLocation = Particle->Location;
+		++ActiveParticles;
+		++ParticleCounter;
+	}
+
 }
 
 void FParticleEmitterInstance::RunUpdateModules(float DeltaTime)
