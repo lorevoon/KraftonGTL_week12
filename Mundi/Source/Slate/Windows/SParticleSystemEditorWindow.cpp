@@ -356,27 +356,69 @@ void SParticleSystemEditorWindow::RenderLODControlButtons()
 {
     const ImVec2 IconSizeVec(IconSize, IconSize);
 
+    UParticleSystem* EditingSystem = EmittersPanel ? EmittersPanel->GetEditingSystem() : nullptr;
+    UParticleSystemComponent* PreviewComp = GetPreviewComponent();
+
+    int32 LODCount = 1;
+    if (EditingSystem)
+        LODCount = FMath::Max(EditingSystem->GetLODLevelCount(), 1);
+    else if (PreviewComp && PreviewComp->Template)
+        LODCount = FMath::Max(PreviewComp->Template->GetLODLevelCount(), 1);
+
+    int32 CurrentLOD = GetCurrentPreviewLOD(PreviewComp);
+    CurrentLOD = FMath::Clamp(CurrentLOD, 0, LODCount - 1);
+
+    auto ApplyLODChange = [&](int32 TargetLOD)
+    {
+        TargetLOD = FMath::Clamp(TargetLOD, 0, LODCount - 1);
+        if (TargetLOD == CurrentLOD)
+            return;
+
+        if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
+        {
+            PreviewComp->SetLODIndex(TargetLOD);
+        }
+        if (EmittersPanel)
+        {
+            EmittersPanel->SetActiveLODIndex(TargetLOD);
+            EmittersPanel->SetSelectedModule(nullptr);
+        }
+        CurrentLOD = TargetLOD;
+    };
+
     if (IconLODFirst && IconLODFirst->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODFirstBtn", (void*)IconLODFirst->GetShaderResourceView(), IconSizeVec)) {}
+        if (ImGui::ImageButton("##Cascade_LODFirstBtn", (void*)IconLODFirst->GetShaderResourceView(), IconSizeVec))
+        {
+            ApplyLODChange(0);
+        }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to First LOD");
     }
     ImGui::SameLine();
     if (IconLODPrev && IconLODPrev->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODPrevBtn", (void*)IconLODPrev->GetShaderResourceView(), IconSizeVec)) {}
+        if (ImGui::ImageButton("##Cascade_LODPrevBtn", (void*)IconLODPrev->GetShaderResourceView(), IconSizeVec))
+        {
+            ApplyLODChange(CurrentLOD - 1);
+        }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Previous LOD");
     }
     ImGui::SameLine();
     if (IconLODNext && IconLODNext->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODNextBtn", (void*)IconLODNext->GetShaderResourceView(), IconSizeVec)) {}
+        if (ImGui::ImageButton("##Cascade_LODNextBtn", (void*)IconLODNext->GetShaderResourceView(), IconSizeVec))
+        {
+            ApplyLODChange(CurrentLOD + 1);
+        }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Next LOD");
     }
     ImGui::SameLine();
     if (IconLODLast && IconLODLast->GetShaderResourceView())
     {
-        if (ImGui::ImageButton("##Cascade_LODLastBtn", (void*)IconLODLast->GetShaderResourceView(), IconSizeVec)) {}
+        if (ImGui::ImageButton("##Cascade_LODLastBtn", (void*)IconLODLast->GetShaderResourceView(), IconSizeVec))
+        {
+            ApplyLODChange(LODCount - 1);
+        }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Jump to Last LOD");
     }
 }
@@ -402,6 +444,11 @@ void SParticleSystemEditorWindow::RenderLODEditingButtons()
                     if (EditingSystem->InsertLODDistance(CurrentLOD, NewDist))
                     {
                         EditingSystem->bIsDirty = true;
+                        if (EmittersPanel)
+                        {
+                            EmittersPanel->SetActiveLODIndex(CurrentLOD);
+                            EmittersPanel->SetSelectedModule(nullptr);
+                        }
                         if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
                         {
                             PreviewComp->SetLODIndex(CurrentLOD); // 유지/재적용
@@ -445,6 +492,11 @@ void SParticleSystemEditorWindow::RenderLODEditingButtons()
                     if (EditingSystem->InsertLODDistance(CurrentLOD + 1, NewDist))
                     {
                         EditingSystem->bIsDirty = true;
+                        if (EmittersPanel)
+                        {
+                            EmittersPanel->SetActiveLODIndex(CurrentLOD);
+                            EmittersPanel->SetSelectedModule(nullptr);
+                        }
                         if (PreviewComp && PreviewComp->LODMethod == EParticleSystemLODMethod::DirectSet)
                         {
                             PreviewComp->SetLODIndex(CurrentLOD); // 기존 LOD 유지
@@ -480,6 +532,11 @@ void SParticleSystemEditorWindow::RenderLODEditingButtons()
                             const int32 NewLODCount = EditingSystem->GetLODLevelCount();
                             const int32 NewLODIndex = FMath::Clamp(CurrentLOD - 1, 0, NewLODCount - 1);
                             PreviewComp->SetLODIndex(NewLODIndex);
+                            if (EmittersPanel)
+                            {
+                                EmittersPanel->SetActiveLODIndex(NewLODIndex);
+                                EmittersPanel->SetSelectedModule(nullptr);
+                            }
                         }
                     }
                 }
