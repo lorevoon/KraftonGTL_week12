@@ -14,6 +14,7 @@
 #include "CameraActor.h"
 #include "CameraComponent.h"
 #include "PlatformTime.h"
+#include "ParticleStatManager.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
     : Template(nullptr)
@@ -262,6 +263,12 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 				Instance->SetLODLevel(NewLOD);
             }
             UpdateEmitterInstance(Instance, ScaledDeltaTime);
+
+            // 활성 이미터 집계 (이 프레임에 실제 틱된 인스턴스)
+            FParticleStatManager::GetInstance().AddActiveEmitter(1);
+
+            // 현재 활성 파티클 수 합산
+            FParticleStatManager::GetInstance().AddSpawnedParticles(Instance->ActiveParticles);
         }
     }
 

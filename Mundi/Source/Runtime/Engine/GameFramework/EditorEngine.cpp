@@ -221,16 +221,17 @@ void UEditorEngine::Tick(float DeltaSeconds)
     //@TODO: Delta Time 계산 + EditorActor Tick은 어떻게 할 것인가 
     for (auto& WorldContext : WorldContexts)
     {
-        WorldContext.World->Tick(DeltaSeconds);
-        //// 테스트용으로 분기해놨음
-        //if (WorldContext.World && bPIEActive && WorldContext.WorldType == EWorldType::Game)
-        //{
-        //    WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
-        //}
-        //else if (WorldContext.World && !bPIEActive && WorldContext.WorldType == EWorldType::Editor)
-        //{
-        //    WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
-        //}
+        if (!WorldContext.World)
+        {
+            continue;
+        }
+
+        // PIE 실행 중에는 Game 월드만, 평상시에는 Editor 월드만 Tick
+        if ((bPIEActive && WorldContext.WorldType == EWorldType::Game) ||
+            (!bPIEActive && WorldContext.WorldType == EWorldType::Editor))
+        {
+            WorldContext.World->Tick(DeltaSeconds);
+        }
     }
     
     SLATE.Update(DeltaSeconds);
