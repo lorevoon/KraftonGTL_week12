@@ -530,16 +530,21 @@ int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& Effe
         return 0;
     }
 
-    // 뷰 위치 획득: 우선 PlayerCameraManager → EditorCamera → 기본값(효과 위치)
+    // 뷰 위치 획득: 우선 PlayerCameraManager(PIE/게임) → EditorCamera(에디터 뷰) → 기본값(효과 위치)
     FVector ViewLocation = EffectLocation;
     // USceneComponent::GetWorld는 const가 아니므로 const_cast로 접근
     if (UWorld* World = const_cast<UParticleSystemComponent*>(this)->GetWorld())
     {
-        if (APlayerCameraManager* PCM = World->GetPlayerCameraManager())
+        const bool bIsPIE = GEngine.IsPIEActive();
+
+        if (bIsPIE)
         {
-            if (FMinimalViewInfo* ViewInfo = PCM->GetCurrentViewInfo())
+            if (APlayerCameraManager* PCM = World->GetPlayerCameraManager())
             {
-                ViewLocation = ViewInfo->ViewLocation;
+                if (FMinimalViewInfo* ViewInfo = PCM->GetCurrentViewInfo())
+                {
+                    ViewLocation = ViewInfo->ViewLocation;
+                }
             }
         }
         else if (ACameraActor* EditorCam = World->GetEditorCameraActor())
