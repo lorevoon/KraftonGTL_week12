@@ -1,6 +1,6 @@
 {
   "Actors" : {
-    "1005" : {
+    "1052" : {
       "ObjectName" : "ADirectionalLightActor_3",
       "OwnedComponents" : [{
           "CascadedAreaColorDebugValue" : 0.000000,
@@ -8,7 +8,7 @@
           "CascadedCount" : 4,
           "CascadedLinearBlendingValue" : 0.500000,
           "CascadedOverlapValue" : 0.200000,
-          "Id" : 1007,
+          "Id" : 1054,
           "Intensity" : 1.000000,
           "LightColor" : [1.000000, 1.000000, 1.000000, 1.000000],
           "ObjectName" : "UDirectionalLightComponent_3",
@@ -29,16 +29,16 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 1007,
+      "RootComponentId" : 1054,
       "Tag" : "",
       "Type" : "ADirectionalLightActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "1008" : {
+    "1055" : {
       "ObjectName" : "AAmbientLightActor_3",
       "OwnedComponents" : [{
-          "Id" : 1010,
+          "Id" : 1057,
           "Intensity" : 0.100000,
           "LightColor" : [1.000000, 1.000000, 1.000000, 1.000000],
           "ObjectName" : "UAmbientLightComponent_3",
@@ -58,19 +58,19 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 1010,
+      "RootComponentId" : 1057,
       "Tag" : "",
       "Type" : "AAmbientLightActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "1011" : {
+    "1058" : {
       "ObjectName" : "APlayerCameraManager_3",
       "OwnedComponents" : [{
           "AspectRatio" : 1.000000,
           "FarClip" : 100.000000,
           "FieldOfView" : 60.000000,
-          "Id" : 1013,
+          "Id" : 1060,
           "NearClip" : 0.100000,
           "ObjectName" : "UCameraComponent_8",
           "ParentId" : 0,
@@ -85,16 +85,16 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 1013,
+      "RootComponentId" : 1060,
       "Tag" : "",
       "Type" : "APlayerCameraManager",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "1014" : {
+    "1061" : {
       "ObjectName" : "스태틱 메시_401",
       "OwnedComponents" : [{
-          "Id" : 1016,
+          "Id" : 1063,
           "MaterialSlots" : [{
               "AssetPath" : "texture",
               "Type" : "UMaterial"
@@ -114,17 +114,17 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 1016,
+      "RootComponentId" : 1063,
       "Tag" : "",
       "Type" : "AStaticMeshActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "1017" : {
+    "1064" : {
       "ObjectName" : "파티클 액터_0",
       "OwnedComponents" : [{
           "CustomPlaybackRate" : 1.000000,
-          "Id" : 1019,
+          "Id" : 1066,
           "LODDistanceCheckTime" : 0.250000,
           "LODMethod" : 0,
           "ObjectName" : "UParticleSystemComponent_1",
@@ -142,17 +142,17 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 1019,
+      "RootComponentId" : 1066,
       "Tag" : "",
       "Type" : "AParticleActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "1020" : {
+    "1067" : {
       "ObjectName" : "파티클 액터_1",
       "OwnedComponents" : [{
           "CustomPlaybackRate" : 1.000000,
-          "Id" : 1022,
+          "Id" : 1069,
           "LODDistanceCheckTime" : 0.250000,
           "LODMethod" : 0,
           "ObjectName" : "UParticleSystemComponent_2",
@@ -170,17 +170,17 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 1022,
+      "RootComponentId" : 1069,
       "Tag" : "",
       "Type" : "AParticleActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "1023" : {
+    "1070" : {
       "ObjectName" : "파티클 액터_0",
       "OwnedComponents" : [{
           "CustomPlaybackRate" : 1.000000,
-          "Id" : 1025,
+          "Id" : 1072,
           "LODDistanceCheckTime" : 0.250000,
           "LODMethod" : 0,
           "ObjectName" : "UParticleSystemComponent_5",
@@ -198,17 +198,17 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 1025,
+      "RootComponentId" : 1072,
       "Tag" : "",
       "Type" : "AParticleActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "1026" : {
+    "1073" : {
       "ObjectName" : "파티클 액터_1",
       "OwnedComponents" : [{
           "CustomPlaybackRate" : 1.000000,
-          "Id" : 1028,
+          "Id" : 1076,
           "LODDistanceCheckTime" : 0.250000,
           "LODMethod" : 0,
           "ObjectName" : "UParticleSystemComponent_6",
@@ -240,20 +240,48 @@
           "bIsHomingProjectile" : false,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 1028,
+      "RootComponentId" : 1076,
+      "Tag" : "",
+      "Type" : "AParticleActor",
+      "bActorHiddenInGame" : false,
+      "bActorIsActive" : true
+    },
+    "1555" : {
+      "ObjectName" : "파티클 액터_0",
+      "OwnedComponents" : [{
+          "CustomPlaybackRate" : 1.000000,
+          "Id" : 1556,
+          "LODDistanceCheckTime" : 0.250000,
+          "LODMethod" : 0,
+          "ObjectName" : "UParticleSystemComponent_12",
+          "ParentId" : 0,
+          "RelativeLocation" : [38.896049, -10.052798, 5.752532],
+          "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
+          "RelativeScale" : [1.000000, 1.000000, 1.000000],
+          "Template" : "C:/Users/Jungle/Documents/KraftonGTL_week12/Mundi/Data/ParticleSystems/LODSample.particle",
+          "Type" : "UParticleSystemComponent",
+          "bAutoActivate" : true,
+          "bBlockComponent" : false,
+          "bGenerateOverlapEvents" : true,
+          "bHiddenInGame" : false,
+          "bIsActive" : true,
+          "bIsVisible" : true,
+          "bTickEnabled" : true
+        }],
+      "RootComponentId" : 1556,
       "Tag" : "",
       "Type" : "AParticleActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     }
   },
-  "NextUUID" : 1058,
+  "NextUUID" : 1558,
   "PerspectiveCamera" : {
     "FOV" : [60.000000],
     "FarClip" : [2000.000000],
-    "Location" : [-29.926662, -25.517298, 12.711397],
+    "Location" : [-28.716753, -31.477081, 14.765845],
     "NearClip" : [0.100000],
-    "Rotation" : [0.000000, 25.000143, 60.200413]
+    "Rotation" : [0.000000, 15.300086, 58.699474]
   },
   "Version" : 1
 }
