@@ -81,12 +81,6 @@ float4 mainPS(PS_INPUT input) : SV_Target0
     // Sample texture (use white if texture is not bound)
     float4 texColor = ParticleTexture.Sample(LinearSampler, input.UV);
 
-    // If texture alpha is near zero, assume no texture bound and use white
-    if (texColor.a < 0.001f)
-    {
-        texColor = float4(1, 1, 1, 1);
-    }
-
     // Multiply with vertex color
     float4 finalColor = texColor * input.Color;
 

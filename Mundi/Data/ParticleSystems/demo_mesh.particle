@@ -1,0 +1,193 @@
+{
+    "Emitters" : [{
+        "EmitterName" : "Mesh Emitter",
+        "LODLevels" : [{
+            "DistanceThreshold" : 0.000000,
+            "Level" : 0,
+            "Modules" : [{
+                "DistributionType" : 0,
+                "LocationMax" : [0.000000, 0.000000, 0.000000],
+                "LocationMin" : [0.000000, 0.000000, 0.000000],
+                "ModuleName" : "Spawn",
+                "Type" : "UParticleModuleSpawn",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "LifetimeMax" : 3.000000,
+                "LifetimeMin" : 2.000000,
+                "ModuleName" : "Lifetime",
+                "Type" : "UParticleModuleLifetime",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Location",
+                "StartLocation" : [0.000000, 0.000000, 0.000000],
+                "Type" : "UParticleModuleLocation",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Velocity",
+                "StartVelocityMax" : [5.000000, 5.000000, 7.000000],
+                "StartVelocityMin" : [-5.000000, -5.000000, 5.000000],
+                "Type" : "UParticleModuleVelocity",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Size",
+                "StartSizeMax" : [0.300000, 0.300000, 0.300000],
+                "StartSizeMin" : [0.200000, 0.200000, 0.200000],
+                "Type" : "UParticleModuleSize",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseSizeCurve" : false
+              }, {
+                "ColorCurve" : {
+                  "Channels" : [{
+                      "Keys" : [{
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 1,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 0.015699,
+                          "Value" : 0.685049
+                        }, {
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 1,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 0.420029,
+                          "Value" : 0.823421
+                        }, {
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 0.979707,
+                          "Value" : 0.111211
+                        }]
+                    }, {
+                      "Keys" : [{
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 0.000803,
+                          "Value" : 0.831561
+                        }, {
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 0.992475,
+                          "Value" : 0.257723
+                        }]
+                    }, {
+                      "Keys" : [{
+                          "ArriveTangent" : 3.059901,
+                          "InterpMode" : 1,
+                          "LeaveTangent" : 3.059901,
+                          "Time" : -0.005582,
+                          "Value" : 0.892607
+                        }, {
+                          "ArriveTangent" : -1.043149,
+                          "InterpMode" : 2,
+                          "LeaveTangent" : 1.509823,
+                          "Time" : 0.583889,
+                          "Value" : 0.729817
+                        }, {
+                          "ArriveTangent" : -3.220953,
+                          "InterpMode" : 1,
+                          "LeaveTangent" : -3.220953,
+                          "Time" : 0.986091,
+                          "Value" : 0.664700
+                        }]
+                    }, {
+                      "Keys" : [{
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : -0.003453,
+                          "Value" : 1.030980
+                        }, {
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 0.996060,
+                          "Value" : 1.023200
+                        }]
+                    }]
+                },
+                "EndColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "ModuleName" : "Color",
+                "StartColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleColor",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseCurve" : true
+              }, {
+                "Acceleration" : [0.000000, 0.000000, -14.700000],
+                "ModuleName" : "Acceleration",
+                "Type" : "UParticleModuleAcceleration",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : false,
+                "bUpdateModule" : true,
+                "bUseAccelerationCurve" : false
+              }, {
+                "CollisionResponse" : 1,
+                "Friction" : 0.200000,
+                "MaxCollisions" : 0,
+                "ModuleName" : "Collision",
+                "Resilience" : 0.500000,
+                "Type" : "UParticleModuleCollision",
+                "bCollisionEnabled" : true,
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : false,
+                "bUpdateModule" : true
+              }],
+            "RequiredModule" : {
+              "EmitterDuration" : 0.000000,
+              "EmitterLoops" : 0,
+              "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
+              "EmitterRotation" : 0.000000,
+              "Material" : "",
+              "ModuleName" : "Required",
+              "SortMode" : 0,
+              "SpawnRate" : 74.000000,
+              "Type" : "UParticleModuleRequired",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : true,
+              "bUpdateModule" : false,
+              "bUseLocalSpace" : false
+            },
+            "TypeDataModule" : {
+              "Mesh" : "Data/Model/Sphere.obj",
+              "ModuleName" : "TypeData Mesh",
+              "Type" : "UParticleModuleTypeDataMesh",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : false,
+              "bUpdateModule" : false,
+              "bUseMeshMaterials" : true
+            }
+          }],
+        "MaxParticleCount" : 100
+      }],
+    "LODDistanceCheckTime" : 0.250000,
+    "LODDistances" : [0.000000],
+    "LODMethod" : 0,
+    "SystemDuration" : 10.000000,
+    "SystemLoops" : 0,
+    "SystemName" : "Sample Beam Particle System",
+    "bAutoActivate" : true,
+    "bIsDirty" : false
+  }

@@ -7,7 +7,7 @@ FParticleSystemEditorViewportClient::FParticleSystemEditorViewportClient()
     ViewportType = EViewportType::Perspective;
     ViewMode = EViewMode::VMI_Lit_Phong;
 
-    Camera->SetActorLocation(FVector(50.0f, 0.0f, 10.0f)); // Front view, slightly elevated
+    Camera->SetActorLocation(FVector(5.0f, 0.0f, 2.0f)); // Front view, slightly elevated
     Camera->SetActorRotation(FVector(0.0f, 0.0f, 180.0f)); // Front view, slightly elevated
 
     Camera->SetCameraPitch(0.0f);   // Pitch: 0 degrees (level)

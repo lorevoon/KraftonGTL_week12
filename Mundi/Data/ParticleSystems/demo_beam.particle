@@ -1,0 +1,163 @@
+{
+    "Emitters" : [{
+        "EmitterName" : "Beam Emitter",
+        "LODLevels" : [{
+            "DistanceThreshold" : 0.000000,
+            "Level" : 0,
+            "Modules" : [{
+                "ModuleName" : "Beam Noise",
+                "NoiseLockTime" : 0.100000,
+                "NoiseRange" : [0.500000, 0.500000, 0.500000],
+                "Type" : "UParticleModuleBeamNoise",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSmooth" : true,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true
+              }, {
+                "DistributionType" : 0,
+                "LocationMax" : [0.000000, 0.000000, 0.000000],
+                "LocationMin" : [0.000000, 0.000000, 0.000000],
+                "ModuleName" : "Spawn",
+                "Type" : "UParticleModuleSpawn",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "LifetimeMax" : 2.000000,
+                "LifetimeMin" : 1.000000,
+                "ModuleName" : "Lifetime",
+                "Type" : "UParticleModuleLifetime",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Size",
+                "StartSizeMax" : [1.000000, 1.000000, 1.000000],
+                "StartSizeMin" : [1.000000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleSize",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseSizeCurve" : false
+              }, {
+                "ColorCurve" : {
+                  "Channels" : [{
+                      "Keys" : [{
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 1,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : -0.007074,
+                          "Value" : 0.001251
+                        }, {
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 0.998914,
+                          "Value" : 0.678313
+                        }]
+                    }, {
+                      "Keys" : [{
+                          "ArriveTangent" : 1.662989,
+                          "InterpMode" : 1,
+                          "LeaveTangent" : 1.662989,
+                          "Time" : -0.005140,
+                          "Value" : 0.471124
+                        }, {
+                          "ArriveTangent" : -1.043147,
+                          "InterpMode" : 2,
+                          "LeaveTangent" : 2.422423,
+                          "Time" : 0.443686,
+                          "Value" : 0.622816
+                        }, {
+                          "ArriveTangent" : -0.910689,
+                          "InterpMode" : 1,
+                          "LeaveTangent" : -0.910689,
+                          "Time" : 1.000849,
+                          "Value" : 0.837404
+                        }]
+                    }, {
+                      "Keys" : [{
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 0.006468,
+                          "Value" : 0.955797
+                        }, {
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 1.000849,
+                          "Value" : 0.970596
+                        }]
+                    }, {
+                      "Keys" : [{
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 0.000000,
+                          "Value" : 1.000000
+                        }, {
+                          "ArriveTangent" : 0.000000,
+                          "InterpMode" : 3,
+                          "LeaveTangent" : 0.000000,
+                          "Time" : 1.000000,
+                          "Value" : 1.000000
+                        }]
+                    }]
+                },
+                "EndColor" : [1.000000, 1.000000, 1.000000, 0.000000],
+                "ModuleName" : "Color",
+                "StartColor" : [0.200000, 0.500000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleColor",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseCurve" : true
+              }],
+            "RequiredModule" : {
+              "EmitterDuration" : 0.000000,
+              "EmitterLoops" : 0,
+              "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
+              "EmitterRotation" : 0.000000,
+              "Material" : "",
+              "ModuleName" : "Required",
+              "SortMode" : 0,
+              "SpawnRate" : 2.000000,
+              "Type" : "UParticleModuleRequired",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : true,
+              "bUpdateModule" : false,
+              "bUseLocalSpace" : false
+            },
+            "TypeDataModule" : {
+              "BeamMethod" : 2,
+              "Direction" : [1.000000, 0.000000, 0.000000],
+              "Length" : 15.000000,
+              "ModuleName" : "TypeData Beam",
+              "Segments" : 8,
+              "TaperFactor" : 0.000000,
+              "Type" : "UParticleModuleTypeDataBeam",
+              "Width" : 0.100000,
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : false,
+              "bUpdateModule" : false
+            }
+          }],
+        "MaxParticleCount" : 10
+      }],
+    "LODDistanceCheckTime" : 0.250000,
+    "LODDistances" : [0.000000],
+    "LODMethod" : 0,
+    "SystemDuration" : 0.000000,
+    "SystemLoops" : 0,
+    "SystemName" : "ParticleSystem",
+    "bAutoActivate" : true,
+    "bIsDirty" : false
+  }
