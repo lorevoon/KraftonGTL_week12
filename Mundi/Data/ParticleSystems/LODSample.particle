@@ -1,0 +1,445 @@
+{
+    "Emitters" : [{
+        "EmitterName" : "Mesh Emitter",
+        "LODLevels" : [{
+            "DistanceThreshold" : 0.000000,
+            "Level" : 0,
+            "Modules" : [{
+                "DistributionType" : 1,
+                "LocationMax" : [10.000000, 10.000000, 10.000000],
+                "LocationMin" : [-10.000000, -10.000000, -10.000000],
+                "ModuleName" : "Spawn",
+                "Type" : "UParticleModuleSpawn",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "LifetimeMax" : 3.000000,
+                "LifetimeMin" : 2.000000,
+                "ModuleName" : "Lifetime",
+                "Type" : "UParticleModuleLifetime",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Location",
+                "StartLocation" : [0.000000, 0.000000, 0.000000],
+                "Type" : "UParticleModuleLocation",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Velocity",
+                "StartVelocityMax" : [1.000000, 1.000000, 1.000000],
+                "StartVelocityMin" : [-1.000000, -1.000000, -1.000000],
+                "Type" : "UParticleModuleVelocity",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Size",
+                "StartSizeMax" : [1.000000, 1.000000, 1.000000],
+                "StartSizeMin" : [0.500000, 0.500000, 0.500000],
+                "Type" : "UParticleModuleSize",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseSizeCurve" : false
+              }, {
+                "EndColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "ModuleName" : "Color",
+                "StartColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleColor",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseCurve" : false
+              }],
+            "RequiredModule" : {
+              "EmitterDuration" : 0.000000,
+              "EmitterLoops" : 0,
+              "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
+              "EmitterRotation" : 0.000000,
+              "Material" : "",
+              "ModuleName" : "Required",
+              "SortMode" : 0,
+              "SpawnRate" : 100.000000,
+              "Type" : "UParticleModuleRequired",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : true,
+              "bUpdateModule" : false,
+              "bUseLocalSpace" : false
+            },
+            "TypeDataModule" : {
+              "Mesh" : "Data/Model/2/damaged_rock.obj",
+              "ModuleName" : "TypeData Mesh",
+              "Type" : "UParticleModuleTypeDataMesh",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : false,
+              "bUpdateModule" : false,
+              "bUseMeshMaterials" : true
+            }
+          }, {
+            "DistanceThreshold" : 25.000000,
+            "Level" : 1,
+            "Modules" : [{
+                "DistributionType" : 1,
+                "LocationMax" : [10.000000, 10.000000, 10.000000],
+                "LocationMin" : [-10.000000, -10.000000, -10.000000],
+                "ModuleName" : "Spawn",
+                "Type" : "UParticleModuleSpawn",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "LifetimeMax" : 3.000000,
+                "LifetimeMin" : 2.000000,
+                "ModuleName" : "Lifetime",
+                "Type" : "UParticleModuleLifetime",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Location",
+                "StartLocation" : [0.000000, 0.000000, 0.000000],
+                "Type" : "UParticleModuleLocation",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Velocity",
+                "StartVelocityMax" : [1.000000, 1.000000, 1.000000],
+                "StartVelocityMin" : [-1.000000, -1.000000, -1.000000],
+                "Type" : "UParticleModuleVelocity",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Size",
+                "StartSizeMax" : [1.000000, 1.000000, 1.000000],
+                "StartSizeMin" : [0.500000, 0.500000, 0.500000],
+                "Type" : "UParticleModuleSize",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseSizeCurve" : false
+              }, {
+                "EndColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "ModuleName" : "Color",
+                "StartColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleColor",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseCurve" : false
+              }],
+            "RequiredModule" : {
+              "EmitterDuration" : 0.000000,
+              "EmitterLoops" : 0,
+              "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
+              "EmitterRotation" : 0.000000,
+              "Material" : "",
+              "ModuleName" : "Required",
+              "SortMode" : 0,
+              "SpawnRate" : 50.000000,
+              "Type" : "UParticleModuleRequired",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : true,
+              "bUpdateModule" : false,
+              "bUseLocalSpace" : false
+            },
+            "TypeDataModule" : {
+              "Mesh" : "Data/Model/2/damaged_rock.obj",
+              "ModuleName" : "TypeData Mesh",
+              "Type" : "UParticleModuleTypeDataMesh",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : false,
+              "bUpdateModule" : false,
+              "bUseMeshMaterials" : true
+            }
+          }, {
+            "DistanceThreshold" : 50.000000,
+            "Level" : 2,
+            "Modules" : [{
+                "DistributionType" : 1,
+                "LocationMax" : [10.000000, 10.000000, 10.000000],
+                "LocationMin" : [-10.000000, -10.000000, -10.000000],
+                "ModuleName" : "Spawn",
+                "Type" : "UParticleModuleSpawn",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "LifetimeMax" : 3.000000,
+                "LifetimeMin" : 2.000000,
+                "ModuleName" : "Lifetime",
+                "Type" : "UParticleModuleLifetime",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Location",
+                "StartLocation" : [0.000000, 0.000000, 0.000000],
+                "Type" : "UParticleModuleLocation",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Velocity",
+                "StartVelocityMax" : [1.000000, 1.000000, 1.000000],
+                "StartVelocityMin" : [-1.000000, -1.000000, -1.000000],
+                "Type" : "UParticleModuleVelocity",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Size",
+                "StartSizeMax" : [1.000000, 1.000000, 1.000000],
+                "StartSizeMin" : [0.500000, 0.500000, 0.500000],
+                "Type" : "UParticleModuleSize",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseSizeCurve" : false
+              }, {
+                "EndColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "ModuleName" : "Color",
+                "StartColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleColor",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseCurve" : false
+              }],
+            "RequiredModule" : {
+              "EmitterDuration" : 0.000000,
+              "EmitterLoops" : 0,
+              "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
+              "EmitterRotation" : 0.000000,
+              "Material" : "",
+              "ModuleName" : "Required",
+              "SortMode" : 0,
+              "SpawnRate" : 30.000000,
+              "Type" : "UParticleModuleRequired",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : true,
+              "bUpdateModule" : false,
+              "bUseLocalSpace" : false
+            },
+            "TypeDataModule" : {
+              "Mesh" : "Data/Model/2/damaged_rock.obj",
+              "ModuleName" : "TypeData Mesh",
+              "Type" : "UParticleModuleTypeDataMesh",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : false,
+              "bUpdateModule" : false,
+              "bUseMeshMaterials" : true
+            }
+          }, {
+            "DistanceThreshold" : 75.000000,
+            "Level" : 3,
+            "Modules" : [{
+                "DistributionType" : 1,
+                "LocationMax" : [10.000000, 10.000000, 10.000000],
+                "LocationMin" : [-10.000000, -10.000000, -10.000000],
+                "ModuleName" : "Spawn",
+                "Type" : "UParticleModuleSpawn",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "LifetimeMax" : 3.000000,
+                "LifetimeMin" : 2.000000,
+                "ModuleName" : "Lifetime",
+                "Type" : "UParticleModuleLifetime",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Location",
+                "StartLocation" : [0.000000, 0.000000, 0.000000],
+                "Type" : "UParticleModuleLocation",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Velocity",
+                "StartVelocityMax" : [1.000000, 1.000000, 1.000000],
+                "StartVelocityMin" : [-1.000000, -1.000000, -1.000000],
+                "Type" : "UParticleModuleVelocity",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Size",
+                "StartSizeMax" : [1.000000, 1.000000, 1.000000],
+                "StartSizeMin" : [0.500000, 0.500000, 0.500000],
+                "Type" : "UParticleModuleSize",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseSizeCurve" : false
+              }, {
+                "EndColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "ModuleName" : "Color",
+                "StartColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleColor",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseCurve" : false
+              }],
+            "RequiredModule" : {
+              "EmitterDuration" : 0.000000,
+              "EmitterLoops" : 0,
+              "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
+              "EmitterRotation" : 0.000000,
+              "Material" : "",
+              "ModuleName" : "Required",
+              "SortMode" : 0,
+              "SpawnRate" : 10.000000,
+              "Type" : "UParticleModuleRequired",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : true,
+              "bUpdateModule" : false,
+              "bUseLocalSpace" : false
+            },
+            "TypeDataModule" : {
+              "Mesh" : "Data/Model/2/damaged_rock.obj",
+              "ModuleName" : "TypeData Mesh",
+              "Type" : "UParticleModuleTypeDataMesh",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : false,
+              "bUpdateModule" : false,
+              "bUseMeshMaterials" : true
+            }
+          }, {
+            "DistanceThreshold" : 100.000000,
+            "Level" : 4,
+            "Modules" : [{
+                "DistributionType" : 1,
+                "LocationMax" : [10.000000, 10.000000, 10.000000],
+                "LocationMin" : [-10.000000, -10.000000, -10.000000],
+                "ModuleName" : "Spawn",
+                "Type" : "UParticleModuleSpawn",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "LifetimeMax" : 3.000000,
+                "LifetimeMin" : 2.000000,
+                "ModuleName" : "Lifetime",
+                "Type" : "UParticleModuleLifetime",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Location",
+                "StartLocation" : [0.000000, 0.000000, 0.000000],
+                "Type" : "UParticleModuleLocation",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Velocity",
+                "StartVelocityMax" : [1.000000, 1.000000, 1.000000],
+                "StartVelocityMin" : [-1.000000, -1.000000, -1.000000],
+                "Type" : "UParticleModuleVelocity",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : false
+              }, {
+                "ModuleName" : "Size",
+                "StartSizeMax" : [1.000000, 1.000000, 1.000000],
+                "StartSizeMin" : [0.500000, 0.500000, 0.500000],
+                "Type" : "UParticleModuleSize",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseSizeCurve" : false
+              }, {
+                "EndColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "ModuleName" : "Color",
+                "StartColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+                "Type" : "UParticleModuleColor",
+                "bEnabled" : true,
+                "bFinalUpdateModule" : false,
+                "bSpawnModule" : true,
+                "bUpdateModule" : true,
+                "bUseCurve" : false
+              }],
+            "RequiredModule" : {
+              "EmitterDuration" : 0.000000,
+              "EmitterLoops" : 0,
+              "EmitterOrigin" : [0.000000, 0.000000, 0.000000],
+              "EmitterRotation" : 0.000000,
+              "Material" : "",
+              "ModuleName" : "Required",
+              "SortMode" : 0,
+              "SpawnRate" : 3.000000,
+              "Type" : "UParticleModuleRequired",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : true,
+              "bUpdateModule" : false,
+              "bUseLocalSpace" : false
+            },
+            "TypeDataModule" : {
+              "Mesh" : "Data/Model/2/damaged_rock.obj",
+              "ModuleName" : "TypeData Mesh",
+              "Type" : "UParticleModuleTypeDataMesh",
+              "bEnabled" : true,
+              "bFinalUpdateModule" : false,
+              "bSpawnModule" : false,
+              "bUpdateModule" : false,
+              "bUseMeshMaterials" : true
+            }
+          }],
+        "MaxParticleCount" : 200
+      }],
+    "LODDistanceCheckTime" : 0.250000,
+    "LODDistances" : [0.000000, 25.000000, 50.000000, 75.000000, 100.000000],
+    "LODMethod" : 0,
+    "SystemDuration" : 0.000000,
+    "SystemLoops" : 0,
+    "SystemName" : "ParticleSystem",
+    "bAutoActivate" : true,
+    "bIsDirty" : false
+  }
